@@ -52,7 +52,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 | Note | `nt_<typeid>` (increment 2) | `nt_01jdx…` |
 
 - Slugs are lowercase ASCII with hyphens. On a collision the CLI adds `-2`, `-3`… and returns the `SIMILAR_EXISTS` warning with the existing ID.
-- An ID can be given explicitly at creation. It never changes afterwards: the name can be edited, but the ID cannot.
+- Kravis generates every ID, except a user's key, which is given at creation (`kravis user create <key>`, `init --user <key>`). An ID never changes afterwards: the name can be edited, but the ID cannot.
 - Each type has exactly one ID form.
 - A person can also be addressed by any of their emails wherever a person ID is accepted.
 - Catalog values (statuses, party roles, purposes, lost reasons, channels, stages) are slugs: they are configuration, not records.

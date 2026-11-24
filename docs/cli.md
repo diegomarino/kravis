@@ -44,7 +44,10 @@ Success:
   - `unchanged` when nothing changed and the version was not bumped;
   - `deleted`.
   `data` holds the type's compact view plus the fields the write touched. `--fields a,b` and `--full` widen it.
-- **Lists** return the compact view of each record, at most 50 by default (`--limit 0` returns them all). They always report `total`, and they return an opaque `next_cursor`. Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties. A record changed between two pages may be skipped or repeated. Lists show only live records by default; `--all` or an explicit category includes the others.
+- **Lists** return the compact view of each record, at most 50 by default (`--limit <n>`; `--limit 0` returns them all). They always report `total`, and they return an opaque `next_cursor` that `--cursor <next_cursor>` continues. Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties:
+  - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine;
+  - interactions by `occurred_at`, newest first;
+  - tasks by `due`, soonest first, with tasks without a due date last. A record changed between two pages may be skipped or repeated. Lists show only live records by default; `--all` or an explicit category includes the others.
 
 Error (stderr):
 
@@ -98,6 +101,20 @@ Error (stderr):
 
 - Agent input is strict: unknown flags and fields are refused (`UNKNOWN_FIELD`). Records read from disk are tolerant instead: Kravis keeps their unknown fields.
 - Long text is passed with `--summary-file` or `--description-file`, or as `-` to read it from stdin.
+- Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`. No flag replaces a whole list.
+- An empty value clears an optional field: `--agent ""`, `--due ""`.
+
+### Compact views
+
+Every compact view has `id`, the name or title, `live`, and `holder` on work records. Each type adds:
+
+| Type | Fields |
+|---|---|
+| User | `kind`, `holder` |
+| Organization | `domains`, `own` |
+| Person | `emails` |
+| Interaction | `occurred_at`, `channel`, `direction`, `subject`, `participants` |
+| Task | `status`, `category`, `assignee`, `agent`, `due` |
 
 ## Discovery
 
@@ -128,7 +145,7 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 | `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; `--set` stores the default actor |
 | `kravis schema [type]` | See Discovery |
 | `kravis check` | Reports findings as JSON (`code`, record, `message`) and exits 6 if there are any. It never writes |
-| `kravis user list\|get\|create\|update\|delete` | `create --human\|--agent --holder <org> [--handler <user>] [--person <id>]`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP |
+| `kravis user list\|get\|create\|update\|delete` | `create <key> --human\|--agent --holder <org> [--handler <user>] [--person <id>]`; the ID is `us_<key>`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP |
 | `kravis organization list\|get\|create\|update\|delete` | `--own` marks an own organization. The mark cannot be removed while the organization is a holder. `--domain` can be repeated and deduplicates |
 | `kravis person list\|get\|create\|update\|delete` | `--email` can be repeated and deduplicates; the email is also an alias of the person |
 | `kravis person affiliation add\|remove <person> <organization> [--title <text>]` | At most one affiliation per pair. `add` on an existing pair updates the title |
