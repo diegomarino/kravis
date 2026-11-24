@@ -282,6 +282,12 @@ func TestUserCreateIsIdempotentAndConflictsOnOtherData(t *testing.T) {
 			t.Errorf("%s: details %v", field, eo["details"])
 		}
 	}
+	// A repeated create is still existing after the handler went off.
+	e.ok("user", "create", "dan-acme", "--human", "--holder", orgID)
+	e.ok("user", "create", "bot2-acme", "--agent", "--holder", orgID, "--handler", "us_dan-acme")
+	e.ok("user", "update", "us_bot2-acme", "--live=false")
+	e.ok("user", "update", "us_dan-acme", "--live=false")
+	outcomeOf(t, e.ok("user", "create", "bot2-acme", "--agent", "--holder", orgID, "--handler", "us_dan-acme"), "existing")
 	e.refused("INVALID_VALUE", 2, "user", "create", "Bad Key", "--human", "--holder", orgID)
 	e.refused("UNKNOWN_FIELD", 2, "user", "create", "x", "--human", "--holder", orgID, "--fields", "nope")
 }

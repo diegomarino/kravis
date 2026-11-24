@@ -119,6 +119,17 @@ func (ws *Workspace) CreateUser(actor string, in UserInput, opt ViewOptions) (*R
 	if in.Kind == KindAgent && in.Person != "" {
 		return nil, invalidValue("person", "only a human can be linked to a person", "an agent cannot be linked to a person")
 	}
+	var err error
+	if in.Person != "" {
+		if rec.Person, err = ws.resolveLinkedPerson(in.Person); err != nil {
+			return nil, err
+		}
+	}
+	// A user that exists is returned before the handler and holder are
+	// judged again: repeating a create stays safe after they were deactivated.
+	if ex, _, err := users.load(ws, rec.ID); err == nil {
+		return ws.sameUser(ex, rec, opt)
+	}
 	org, _, err := organizations.load(ws, in.Holder)
 	if err != nil {
 		var e *Error
@@ -136,36 +147,37 @@ func (ws *Workspace) CreateUser(actor string, in UserInput, opt ViewOptions) (*R
 			return nil, err
 		}
 	}
-	if in.Person != "" {
-		if rec.Person, err = ws.resolveLinkedPerson(in.Person); err != nil {
-			return nil, err
-		}
-	}
 	touched := touchedIf("holder", true, "kind", true, "handler", rec.Handler != "", "person", rec.Person != "", "name", rec.Name != "")
 
 	_, _, err = storage.Create(ws.Store, rec, actor, users.Path, nil)
-	if errors.Is(err, storage.ErrExists) {
+	if errors.Is(err, storage.ErrExists) { // another create took the key first
 		ex, _, lerr := users.load(ws, rec.ID)
 		if lerr != nil {
 			return nil, lerr
 		}
-		for _, d := range []struct{ field, have, want string }{
-			{"holder", ex.Holder, rec.Holder}, {"kind", ex.Kind, rec.Kind},
-			{"handler", ex.Handler, rec.Handler}, {"person", ex.Person, rec.Person},
-		} {
-			if d.have != d.want {
-				return nil, dedupConflict("user", ex.ID, d.field, "%s already exists with %s %q, not %q", ex.ID, d.field, d.have, d.want).with("value", d.want)
-			}
-		}
-		if rec.Name != "" && ex.Name != rec.Name {
-			return nil, dedupConflict("user", ex.ID, "name", "%s already exists with the name %q, not %q", ex.ID, ex.Name, rec.Name).with("value", rec.Name)
-		}
-		return users.result(OutcomeExisting, ex, nil, opt)
+		return ws.sameUser(ex, rec, opt)
 	}
 	if err != nil {
 		return nil, err
 	}
 	return users.result(OutcomeCreated, rec, touched, opt)
+}
+
+// sameUser is the result of a create for a user that exists: existing when
+// the data matches, DEDUP_CONFLICT when it contradicts.
+func (ws *Workspace) sameUser(ex, rec *User, opt ViewOptions) (*Result, error) {
+	for _, d := range []struct{ field, have, want string }{
+		{"holder", ex.Holder, rec.Holder}, {"kind", ex.Kind, rec.Kind},
+		{"handler", ex.Handler, rec.Handler}, {"person", ex.Person, rec.Person},
+	} {
+		if d.have != d.want {
+			return nil, dedupConflict("user", ex.ID, d.field, "%s already exists with %s %q, not %q", ex.ID, d.field, d.have, d.want).with("value", d.want)
+		}
+	}
+	if rec.Name != "" && ex.Name != rec.Name {
+		return nil, dedupConflict("user", ex.ID, "name", "%s already exists with the name %q, not %q", ex.ID, ex.Name, rec.Name).with("value", rec.Name)
+	}
+	return users.result(OutcomeExisting, ex, nil, opt)
 }
 
 // UserChange is what user update takes; nil leaves a field as it is. Holder,
