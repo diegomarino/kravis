@@ -112,7 +112,7 @@ Error (stderr):
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
 | `DEDUP_CONFLICT` | error, 4 | The natural key exists with contradicting data, or identifying references are split across two interactions |
 | `REFERENCED` | error, 4 | A delete of a record that others refer to; `details.referrers` lists them |
-| `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or the files an interrupted `init` left (another organization, user or timezone) |
+| `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or that conflicts with the files an interrupted `init` left (another organization, user or timezone) |
 | `STORAGE_UNAVAILABLE` | error, 5 | The workspace cannot be read or written |
 | `WORKSPACE_FILE_MISSING` | check finding | `kravis.json` or `config.json` does not exist |
 | `WORKSPACE_FILE_INVALID` | check finding | `kravis.json` or `config.json` exists but cannot be read as the file it should be |
@@ -170,7 +170,7 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 
 | Command | Notes |
 |---|---|
-| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with different data (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
+| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with data that conflicts with the files it left (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
 | `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; without an actor it fails with `MISSING_ACTOR`. `--set` stores the default actor |
 | `kravis schema [type]` | See Discovery |
 | `kravis check` | Prints its findings (`code`, record, `message`) on stdout as `data` and exits 6 if there are any. They are data, not a failure of the command. It never writes |
