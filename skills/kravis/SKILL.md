@@ -29,7 +29,7 @@ Two calls, each safe to repeat when the interaction carries its Message-ID.
 
 ### References
 
-A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it came from, and the same reference recorded twice finds the same interaction. Record the Message-ID first: `email:message:<message-id>`, with no angle brackets. Add the provider's own IDs next to it. How to get the Message-ID from Gmail, Outlook, IMAP and Apple Mail is in [references/message-id.md](references/message-id.md).
+A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it came from, and an identifying reference recorded twice finds the same interaction. Record the Message-ID first: `email:message:<message-id>`, with no angle brackets. Add the provider's own IDs next to it: they do not identify, so a create with only those makes a second interaction when it is repeated after a lost answer: list before you create it again. How to get the Message-ID from Gmail, Outlook, IMAP and Apple Mail is in [references/message-id.md](references/message-id.md).
 
 ## Manage tasks
 

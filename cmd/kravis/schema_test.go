@@ -208,6 +208,7 @@ var corpus = map[string][]inputCase{
 		{"a blank name", `{"name":"  "}`, false},
 		{"a domain that is not one", `{"name":"Lambda Example","domains":["not a domain"]}`, false},
 		{"an email provider's domain", `{"name":"Mu Example","domains":["gmail.com"]}`, false},
+		{"an email provider's domain with www", `{"name":"Omicron Example","domains":["www.gmail.com"]}`, false},
 		{"an email provider's domain in capitals", `{"name":"Nu Example","domains":["GMAIL.com"]}`, false},
 		{"an unknown field", `{"name":"Xi Example","industry":"software"}`, false},
 	},

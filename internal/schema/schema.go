@@ -103,7 +103,7 @@ func providerPattern() string {
 	for _, d := range domain.ProviderDomains() {
 		alts = append(alts, caseless(d))
 	}
-	return `^\s*(` + strings.Join(alts, "|") + `)\s*$`
+	return `^\s*(` + caseless("www.") + `)?(` + strings.Join(alts, "|") + `)\s*$`
 }
 
 // caseless is a pattern that matches s in any case.
