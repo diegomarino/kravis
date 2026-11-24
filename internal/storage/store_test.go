@@ -708,3 +708,27 @@ func TestSidecarUndoKeepsAConcurrentWriteOfTheSameText(t *testing.T) {
 		t.Fatalf("B's committed text was undone: %q", got)
 	}
 }
+
+func TestALosingCreateKeepsTheKeysOfTheWinner(t *testing.T) {
+	s, m := newTestStore()
+	a := &testPerson{Base: Base{ID: "pe_ana", Text: text("A's notes")}, Name: "Ana", Emails: IDs{"ana@example.com"}}
+	// A created the key; before A writes its record, B creates the same
+	// person, takes the ID from A's key and writes the record first.
+	once(m, OpCreate, personPath("pe_ana"), func() {
+		b := &testPerson{Base: Base{ID: "pe_ana-2", Text: text("B's notes")}, Name: "Ana", Emails: IDs{"ana@example.com"}}
+		if id, existing, err := s.Create(b, "us_b", personPath, personKeys(b)); err != nil || existing || id != "pe_ana" {
+			t.Errorf("B: %q, %v, %v", id, existing, err)
+		}
+	})
+	id, existing, err := s.Create(a, "us_a", personPath, personKeys(a))
+	if err != nil || !existing || id != "pe_ana" {
+		t.Fatalf("A: %q, %v, %v", id, existing, err)
+	}
+	checkKey(t, m, email("ana@example.com"), "pe_ana")
+	if got := loadPerson(t, s, "pe_ana"); got.CreatedBy != "us_b" {
+		t.Fatalf("record = %+v", got.Base)
+	}
+	if got, _ := s.Text(personPath("pe_ana")); got != "B's notes" {
+		t.Fatalf("text = %q", got)
+	}
+}

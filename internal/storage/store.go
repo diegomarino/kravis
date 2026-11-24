@@ -140,6 +140,11 @@ func (s *Store) Create(rec Record, actor string, pathOf func(id string) string, 
 	if err == nil {
 		_, err = s.c.Create(p, data)
 	}
+	if errors.Is(err, ErrExists) && len(keys) > 0 {
+		// A concurrent create took the ID from these keys and wrote the
+		// record first: the keys are its keys now.
+		return b.ID, true, undo()
+	}
 	if err != nil {
 		return "", false, errors.Join(err, undo(), s.dropKeys(created, b.ID))
 	}
