@@ -14,5 +14,5 @@ A holder never changes. A record created under the wrong holder is deleted, whic
 ## Consequences
 
 - A human who works for several own organizations has one user per organization. All of them link to the same person.
-- People, organizations and users have no holder and are shared.
+- People and organizations have no holder and are shared. Users are not shared: each belongs to exactly one holder.
 - Settings stay workspace-wide in the MVP, but catalog validation always resolves "the configuration for this holder", so per-holder settings can be added later.
