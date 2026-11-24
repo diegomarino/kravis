@@ -15,7 +15,7 @@ Stack, repository layout, tooling and the definition of done for the MVP.
 ```text
 cmd/kravis/            CLI (cobra), thin
 internal/domain/       records, rules, validation, catalogs
-internal/storage/      adapter (get, create, replace, list) and the local filesystem connector
+internal/storage/      adapter (get, create, replace, delete, list) and the local filesystem connector
 internal/schema/       JSON Schema generation and catalog injection
 skills/kravis/         operational skill (SKILL.md, references/ only if it grows)
 docs/                  storage.md, cli.md, development.md

@@ -6,10 +6,11 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 
 - **Files are the only source of truth.** There is no cache and no index: reads scan the files. A future index must be disposable and rebuildable from the files.
 - **One record, one JSON file.** The file is readable in a diff and can be filtered with `jq`. Long text goes in a Markdown sidecar next to it.
-- **Object-store semantics.** Every storage operation goes through four calls, so the same contract can later run on an S3-compatible bucket such as Tigris:
+- **Object-store semantics.** Every storage operation goes through five calls, so the same contract can later run on an S3-compatible bucket such as Tigris:
   - `get(path)` returns the content and a version token;
   - `create(path, bytes)` writes only if the path does not exist;
   - `replace(path, bytes, token)` writes only if the token still matches;
+  - `delete(path, token)` removes the object only if the token still matches;
   - `list(prefix)` lists paths under a prefix.
   Nothing outside the connector assumes POSIX: no hard links, no `rename` and no `fsync` in the domain code.
 - **No invariant needs several files to be written atomically.** Rules that span records are checked when writing, and any race left over is reported by `kravis check`.
@@ -132,7 +133,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 - **Create** uses `create`, which writes only if the path does not exist.
 - **Update** reads the record, applies the change, and writes with `replace`, conditional on the version token it read. If the record changed in between, Kravis rereads and reapplies the change, up to 3 attempts. If it still conflicts, it fails with `VERSION_CONFLICT` (exit code 4).
 - The local filesystem connector writes to a temporary file, checks that the version is unchanged right before renaming it into place, and takes no locks. The residual race window is accepted and `check` reports what it leaves behind. Hardening it (a lock per record locally, `If-Match` / `If-None-Match` on Tigris) is a connector change that leaves the contract as it is.
-- **Delete** checks that no record refers to the target, then removes the JSON file, its sidecar and its keys. If something refers to the target, it fails and lists the referring records.
+- **Delete** checks that no record refers to the target, then removes the JSON file with `delete`, conditional on the version token it read, and then its sidecar and its keys. A target that changed in between fails with `VERSION_CONFLICT`. If something refers to the target, it fails and lists the referring records.
 
 ### Deduplication keys
 
@@ -175,6 +176,6 @@ The catalog of sources lives in code, because each source has its own behavior: 
 
 ## Ready for later
 
-- **Tigris:** an S3 connector implementing the same four calls with conditional writes. tigrisfs does not preserve conditional writes, so at most it is fit for reads or for a single writer. A bucket with writers in several regions must be Single-region or Multi-region.
+- **Tigris:** an S3 connector implementing the same five calls with conditional writes and deletes. tigrisfs does not preserve conditional writes, so at most it is fit for reads or for a single writer. A bucket with writers in several regions must be Single-region or Multi-region.
 - **History on Tigris:** a change journal of Kravis's own. It would not change the record format.
 - **Index:** a disposable index, to be built when listing open tasks across all history becomes slow.
