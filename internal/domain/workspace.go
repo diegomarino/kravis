@@ -51,6 +51,15 @@ type Config struct {
 	Catalogs Catalogs `json:"catalogs"`
 }
 
+// forHolder is the configuration that applies to a holder. In the MVP it is
+// the workspace's own, so per-holder configuration can be added later
+// without touching the callers (ADR-001).
+func (c Config) forHolder(string) Config { return c }
+
+// ConfigFor returns the configuration for holder H: every catalog lookup
+// goes through it.
+func (ws *Workspace) ConfigFor(holder string) Config { return ws.Config.forHolder(holder) }
+
 var statusCategories = []string{"open", "waiting", "done", "canceled"}
 
 // DefaultCatalogs are the catalogs init writes.

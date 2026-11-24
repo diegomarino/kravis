@@ -42,11 +42,11 @@ func loadForCheck[T any, P interface {
 	return out, nil
 }
 
-// auditReferences reports what users and affiliations refer to: records that
-// do not exist (BROKEN_REFERENCE) and records that cannot be what is meant
+// auditUserLinks reports what users refer to: records that do not exist
+// (BROKEN_REFERENCE) and records that cannot be what is meant
 // (INVALID_RECORD): a holder that is not an own organization, a handler that
 // is not a live human of the agent's holder.
-func auditReferences(st *storage.Store, add addFinding) error {
+func auditUserLinks(st *storage.Store, add addFinding) error {
 	us, err := loadForCheck(st, users)
 	if err != nil {
 		return err
@@ -85,6 +85,20 @@ func auditReferences(st *storage.Store, add addFinding) error {
 				add(FindingBrokenReference, u.path, "the person %s does not exist", u.rec.Person)
 			}
 		}
+	}
+	return nil
+}
+
+// auditPersonLinks reports the affiliations that point to an organization
+// that does not exist (BROKEN_REFERENCE).
+func auditPersonLinks(st *storage.Store, add addFinding) error {
+	orgs, err := loadForCheck(st, organizations)
+	if err != nil {
+		return err
+	}
+	pe, err := loadForCheck(st, people)
+	if err != nil {
+		return err
 	}
 	for _, id := range slices.Sorted(maps.Keys(pe)) {
 		for _, a := range pe[id].rec.Affiliations {

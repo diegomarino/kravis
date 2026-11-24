@@ -21,9 +21,14 @@ const (
 	FindingValueWithoutKey  = "VALUE_WITHOUT_KEY"
 )
 
-// audits check the records of each type against its rules, and its
-// natural keys against the values they stand for.
-var audits = []func(st *storage.Store, add addFinding) error{people.audit, organizations.audit, users.audit, auditReferences}
+// audits check the records of each type against its rules and its natural
+// keys against the values they stand for, then what they refer to. Each
+// type that refers to others adds its audit here, as it adds a scan to
+// referenceScans.
+var audits = []func(st *storage.Store, add addFinding) error{
+	people.audit, organizations.audit, users.audit, interactions.audit,
+	auditUserLinks, auditPersonLinks, auditInteractionLinks,
+}
 
 type addFinding func(code, record, format string, args ...any)
 
