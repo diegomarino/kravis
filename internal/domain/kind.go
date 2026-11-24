@@ -447,7 +447,7 @@ func (k *kind[T, P]) list(ws *Workspace, opt ListOptions) (*ListResult, error) {
 		}
 	}
 	end := len(rows)
-	if opt.Limit > 0 && start+opt.Limit < end {
+	if opt.Limit > 0 && opt.Limit < end-start {
 		end = start + opt.Limit
 		last := rows[end-1]
 		raw, _ := json.Marshal(cursor{last.key, last.id, fp})
@@ -512,12 +512,21 @@ func (k *kind[T, P]) audit(st *storage.Store, add addFinding) error {
 		if !strings.HasSuffix(p, ".json") {
 			continue
 		}
+		data, _, err := st.Raw(p)
+		if errors.Is(err, storage.ErrUnavailable) {
+			return err
+		}
 		rec := P(new(T))
-		if _, err := st.Load(p, rec); err != nil {
-			if errors.Is(err, storage.ErrUnavailable) {
-				return err
-			}
+		if err != nil || storage.Decode(data, &anyRecord{}) != nil {
+			continue // missing or not a record at all: Check reports it
+		}
+		if err := storage.Decode(data, rec); err != nil {
+			add(FindingInvalidRecord, p, "a field has the wrong type: %v", err)
 			continue
+		}
+		var flags struct{ Live *bool }
+		if json.Unmarshal(data, &flags) != nil || flags.Live == nil {
+			add(FindingInvalidRecord, p, "the record has no live flag (true or false)")
 		}
 		id := rec.Meta().ID
 		for _, problem := range k.problems(rec) {

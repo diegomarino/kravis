@@ -602,6 +602,9 @@ func TestCheckReportsBrokenPeopleAndOrganizations(t *testing.T) {
 	must(t, os.WriteFile("records/people/pe_nobody.json", []byte(`{"id":"pe_nobody","live":true}`), 0o600))
 	must(t, os.WriteFile("records/people/pe_moved.json", []byte(`{"id":"pe_other","name":"X","live":true}`), 0o600))
 	must(t, os.WriteFile("records/organizations/org_mail.json", []byte(`{"id":"org_mail","name":"Mail","domains":["gmail.com"],"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_typed.json", []byte(`{"id":"pe_typed","name":123,"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nolive.json", []byte(`{"id":"pe_nolive","name":"No Live"}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nulllive.json", []byte(`{"id":"pe_nulllive","name":"Null Live","live":null}`), 0o600))
 	// A key whose record is gone.
 	must(t, os.Remove("records/people/"+elenaID+".json"))
 
@@ -624,6 +627,9 @@ func TestCheckReportsBrokenPeopleAndOrganizations(t *testing.T) {
 		"INVALID_RECORD records/organizations/org_mail.json",
 		"INVALID_RECORD records/people/pe_moved.json",
 		"INVALID_RECORD records/people/pe_nobody.json",
+		"INVALID_RECORD records/people/pe_nolive.json",
+		"INVALID_RECORD records/people/pe_nulllive.json",
+		"INVALID_RECORD records/people/pe_typed.json",
 		"KEY_WITHOUT_VALUE keys/organization-domain",
 		"KEY_WITHOUT_VALUE keys/person-email",
 		"VALUE_WITHOUT_KEY records/organizations/org_mail.json",
@@ -646,10 +652,18 @@ func TestListsOnATerminalAndSkippedFiles(t *testing.T) {
 	if out := e.ok("person", "list"); out["total"] != float64(1) {
 		t.Errorf("a broken file is left to check: %v", out)
 	}
+	// A row without a name does not hide the name column.
+	e.ok("person", "create", "--email", "a@example.com")
 	e.TTY = true
 	r := e.run("person", "list")
-	if r.Code != 0 || !strings.Contains(r.Stdout, "Elena Ruiz") || strings.HasPrefix(r.Stdout, "{") {
+	if r.Code != 0 || !strings.Contains(r.Stdout, "Elena Ruiz") || !strings.Contains(r.Stdout, "NAME") || strings.HasPrefix(r.Stdout, "{") {
 		t.Errorf("table: %q", r.Stdout)
+	}
+	e.TTY = false
+	// The largest limit is a valid limit.
+	c := e.ok("person", "list", "--limit", "1")["next_cursor"].(string)
+	if out := e.ok("person", "list", "--limit", "9223372036854775807", "--cursor", c); len(out["data"].([]any)) != 1 || out["next_cursor"] != nil {
+		t.Errorf("huge limit: %v", out)
 	}
 }
 

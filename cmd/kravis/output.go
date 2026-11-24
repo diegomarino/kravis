@@ -198,12 +198,14 @@ func writeTable(w io.Writer, r reply) error {
 			_, _ = fmt.Fprintf(tw, "%s\t%s\n", k, cell(v[k]))
 		}
 	case []any:
-		var cols []string
-		if len(v) > 0 {
-			if first, ok := v[0].(map[string]any); ok {
-				cols = sortedKeys(first)
+		all := map[string]any{} // every row's fields: a row may leave one out
+		for _, row := range v {
+			m, _ := row.(map[string]any)
+			for k := range m {
+				all[k] = nil
 			}
 		}
+		cols := sortedKeys(all)
 		_, _ = fmt.Fprintln(tw, strings.ToUpper(strings.Join(cols, "\t")))
 		for _, row := range v {
 			m, _ := row.(map[string]any)
