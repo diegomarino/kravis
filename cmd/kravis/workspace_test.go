@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -112,6 +113,8 @@ func TestWORKSPACE_AC_01_OneJSONObjectOutsideATTY(t *testing.T) {
 			{"table off a TTY", []string{"check", "--output", "table"}, "INVALID_VALUE"},
 			{"help command", []string{"help"}, "INVALID_VALUE"},
 			{"completion protocol", []string{"__complete", ""}, "INVALID_VALUE"},
+			{"completion protocol after a flag", []string{"--output", "json", "__complete", ""}, "INVALID_VALUE"},
+			{"completion without descriptions", []string{"--verbose", "__completeNoDesc", "wh"}, "INVALID_VALUE"},
 			{"completion command", []string{"completion", "bash"}, "INVALID_VALUE"},
 			{"no command", nil, "INVALID_VALUE"},
 		} {
@@ -941,5 +944,27 @@ func TestCheckFlagsAnInvalidWorkspaceID(t *testing.T) {
 	r := e.run("check")
 	if r.Code != 6 || !strings.Contains(r.Stdout, "WORKSPACE_FILE_INVALID") {
 		t.Errorf("code %d, %q", r.Code, r.Stdout)
+	}
+}
+
+// everyRace lets a rival with the same data win the create of every file.
+type everyRace struct{ storage.Connector }
+
+func (c everyRace) Create(p string, data []byte) (storage.Token, error) {
+	if _, err := c.Connector.Create(p, data); err != nil {
+		return "", err
+	}
+	return "", fmt.Errorf("create %s: %w", p, storage.ErrExists)
+}
+
+func TestInitAdoptsWhatSeveralRivalsWrote(t *testing.T) {
+	e := newEnv(t)
+	e.Connector = everyRace{storage.NewLocal(e.Workspace)}
+	r := e.init()
+	if r.Code != 0 {
+		t.Fatalf("code %d, stderr %q", r.Code, r.Stderr)
+	}
+	if got := e.Files(); len(got) != 5 {
+		t.Errorf("files: %v", got)
 	}
 }

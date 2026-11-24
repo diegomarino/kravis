@@ -105,10 +105,6 @@ func (a *app) execute(root *cobra.Command, args []string, stdin io.Reader, stdou
 		}
 	}()
 
-	if len(args) > 0 && strings.HasPrefix(args[0], "__") {
-		// Cobra's own completion protocol prints text: it is not a command.
-		return writeError(stderr, parserError(root, fmt.Errorf("unknown command %q for %q", args[0], root.Name())))
-	}
 	if err := root.Execute(); err != nil {
 		if !a.started {
 			err = parserError(root, err)
@@ -133,13 +129,19 @@ func (a *app) root() *cobra.Command {
 	}
 	root.SetVersionTemplate("") // the version is printed as JSON below
 	root.CompletionOptions.DisableDefaultCmd = true
-	// Only --help prints text: the help command is a usage error.
-	root.SetHelpCommand(&cobra.Command{
-		Use: "help", Hidden: true, DisableFlagParsing: true,
-		RunE: func(*cobra.Command, []string) error {
-			return domain.UsageError("there is no help command", "use --help, as in kravis init --help")
-		},
-	})
+	// Only --help prints text: the help command and cobra's completion
+	// protocol, which would print text wherever the flags stand, are usage
+	// errors.
+	noText := func(name string) *cobra.Command {
+		return &cobra.Command{
+			Use: name, Hidden: true, DisableFlagParsing: true,
+			RunE: func(*cobra.Command, []string) error {
+				return domain.UsageError("there is no "+name+" command", "use --help, as in kravis init --help")
+			},
+		}
+	}
+	root.SetHelpCommand(noText("help"))
+	root.AddCommand(noText("__complete"), noText("__completeNoDesc"))
 	flags := root.PersistentFlags()
 	flags.StringVar(&a.actorFlag, "actor", "", "the user who performs a write (default: KRAVIS_ACTOR, then the local configuration)")
 	flags.StringVar(&a.output, "output", "", "output format: json forces JSON on a terminal (default: a table there, JSON otherwise)")

@@ -66,12 +66,14 @@ func Init(c storage.Connector, now func() time.Time, in InitInput) (*InitResult,
 	if err != nil {
 		return nil, err
 	}
-	res, err := initOnce(c, now, in)
-	if errors.Is(err, storage.ErrExists) {
-		// Another init wrote a file between our read and our create. Look
-		// again: what it wrote is either the same data, which we adopt, or a
-		// conflict.
-		res, err = initOnce(c, now, in)
+	// Another init may write a file between our read and our create. Look
+	// again: what it wrote is either the same data, which we adopt, or a
+	// conflict. Each pass moves one file on, and there are four.
+	var res *InitResult
+	for range 5 {
+		if res, err = initOnce(c, now, in); !errors.Is(err, storage.ErrExists) {
+			break
+		}
 	}
 	return res, err
 }
