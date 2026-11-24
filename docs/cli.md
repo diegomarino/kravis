@@ -29,7 +29,9 @@ kravis init | whoami | schema [type] | check
 
 ## Output
 
-- Outside a TTY, every command prints exactly one JSON object, including `--version` and usage errors such as an unknown command or flag (`UNKNOWN_FIELD` or `INVALID_VALUE`, exit code 2, nothing on stdout). Only `--help` prints text for people. On a TTY it prints tables meant for people.
+- Outside a TTY, every command prints exactly one JSON object, compact and on one line, including `--version` and usage errors such as an unknown command or flag (exit code 2, nothing on stdout). Only `--help` prints text for people. On a TTY it prints tables meant for people; `KRAVIS_OUTPUT=json` or `--output json` forces JSON there.
+- An unknown command is `INVALID_VALUE`; `UNKNOWN_FIELD` is only for an unknown flag or field.
+- `kravis --version` prints `{"data":{"version":"0.2.0"}}`, without the leading `v`, and `dev` only when no version is known. The version is the one injected at build time, else the module version from the build info (`go install …@vX.Y.Z`), else `dev`.
 - Data goes to stdout and errors to stderr, so an error is never mixed with data in a pipe.
 
 Success:
@@ -38,10 +40,13 @@ Success:
 {
   "data": { "...": "..." },
   "outcome": "created",
-  "warnings": [{ "code": "SIMILAR_EXISTS", "message": "…", "details": { "id": "pe_elena-ruiz" } }],
-  "filters": { "holder": "org_petalo" }
+  "warnings": [{ "code": "SIMILAR_EXISTS", "message": "…", "details": { "id": "pe_elena-ruiz" } }]
 }
 ```
+
+- `data` is always present and never `null`: an empty list is `[]`.
+- `warnings` appears only when there are warnings.
+- `filters` appears only on reads, and holds only what Kravis applies by itself (the holder limit), never what the caller asked for.
 
 - **Writes** (`create`, `update`, transitions, `delete`) return `outcome`:
   - `created` for a new record;
@@ -49,11 +54,18 @@ Success:
   - `updated` when something changed;
   - `unchanged` when nothing changed and the version was not bumped;
   - `deleted`.
-  `data` holds the type's compact view plus the fields the write touched. `--fields a,b` and `--full` widen it.
-- **Lists** return the compact view of each record, at most 50 by default (`--limit <n>`; `--limit 0` returns them all). They always report `total`, and they return an opaque `next_cursor` that `--cursor <next_cursor>` continues. Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties:
-  - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine;
+  `data` holds the type's compact view plus the fields the write touched. `--fields a,b` and `--full` widen it. For `existing`, `unchanged` and `deleted` it holds the compact view (of the record as it was, for `deleted`), widened by `--fields` and `--full`.
+- **`get`** returns the compact view. `--fields a,b` and `--full` widen it as they do for writes.
+- **Lists** return the compact view of each record in `data`, an array. `total` and `next_cursor` sit beside `data`:
+  - `total` counts the filtered set the caller sees, at the time of the call.
+  - `next_cursor` is always present, and `null` on the last page. It is an opaque, stateless keyset cursor (the last sort value, the ID, and a fingerprint of the filters and order) that `--cursor <next_cursor>` continues. A cursor that is corrupt, or does not match the filters or order, is `INVALID_VALUE` with `details.field: "cursor"`.
+  - At most 50 records come by default. `--limit <n>` changes it, and `--limit 0` returns them all; there is no maximum. A negative or non-numeric `--limit` is `INVALID_VALUE`, and so is `--limit 0` with `--cursor`.
+  - A record whose own sort value crosses the cursor between two pages may be skipped or repeated.
+  - Lists show only live records by default; `--all` or an explicit category includes the others.
+- Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties:
+  - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine. A person without a name uses its smallest email (the emails are a sorted list), else its ID; a user without a name uses its ID. Both are compared the same way;
   - interactions by `occurred_at`, newest first;
-  - tasks by `due`, soonest first, with tasks without a due date last. A record changed between two pages may be skipped or repeated. Lists show only live records by default; `--all` or an explicit category includes the others.
+  - tasks by `due`, soonest first, with tasks without a due date last.
 
 Error (stderr):
 
@@ -71,6 +83,9 @@ Error (stderr):
 
 `message` and `hint` are in English. `hint` is present only when `details` does not make the next step obvious.
 
+- A call reports one error. An error never carries `warnings`.
+- `retryable` is `true` only for `VERSION_CONFLICT` and `STORAGE_UNAVAILABLE`.
+
 ### Exit codes
 
 | Code | Meaning |
@@ -81,16 +96,17 @@ Error (stderr):
 | 3 | Not found |
 | 4 | Conflict: version, or an incompatible deduplication |
 | 5 | Storage unavailable or I/O error |
-| 6 | `check` found issues |
+| 6 | `check` found issues: its findings are data on stdout, not an error |
 
 ### Error and warning codes (increment 1)
 
 | Code | Kind | When |
 |---|---|---|
+| `INTERNAL` | error, 1 | An unexpected failure inside Kravis itself |
 | `MISSING_ACTOR` | error, 2 | A write without an actor |
 | `ACTOR_NOT_LIVE` | error, 2 | The actor does not exist or is not live |
 | `UNKNOWN_FIELD` | error, 2 | Agent input with a field the schema does not define |
-| `INVALID_VALUE` | error, 2 | A value outside its catalog or format; `details.allowed` lists the valid values |
+| `INVALID_VALUE` | error, 2 | A value outside its catalog or format, or an unknown command; `details.allowed` lists the valid values |
 | `HOLDER_MISMATCH` | error, 2 | A link to a record of another holder |
 | `NOT_FOUND` | error, 3 | The ID or alias does not exist |
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
@@ -150,7 +166,7 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 | `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` completes it |
 | `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; `--set` stores the default actor |
 | `kravis schema [type]` | See Discovery |
-| `kravis check` | Reports findings as JSON (`code`, record, `message`) and exits 6 if there are any. It never writes |
+| `kravis check` | Prints its findings (`code`, record, `message`) on stdout as `data` and exits 6 if there are any. They are data, not a failure of the command. It never writes |
 | `kravis user list\|get\|create\|update\|delete` | `create <key> --human\|--agent --holder <org> [--handler <user>] [--person <id>]`; the ID is `us_<key>`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP. Holder and kind never change. A user is deactivated with `update --live=false`, refused with `REFERENCED` while it is the handler of a live agent or the assignee or agent of a live task |
 | `kravis organization list\|get\|create\|update\|delete` | `create --name <name>` (required). `--own` marks an own organization. The mark cannot be removed while the organization is a holder. `--domain` can be repeated and deduplicates |
 | `kravis person list\|get\|create\|update\|delete` | `create [--name <name>] [--email <email>]…`: a name, an email or both. `--email` can be repeated and deduplicates; the email is also an alias of the person |
