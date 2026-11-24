@@ -63,7 +63,7 @@ Success:
   - A record whose own sort value crosses the cursor between two pages may be skipped or repeated.
   - Lists show only live records by default; `--all` or an explicit category includes the others.
 - Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties:
-  - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine. A record without a name (a person with only an email, a user without a name) uses its email, else its ID, compared the same way;
+  - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine. A person without a name uses its smallest email (the emails are a sorted list), else its ID; a user without a name uses its ID. Both are compared the same way;
   - interactions by `occurred_at`, newest first;
   - tasks by `due`, soonest first, with tasks without a due date last.
 
