@@ -211,7 +211,7 @@ func Update[T any, P interface {
 				return nil
 			}
 			held, err := heldKeys(s, p, keys)
-			if err != nil {
+			if err != nil && !errors.Is(err, ErrNotFound) { // a deleted record holds no keys
 				return err
 			}
 			return s.dropKeys(notIn(created, held), cb.ID)

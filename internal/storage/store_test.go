@@ -761,3 +761,18 @@ func TestCreateCollisionsThatAreNotTheSamePerson(t *testing.T) {
 		t.Fatal("A's sidecar was left behind")
 	}
 }
+
+func TestUpdateReleasesItsKeysWhenTheRecordIsDeletedMeanwhile(t *testing.T) {
+	s, m := newTestStore()
+	createPerson(t, s, "pe_ana", "Ana")
+	p := personPath("pe_ana")
+	once(m, OpReplace, p, func() {
+		_, token, _ := m.Get(p)
+		_ = m.Delete(p, token)
+	})
+	_, err := Update(s, p, "us_a", func(r *testPerson) error { r.Emails = IDs{"ana@example.com"}; return nil }, personKeys)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v", err)
+	}
+	checkKey(t, m, email("ana@example.com"), "")
+}
