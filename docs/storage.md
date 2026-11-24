@@ -140,7 +140,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 A natural key is stored as a file that points to the record holding it:
 
 ```json
-{ "key": "interaction|org_petalo|gmail:message:me@example.com:<message-id>", "record": "it_2026-11-23-documentacion-data-room" }
+{ "key": "interaction|org_petalo|email:message:<message-id>", "record": "it_2026-11-23-documentacion-data-room" }
 ```
 
 - The path is `keys/<kind>/<first two hex characters>/<sha256 of key>.json`.
@@ -165,14 +165,22 @@ A natural key is stored as a file that points to the record holding it:
 
 The catalog of sources lives in code, because each source has its own behavior: the shape of its references, how they are made canonical, and which of them identify an interaction.
 
-| Source | Kinds | Identifies an interaction |
-|---|---|---|
-| `gmail` | `message`, `thread` | `message`, by account + message ID; `thread` does not |
-| `calendar` | `event` | `event`, by the occurrence ID (never the series ID) |
-| `granola` | `meeting` | `meeting` |
-| `drive` | `file` | no |
-| `web` | `url` | no |
+A reference is written `<source>:<kind>:<id>[@<scope>]`. The source and the kind run up to the second `:`. Only sources whose IDs are unique within an account take a scope, which starts at the first `@` after the ID, because those IDs contain no `@` and accounts do.
 
+| Source:kind | `id` | Scope | Identifies an interaction |
+|---|---|---|---|
+| `email:message` | The Message-ID header without `< >`, as given by Gmail, Outlook (`internetMessageId`), Apple Mail or IMAP | — | Yes |
+| `ical:event` | The iCalendar UID (Google `iCalUID`, Outlook `iCalUId`); for one occurrence of a recurring event, `<uid>/<start in UTC, RFC 3339>` | — | Yes |
+| `granola:meeting` | The meeting ID | — | Yes |
+| `slack:message` | `<channel ID>/<ts>` | — | Yes |
+| `telegram:message` | `<chat ID>/<message ID>` | — | Yes |
+| `gmail:message`, `gmail:thread`, `outlook:message` | The provider's ID | The account, required | No: a link back to the original |
+| `drive:file`, `onedrive:file` | The file ID | — | No |
+| `web:url` | The URL, with scheme and host lowercased and no fragment | — | No |
+
+- Canonical form: the source, the kind and the scope are lowercased; the ID is kept as given, except for `web:url`. A reference that misses a required scope, or has a scope its source does not take, is refused with `INVALID_VALUE`.
+- The same email seen through two tools (a Gmail connector and Apple Mail, or two users of the same holder) has one Message-ID, so it is one interaction. An agent whose tool cannot give the Message-ID records only the provider's reference, which does not deduplicate.
+- Adding a source is one row in this catalog and changes no record.
 - An unknown source is accepted with the `UNKNOWN_SOURCE` warning. It identifies an interaction only by exact equality of the reference, and its shape is not validated.
 - Kravis stores references and summaries, never a copy of the original content.
 
