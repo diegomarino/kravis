@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 
@@ -47,7 +48,7 @@ func newRootCommand() *cobra.Command {
 		if v, _ := cmd.Flags().GetBool("version"); v {
 			return writeJSON(cmd.OutOrStdout(), map[string]any{"data": map[string]any{"version": version}})
 		}
-		return cmd.Help()
+		return errors.New("a command is required")
 	}
 	return root
 }

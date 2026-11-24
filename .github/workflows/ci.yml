@@ -55,7 +55,7 @@ jobs:
             case "$subject" in
               Merge\ *|Revert\ *|fixup!\ *|squash!\ *) continue ;;
             esac
-            if ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+            if [ "${#subject}" -gt 72 ] || ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
               echo "::error::not a Conventional Commit subject: $subject"
               status=1
             fi

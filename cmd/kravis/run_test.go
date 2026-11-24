@@ -82,13 +82,18 @@ func TestUsageErrorsAreJSONOnStderr(t *testing.T) {
 	}
 }
 
-func TestHelpIsText(t *testing.T) {
+func TestHelpIsTextAndBareRunIsJSON(t *testing.T) {
 	e := newEnv(t)
-	for _, args := range [][]string{{}, {"--help"}} {
-		r := e.run(args...)
-		if r.Code != 0 || !strings.Contains(r.Stdout, "kravis") {
-			t.Errorf("%v: code %d, stdout %q", args, r.Code, r.Stdout)
-		}
+	r := e.run("--help")
+	if r.Code != 0 || !strings.Contains(r.Stdout, "kravis") {
+		t.Errorf("--help: code %d, stdout %q", r.Code, r.Stdout)
+	}
+	r = e.run()
+	if r.Code != 2 || r.Stdout != "" {
+		t.Fatalf("bare run: code %d, stdout %q", r.Code, r.Stdout)
+	}
+	if errObj, _ := r.ErrorJSON(t)["error"].(map[string]any); errObj["code"] != "INVALID_VALUE" {
+		t.Errorf("bare run error = %v", errObj)
 	}
 }
 
