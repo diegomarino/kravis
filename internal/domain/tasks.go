@@ -284,10 +284,6 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 	}
 	rec := &Task{Holder: holder, Title: title, Assignee: assignee, Agent: agent, Due: due,
 		Purpose: strings.TrimSpace(in.Purpose)}
-	if rec.Category, err = ws.checkStatus(holder, initialStatus, false); err != nil {
-		return nil, err
-	}
-	rec.Status, rec.Live = initialStatus, isLive(rec.Category)
 	if ref := strings.TrimSpace(in.Interaction); ref != "" {
 		it, err := loadLinked(ws, "interaction", interactions, ref)
 		if err != nil {
@@ -298,7 +294,24 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 				"%s belongs to %s, not to %s", ref, it.Holder, holder).with("field", "interaction")
 		}
 		rec.From, rec.Purpose = ref, firstOf(rec.Purpose, defaultPurpose)
+		// A create that repeats an earlier one finds its task before the
+		// catalogs and the people are judged again: they may have changed
+		// since, and the repeat must stay safe.
+		ex, err := ws.taskWithOrigin(rec)
+		if err != nil {
+			return nil, err
+		}
+		if ex != nil {
+			if err := sameTask(ex, rec); err != nil {
+				return nil, err
+			}
+			return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
+		}
 	}
+	if rec.Category, err = ws.checkStatus(holder, initialStatus, false); err != nil {
+		return nil, err
+	}
+	rec.Status, rec.Live = initialStatus, isLive(rec.Category)
 	if rec.Purpose != "" {
 		if err := ws.checkPurpose(holder, rec.Purpose); err != nil {
 			return nil, err
@@ -335,6 +348,27 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 	}
 	touched := touchedIf("from", rec.From != "", "purpose", rec.Purpose != "", "description", in.Description != "")
 	return ws.finishTask(opt, in.Description != "")(tasks.result(OutcomeCreated, rec, touched, opt))
+}
+
+// taskWithOrigin returns the task that holds the origin of rec, or nil when
+// there is none, or when an interrupted create left its key without a task.
+func (ws *Workspace) taskWithOrigin(rec *Task) (*Task, error) {
+	for _, k := range taskKeys(rec) {
+		owner, err := ws.Store.KeyOwner(k)
+		if errors.Is(err, storage.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		ex, _, err := tasks.load(ws, owner)
+		var e *Error
+		if errors.As(err, &e) && e.Code == CodeNotFound {
+			continue
+		}
+		return ex, err
+	}
+	return nil, nil
 }
 
 // originConflict names the task that already has the origin of rec.
@@ -456,6 +490,13 @@ func (ws *Workspace) SetTaskStatus(actorID, id, status string, opt ViewOptions) 
 		return nil, err
 	}
 	rec, changed, err := tasks.updateIn(ws, actor.Holder, actorID, id, func(r *Task) error {
+		// A task that becomes live again needs a live assignee and agent, as
+		// a new one does (WORK-INV-03, WORK-INV-04).
+		if isLive(cat) && !r.Live {
+			if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, true, r.Agent != ""); err != nil {
+				return err
+			}
+		}
 		r.Status, r.Category, r.Live = status, cat, isLive(cat)
 		return nil
 	})
@@ -679,6 +720,8 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 				add(FindingInvalidRecord, t.path, "the assignee %s is an agent, and a task is assigned to a human", t.rec.Assignee)
 			case assignee.rec.Holder != t.rec.Holder:
 				add(FindingInvalidRecord, t.path, "the assignee %s works for %s, not for the holder %s", t.rec.Assignee, assignee.rec.Holder, t.rec.Holder)
+			case t.rec.Live && !assignee.rec.Live:
+				add(FindingInvalidRecord, t.path, "the assignee %s is not live, and the task is", t.rec.Assignee)
 			}
 		}
 		if hasID("us_", t.rec.Agent) {
@@ -691,6 +734,8 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 				add(FindingInvalidRecord, t.path, "the agent %s works for %s, not for the holder %s", t.rec.Agent, a.rec.Holder, t.rec.Holder)
 			case a.rec.Handler != t.rec.Assignee:
 				add(FindingInvalidRecord, t.path, "the agent %s is handled by %s, not by the assignee %s", t.rec.Agent, a.rec.Handler, t.rec.Assignee)
+			case t.rec.Live && !a.rec.Live:
+				add(FindingInvalidRecord, t.path, "the agent %s is not live, and the task is", t.rec.Agent)
 			}
 		}
 		if hasID("it_", t.rec.From) {

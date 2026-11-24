@@ -927,3 +927,53 @@ func TestCheckReportsTaskOriginsAndLinks(t *testing.T) {
 		t.Errorf("rules: %v", r)
 	}
 }
+
+func TestWORK_INV_03_AFinishedTaskCannotBeReopenedForAnInactiveAssignee(t *testing.T) {
+	e := taskWorld(t)
+	id := idOf(t, e.ok("task", "create", "--title", "Finish me", "--assignee", evaID, "--agent", bot2ID))
+	e.ok("task", "status", id, "done")
+	e.ok("user", "update", bot2ID, "--live=false")
+	e.ok("user", "update", evaID, "--live=false")
+	eo := e.refused("INVALID_VALUE", 2, "task", "status", id, "todo")
+	if details(t, eo)["field"] != "assignee" {
+		t.Errorf("details %v", eo["details"])
+	}
+	// Moving between statuses that are not live is fine, and so is reopening once the people are back.
+	outcomeOf(t, e.ok("task", "status", id, "canceled"), "updated")
+	e.ok("user", "update", evaID, "--live=true")
+	eo = e.refused("INVALID_VALUE", 2, "task", "status", id, "todo") // the agent is still off
+	if details(t, eo)["field"] != "agent" {
+		t.Errorf("details %v", eo["details"])
+	}
+	e.ok("user", "update", bot2ID, "--live=true")
+	outcomeOf(t, e.ok("task", "status", id, "todo"), "updated")
+	// A live task whose people are not live is reported by check, whatever made it so.
+	for _, user := range []string{"users/us_bot2-acme.json", "users/us_eva-acme.json"} {
+		path := "records/" + user
+		rec := readRecord(t, path)
+		rec["live"] = false
+		writeRecord(t, path, rec)
+	}
+	got := strings.Join(e.findings()["INVALID_RECORD"], "\n")
+	if !strings.Contains(got, "the assignee "+evaID+" is not live") || !strings.Contains(got, "the agent "+bot2ID+" is not live") {
+		t.Errorf("findings %v", got)
+	}
+}
+
+func TestINTERACTIONS_AC_01_RepeatingAFollowUpIsSafeAfterTheWorldMovedOn(t *testing.T) {
+	e := taskWorld(t)
+	e.ok(record("Data room documentation")...)
+	args := []string{"task", "create", "--title", "Chase", "--assignee", evaID, "--agent", bot2ID, "--interaction", dataRoomID}
+	id := idOf(t, e.ok(args...))
+	e.ok("task", "status", id, "done")
+	e.ok("user", "update", bot2ID, "--live=false")
+	e.ok("user", "update", evaID, "--live=false")
+	e.setPurposes("ping")
+	e.setStatuses(`[{"name":"done","category":"done"}]`)
+	// The assignee, the purpose and the initial status are gone, yet the repeat finds its task.
+	if d := outcomeOf(t, e.ok(args...), "existing"); d["id"] != id {
+		t.Errorf("existing %v", d["id"])
+	}
+	// A repeat that contradicts it is still a conflict.
+	e.refused("DEDUP_CONFLICT", 4, "task", "create", "--title", "Other", "--assignee", evaID, "--interaction", dataRoomID)
+}
