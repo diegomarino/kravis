@@ -28,7 +28,9 @@ func skillFiles(t *testing.T) map[string]string {
 	for _, p := range append(paths, more...) {
 		raw, err := os.ReadFile(p)
 		must(t, err)
-		out[filepath.ToSlash(strings.TrimPrefix(p, skillDir+"/"))] = string(raw)
+		rel, err := filepath.Rel(skillDir, p)
+		must(t, err)
+		out[filepath.ToSlash(rel)] = string(raw)
 	}
 	if out["SKILL.md"] == "" || out["references/message-id.md"] == "" {
 		t.Fatalf("the skill lacks SKILL.md or references/message-id.md: %v", slices.Collect(func(yield func(string) bool) {
