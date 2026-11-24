@@ -1,0 +1,81 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "key": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "lowercase words joined by hyphens: the ID is us_\u003ckey\u003e",
+        "x-cli": "\u003ckey\u003e (first argument)"
+      },
+      "kind": {
+        "type": "string",
+        "enum": [
+          "human",
+          "agent"
+        ],
+        "description": "an agent needs a handler",
+        "x-cli": "--human|--agent"
+      },
+      "holder": {
+        "type": "string",
+        "pattern": "^org_[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "an own organization: it never changes",
+        "x-cli": "--holder"
+      },
+      "handler": {
+        "type": "string",
+        "pattern": "^us_[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "a live human of the same holder: only for an agent",
+        "x-cli": "--handler"
+      },
+      "person": {
+        "type": "string",
+        "description": "a person ID or email: only for a human",
+        "x-cli": "--person"
+      },
+      "name": {
+        "type": "string",
+        "x-cli": "--name"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "key",
+      "kind",
+      "holder"
+    ],
+    "title": "user",
+    "description": "The fields of kravis user create.",
+    "x-kravis": {
+      "defaults": null,
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "name",
+          "live",
+          "kind",
+          "holder"
+        ],
+        "default_limit": 50,
+        "order": "name compared as its slug, else the ID; then the ID"
+      },
+      "type": "user"
+    }
+  }
+}

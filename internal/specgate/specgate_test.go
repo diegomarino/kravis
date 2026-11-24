@@ -111,6 +111,21 @@ func TestMainContractFiles(t *testing.T) {
 	}
 }
 
+func TestMainSchemaGoldens(t *testing.T) {
+	const golden = "cmd/kravis/testdata/schema"
+	added := map[string]string{golden: "A\t" + golden + "/deal.json\n"}
+	if code, out := runMain(t, added, "", "--base", "main"); code != ExitAdditive {
+		t.Fatalf("a new schema golden: want additive, got %d: %s", code, out)
+	}
+	changed := map[string]string{golden: "M\t" + golden + "/task.json\n"}
+	if code, out := runMain(t, changed, "", "--base", "main"); code != ExitNeedsPerson || !strings.Contains(out, "task.json") {
+		t.Fatalf("a changed schema golden: want needs-person, got %d: %s", code, out)
+	}
+	if code, _ := runMain(t, changed, "", "--base", "main", "--approved"); code != ExitAdditive {
+		t.Fatalf("the label lets a changed schema golden through, got %d", code)
+	}
+}
+
 func TestClassifySubjects(t *testing.T) {
 	subjects := []string{"feat(cli): add init", "fix!: drop a field", "refactor(storage)!: rename", "docs: say wow! now", ""}
 	if got := ClassifySubjects(subjects); len(got) != 2 {

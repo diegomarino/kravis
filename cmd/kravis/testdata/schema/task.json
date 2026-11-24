@@ -1,0 +1,117 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "title": {
+        "type": "string",
+        "pattern": "\\S",
+        "x-cli": "--title"
+      },
+      "assignee": {
+        "type": "string",
+        "pattern": "^us_[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "a live human of your holder",
+        "x-cli": "--assignee"
+      },
+      "agent": {
+        "type": "string",
+        "pattern": "^us_[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "an agent that the assignee handles",
+        "x-cli": "--agent"
+      },
+      "due": {
+        "type": "string",
+        "format": "date",
+        "description": "a date in the workspace timezone",
+        "x-cli": "--due"
+      },
+      "purpose": {
+        "type": "string",
+        "enum": [
+          "follow-up",
+          "ping",
+          "expand",
+          "intro",
+          "prepare"
+        ],
+        "x-cli": "--purpose"
+      },
+      "interaction": {
+        "type": "string",
+        "pattern": "^it_.+",
+        "description": "the origin: one task per interaction and purpose",
+        "x-cli": "--interaction"
+      },
+      "description": {
+        "type": "string",
+        "x-cli": "--description-file"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "title",
+      "assignee"
+    ],
+    "title": "task",
+    "description": "The fields of kravis task create.",
+    "x-kravis": {
+      "defaults": {
+        "purpose": "follow-up",
+        "status": "todo"
+      },
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "title",
+          "live",
+          "holder",
+          "status",
+          "category",
+          "assignee",
+          "agent",
+          "due"
+        ],
+        "default_limit": 50,
+        "order": "due, soonest first, tasks without a due date last; then the ID"
+      },
+      "statuses": [
+        {
+          "name": "todo",
+          "category": "open"
+        },
+        {
+          "name": "in-progress",
+          "category": "open"
+        },
+        {
+          "name": "waiting",
+          "category": "waiting"
+        },
+        {
+          "name": "done",
+          "category": "done"
+        },
+        {
+          "name": "canceled",
+          "category": "canceled"
+        }
+      ],
+      "type": "task"
+    }
+  }
+}

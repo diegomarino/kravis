@@ -1,0 +1,106 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "enum": [
+          "email",
+          "meeting",
+          "call",
+          "message"
+        ],
+        "x-cli": "--channel"
+      },
+      "occurred_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC 3339",
+        "x-cli": "--occurred-at"
+      },
+      "subject": {
+        "type": "string",
+        "pattern": "\\S",
+        "x-cli": "--subject"
+      },
+      "participants": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "minItems": 1,
+        "description": "person IDs or emails: organization IDs",
+        "x-cli": "--participant (repeatable)"
+      },
+      "refs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "description": "\u003csource\u003e:\u003ckind\u003e:\u003cid\u003e[@\u003cscope\u003e]: see the skill",
+        "x-cli": "--ref (repeatable)"
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "outbound",
+          "inbound"
+        ],
+        "x-cli": "--direction"
+      },
+      "initiated_by": {
+        "type": "string",
+        "description": "a user of the holder if outbound: a participant if inbound",
+        "x-cli": "--initiated-by"
+      },
+      "summary": {
+        "type": "string",
+        "x-cli": "--summary-file"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "channel",
+      "occurred_at",
+      "subject",
+      "participants"
+    ],
+    "title": "interaction",
+    "description": "The fields of kravis interaction create.",
+    "x-kravis": {
+      "defaults": {
+        "direction": "outbound"
+      },
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "subject",
+          "live",
+          "holder",
+          "occurred_at",
+          "channel",
+          "direction",
+          "participants"
+        ],
+        "default_limit": 50,
+        "order": "occurred_at, newest first; then the ID"
+      },
+      "type": "interaction"
+    }
+  }
+}

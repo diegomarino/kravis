@@ -249,13 +249,13 @@ func (ws *Workspace) checkAssignment(holder, assignee, agent string, newAssignee
 
 // TaskInput is what task create takes.
 type TaskInput struct {
-	Title       string
-	Assignee    string
-	Agent       string
-	Due         string
-	Purpose     string
-	Interaction string // the origin; the purpose is follow-up unless given
-	Description string
+	Title       string `json:"title" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--title"`
+	Assignee    string `json:"assignee" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=a live human of your holder" jsonschema_extras:"x-cli=--assignee"`
+	Agent       string `json:"agent,omitempty" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=an agent that the assignee handles" jsonschema_extras:"x-cli=--agent"`
+	Due         string `json:"due,omitempty" jsonschema:"format=date,description=a date in the workspace timezone" jsonschema_extras:"x-cli=--due"`
+	Purpose     string `json:"purpose,omitempty" jsonschema_extras:"x-cli=--purpose"`
+	Interaction string `json:"interaction,omitempty" jsonschema:"pattern=^it_.+,description=the origin: one task per interaction and purpose" jsonschema_extras:"x-cli=--interaction"` // the origin; the purpose is follow-up unless given
+	Description string `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
 }
 
 // CreateTask creates a task of the actor's holder in todo, or returns the

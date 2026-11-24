@@ -63,12 +63,12 @@ func notFoundIn(field string, err error) error {
 
 // UserInput is what user create takes.
 type UserInput struct {
-	Key     string
-	Kind    string
-	Holder  string
-	Handler string
-	Person  string // an ID or one of the person's emails
-	Name    string
+	Key     string `json:"key" jsonschema:"pattern=^[a-z0-9]+(-[a-z0-9]+)*$,description=lowercase words joined by hyphens: the ID is us_<key>" jsonschema_extras:"x-cli=<key> (first argument)"`
+	Kind    string `json:"kind" jsonschema:"description=an agent needs a handler" jsonschema_extras:"x-cli=--human|--agent"`
+	Holder  string `json:"holder" jsonschema:"pattern=^org_[a-z0-9]+(-[a-z0-9]+)*$,description=an own organization: it never changes" jsonschema_extras:"x-cli=--holder"`
+	Handler string `json:"handler,omitempty" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=a live human of the same holder: only for an agent" jsonschema_extras:"x-cli=--handler"`
+	Person  string `json:"person,omitempty" jsonschema:"description=a person ID or email: only for a human" jsonschema_extras:"x-cli=--person"` // an ID or one of the person's emails
+	Name    string `json:"name,omitempty" jsonschema_extras:"x-cli=--name"`
 }
 
 // checkHandler refuses a handler that is not a live human of the holder

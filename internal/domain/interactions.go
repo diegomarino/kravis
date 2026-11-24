@@ -277,14 +277,14 @@ func (ws *Workspace) initiator(holder, direction, ref string, participants []str
 
 // InteractionInput is what interaction create takes.
 type InteractionInput struct {
-	Channel      string
-	OccurredAt   string
-	Subject      string
-	Participants []string // person IDs or emails, organization IDs
-	Refs         []string
-	Direction    string // "" is outbound
-	InitiatedBy  string // optional, never inferred
-	Summary      string
+	Channel      string   `json:"channel" jsonschema_extras:"x-cli=--channel"`
+	OccurredAt   string   `json:"occurred_at" jsonschema:"format=date-time,description=RFC 3339" jsonschema_extras:"x-cli=--occurred-at"`
+	Subject      string   `json:"subject" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--subject"`
+	Participants []string `json:"participants" jsonschema:"minItems=1,description=person IDs or emails: organization IDs" jsonschema_extras:"x-cli=--participant (repeatable)"`
+	Refs         []string `json:"refs,omitempty" jsonschema:"description=<source>:<kind>:<id>[@<scope>]: see the skill" jsonschema_extras:"x-cli=--ref (repeatable)"`
+	Direction    string   `json:"direction,omitempty" jsonschema_extras:"x-cli=--direction"` // "" is outbound
+	InitiatedBy  string   `json:"initiated_by,omitempty" jsonschema:"description=a user of the holder if outbound: a participant if inbound" jsonschema_extras:"x-cli=--initiated-by"`
+	Summary      string   `json:"summary,omitempty" jsonschema_extras:"x-cli=--summary-file"`
 }
 
 // CreateInteraction records an interaction under the actor's holder, or
