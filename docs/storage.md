@@ -150,6 +150,8 @@ A natural key is stored as a file that points to the record holding it:
   3. It creates the record with that ID.
 - If the key file already exists, Kravis reads the record it points to and returns `existing`. If that record is missing because a previous attempt crashed between steps 2 and 3, Kravis creates it now with the ID stored in the key, so a retry completes the work instead of duplicating it.
 - If the data sent contradicts the existing record, the result is a deduplication conflict (exit code 4).
+- An update that adds an identifying value (an email, a domain, an identifying source reference) creates its key first; if the key already points to another record, the update fails with `DEDUP_CONFLICT` and writes nothing. Then it writes the record, and then it deletes the keys of the values it removed. An interrupted update can leave a key without its value or a value without its key; `check` reports both.
+- A task's origin (interaction and purpose) never changes after creation, so its `task-origin` key never moves.
 
 | Kind | Key | Increment |
 |---|---|---|
