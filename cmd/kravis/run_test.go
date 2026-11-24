@@ -118,6 +118,9 @@ func TestSmokeBinary(t *testing.T) {
 	}
 	e := newEnv(t)
 	bin := filepath.Join(t.TempDir(), "kravis")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
 	build := exec.Command("go", "build", "-buildvcs=false", "-o", bin, ".")
 	build.Env = append(os.Environ(), goEnv...)
 	build.Dir = pkgDir
