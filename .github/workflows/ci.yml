@@ -38,8 +38,10 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.23.5
       - uses: extractions/setup-just@v2
+        with:
+          just-version: 1.59.0
       - name: Format
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - uses: golangci/golangci-lint-action@v8
@@ -93,7 +95,7 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.23.5
       - run: npm install --global ddduck@${DDDUCK_VERSION}
       - name: Spec gate
         env:
