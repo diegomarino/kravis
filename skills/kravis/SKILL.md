@@ -17,11 +17,11 @@ Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per
 
 Query `kravis schema <type>` for a type's fields, the catalogs that apply to you (channels, purposes, task statuses with their category), the value used when a field is omitted, the default order, the compact view and the error codes. The types are `user`, `organization`, `person`, `interaction` and `task`. Each property says which flag sets it. `kravis schema` alone prints every type. Never copy its values into your notes: they change with the workspace.
 
-`kravis <type> list|get|create|update|delete` is the same for every type. Add `--fields <a,b>` or `--full` to widen what a command prints. A repeated create returns `existing` or `unchanged`, so repeating a call is safe.
+`kravis <type> list|get|create|update|delete` is the same for every type. Add `--fields <a,b>` or `--full` to widen what a command prints. A create that has a natural key returns `existing` when repeated: a person by email, an organization by domain, an interaction by an identifying reference such as the Message-ID, a task by its interaction and purpose. A task without `--interaction`, or an interaction without a reference, has none: after a lost answer, list before you create it again.
 
 ## Record an interaction and its follow-up
 
-Two calls, each safe to repeat.
+Two calls, each safe to repeat when the interaction carries its Message-ID.
 
 1. Find or create the people: `kravis person create --name <name> --email <email>`. An email that exists returns that person.
 2. Record the interaction: `kravis interaction create --channel <channel> --occurred-at <time> --subject <subject> --participant <person> --ref <reference>`. Add `--summary-file -` and pipe the summary in. `--direction inbound --initiated-by <participant>` says the other side started it; never guess the initiator.

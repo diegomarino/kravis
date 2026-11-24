@@ -1,6 +1,49 @@
 {
   "data": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "kind": {
+              "const": "agent"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        "then": {
+          "not": {
+            "required": [
+              "person"
+            ]
+          },
+          "required": [
+            "handler"
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "kind": {
+              "const": "human"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        "then": {
+          "not": {
+            "required": [
+              "handler"
+            ]
+          }
+        }
+      }
+    ],
     "properties": {
       "key": {
         "type": "string",

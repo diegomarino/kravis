@@ -195,7 +195,7 @@ func sameData(name, id string, clashes ...clash) error {
 
 // PersonInput is what person create takes.
 type PersonInput struct {
-	Name   string   `json:"name,omitempty" jsonschema:"pattern=\\S,description=a person needs a name and or an email" jsonschema_extras:"x-cli=--name"`
+	Name   string   `json:"name,omitempty" jsonschema:"description=a person needs a name or an email: the name may not be blank when there is no email" jsonschema_extras:"x-cli=--name"`
 	Emails []string `json:"emails,omitempty" jsonschema:"description=lowercase addresses" jsonschema_extras:"x-cli=--email (repeatable)"`
 }
 

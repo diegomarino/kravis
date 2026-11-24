@@ -34,6 +34,7 @@
           "intro",
           "prepare"
         ],
+        "description": "a purpose of the catalog: follow-up when an interaction is given and none otherwise",
         "x-cli": "--purpose"
       },
       "interaction": {
@@ -57,7 +58,10 @@
     "description": "The fields of kravis task create.",
     "x-kravis": {
       "defaults": {
-        "purpose": "follow-up",
+        "purpose": {
+          "value": "follow-up",
+          "when": "interaction"
+        },
         "status": "todo"
       },
       "errors": [

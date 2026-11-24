@@ -3,11 +3,23 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "anyOf": [
       {
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
         "required": [
           "name"
         ]
       },
       {
+        "properties": {
+          "emails": {
+            "type": "array",
+            "minItems": 1
+          }
+        },
         "required": [
           "emails"
         ]
@@ -16,17 +28,15 @@
     "properties": {
       "name": {
         "type": "string",
-        "pattern": "\\S",
-        "description": "a person needs a name and or an email",
+        "description": "a person needs a name or an email: the name may not be blank when there is no email",
         "x-cli": "--name"
       },
       "emails": {
         "items": {
           "type": "string",
-          "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+          "pattern": "^\\s*[^@\\s]+@[^@\\s]+\\.[^@\\s]+\\s*$"
         },
         "type": "array",
-        "minItems": 1,
         "description": "lowercase addresses",
         "x-cli": "--email (repeatable)"
       }

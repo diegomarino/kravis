@@ -34,7 +34,14 @@
       },
       "refs": {
         "items": {
-          "type": "string"
+          "if": {
+            "pattern": "^\\s*([gG][mM][aA][iI][lL]:[mM][eE][sS][sS][aA][gG][eE]|[gG][mM][aA][iI][lL]:[tT][hH][rR][eE][aA][dD]|[oO][uU][tT][lL][oO][oO][kK]:[mM][eE][sS][sS][aA][gG][eE]):"
+          },
+          "then": {
+            "pattern": "^[^:]+:[^:]+:[^@]+@\\s*\\S"
+          },
+          "type": "string",
+          "pattern": "^\\s*[^:\\s][^:]*:[^:\\s][^:]*:.+"
         },
         "type": "array",
         "description": "\u003csource\u003e:\u003ckind\u003e:\u003cid\u003e[@\u003cscope\u003e]: see the skill",

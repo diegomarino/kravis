@@ -39,7 +39,7 @@ func TestWORKSPACE_AC_06_SchemaDescribesATypeWithItsCatalogsDefaultsOrderAndErro
 		t.Errorf("statuses %s", got)
 	}
 	// The value used when a field is omitted.
-	if d := obj(t, ext, "defaults"); d["status"] != "todo" || d["purpose"] != "follow-up" {
+	if d := obj(t, ext, "defaults"); d["status"] != "todo" || fmt.Sprint(d["purpose"]) != "map[value:follow-up when:interaction]" {
 		t.Errorf("defaults %v", d)
 	}
 	// The default order and the compact view, as the list code declares them.
@@ -171,6 +171,9 @@ var corpus = map[string][]inputCase{
 		{"inbound with its initiator", `{"channel":"call","occurred_at":"2026-11-22T10:00:00Z","subject":"Call from Elena","participants":["pe_elena-ruiz"],"direction":"inbound","initiated_by":"pe_elena-ruiz"}`, true},
 		{"with a reference", `{"channel":"email","occurred_at":"2026-11-21T09:00:00Z","subject":"Referenced","participants":["pe_elena-ruiz"],"refs":["email:message:a1@example.com"]}`, true},
 		{"with a summary", `{"channel":"email","occurred_at":"2026-11-20T09:00:00Z","subject":"Summarized","participants":["pe_elena-ruiz"],"summary":"Agreed the next step."}`, true},
+		{"a scoped reference", `{"channel":"email","occurred_at":"2026-11-19T09:00:00Z","subject":"Scoped","participants":["pe_elena-ruiz"],"refs":["gmail:message:18f3a2@ana@example.com"]}`, true},
+		{"a reference that is not one", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"],"refs":["nonsense"]}`, false},
+		{"a Gmail reference without its account", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"],"refs":["gmail:message:18f3a2"]}`, false},
 		{"no channel", `{"occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"]}`, false},
 		{"no date", `{"channel":"email","subject":"x","participants":["pe_elena-ruiz"]}`, false},
 		{"no subject", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","participants":["pe_elena-ruiz"]}`, false},
@@ -190,6 +193,9 @@ var corpus = map[string][]inputCase{
 		{"a blank name", `{"name":"  "}`, false},
 		{"an email that is not one", `{"emails":["zoe"]}`, false},
 		{"an empty list of emails", `{"emails":[]}`, false},
+		{"a name and no emails listed", `{"name":"Zoe Four","emails":[]}`, true},
+		{"an empty name beside an email", `{"name":"","emails":["zoe4@example.com"]}`, true},
+		{"an email with spaces around it", `{"emails":[" zoe5@example.com "]}`, true},
 		{"an unknown field", `{"name":"Zoe Three","phone":"123"}`, false},
 	},
 	"organization": {
@@ -197,6 +203,7 @@ var corpus = map[string][]inputCase{
 		{"an own organization", `{"name":"Eta Example","own":true}`, true},
 		{"with a domain", `{"name":"Theta Example","domains":["theta.example.com"]}`, true},
 		{"a domain in capitals", `{"name":"Iota Example","domains":["IOTA.example.com"]}`, true},
+		{"a domain with spaces around it", `{"name":"Iota Two","domains":[" iota2.example.com "]}`, true},
 		{"no name", `{"domains":["kappa.example.com"]}`, false},
 		{"a blank name", `{"name":"  "}`, false},
 		{"a domain that is not one", `{"name":"Lambda Example","domains":["not a domain"]}`, false},
@@ -212,6 +219,9 @@ var corpus = map[string][]inputCase{
 		{"no kind", `{"key":"nokind-acme","holder":"org_acme-example"}`, false},
 		{"no holder", `{"key":"noholder-acme","kind":"human"}`, false},
 		{"a key with capitals and spaces", `{"key":"Zoe Acme","kind":"human","holder":"org_acme-example"}`, false},
+		{"an agent without a handler", `{"key":"nohandler-acme","kind":"agent","holder":"org_acme-example"}`, false},
+		{"a human with a handler", `{"key":"handled-acme","kind":"human","holder":"org_acme-example","handler":"us_ana-acme"}`, false},
+		{"an agent linked to a person", `{"key":"linked-acme","kind":"agent","holder":"org_acme-example","handler":"us_ana-acme","person":"pe_elena-ruiz"}`, false},
 		{"a kind that does not exist", `{"key":"robot-acme","kind":"robot","holder":"org_acme-example"}`, false},
 		{"a holder that is not an organization ID", `{"key":"badholder-acme","kind":"human","holder":"acme"}`, false},
 		{"an unknown field", `{"key":"role-acme","kind":"human","holder":"org_acme-example","role":"admin"}`, false},
@@ -352,6 +362,23 @@ func validate(t *testing.T, schema map[string]any, doc any) string {
 		case "date-time":
 			if _, err := time.Parse(time.RFC3339, s); err != nil {
 				return fmt.Sprintf("%q is not a date-time", s)
+			}
+		}
+	}
+	if c, ok := schema["const"]; ok && doc != c {
+		return fmt.Sprintf("%v is not %v", doc, c)
+	}
+	if all, ok := schema["allOf"].([]any); ok {
+		for _, a := range all {
+			if p := validate(t, a.(map[string]any), doc); p != "" {
+				return p
+			}
+		}
+	}
+	if cond, ok := schema["if"].(map[string]any); ok && validate(t, cond, doc) == "" {
+		if then, ok := schema["then"].(map[string]any); ok {
+			if p := validate(t, then, doc); p != "" {
+				return p
 			}
 		}
 	}
