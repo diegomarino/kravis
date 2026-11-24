@@ -55,6 +55,12 @@ The Go module path is `github.com/diegomarino/kravis`.
 - Scopes are record types or areas when they help: `task`, `interaction`, `storage`, `cli`, `schema`, `skill`, `model`.
 - `just hooks` installs a `commit-msg` hook that checks the subject locally. CI checks it again on every pull request, and goreleaser groups the changelog by type.
 
+### Rules every test follows
+
+- **Nothing personal in the repository.** A test scans every tracked file and fails on a home path (`/Users/<name>`, `/home/<name>`, `C:\Users\<name>`) or an email address outside `example.com`, `example.org` and `example.net`. Fixtures use invented names.
+- **Tests never touch a real workspace or configuration.** Every test runs through one helper that gives it a workspace in `t.TempDir()`, a throwaway `HOME` and `XDG_CONFIG_HOME`, and no inherited `KRAVIS_*` variables, so the developer's own actor and workspaces are never read or written.
+- **`just test` stays fast**, a matter of seconds, so it can run at every step. A slow test needs a reason.
+
 ### Tests that guard the contract
 
 - **Schema matches validation.** For each type, values accepted by the generated JSON Schema are accepted by the Go validation, and values it rejects are rejected.
