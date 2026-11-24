@@ -1003,3 +1003,13 @@ func TestWORKSPACE_INV_06_AnUpdateRecomputesCategoryAndLiveFromTheCatalog(t *tes
 	e.setStatuses(`[{"name":"todo","category":"open"}]`)
 	e.refused("INVALID_VALUE", 2, "task", "update", id2, "--title", "Zed's again")
 }
+
+func TestTaskCreateRefusesARecordThatBreaksItsRules(t *testing.T) {
+	e := taskWorld(t)
+	e.setPurposes("Follow Up", "ping") // a catalog value that is not a slug
+	eo := e.refused("INVALID_VALUE", 2, mkTask("x", "--purpose", "Follow Up")...)
+	if !strings.Contains(eo["message"].(string), "purpose") {
+		t.Errorf("message %v", eo["message"])
+	}
+	outcomeOf(t, e.ok(mkTask("x", "--purpose", "ping")...), "created")
+}

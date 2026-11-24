@@ -328,6 +328,9 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 		return nil, err
 	}
 	rec.ID = tid.String()
+	if problems := tasks.problems(rec); len(problems) > 0 {
+		return nil, newError(CodeInvalidValue, "", "the task would be invalid: %s", problems[0])
+	}
 
 	got, found, err := storage.Create(ws.Store, rec, actorID, tasks.Path, tasks.keys)
 	if errors.Is(err, storage.ErrKeyConflict) {
