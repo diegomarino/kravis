@@ -114,7 +114,8 @@ var people = newKind(kind[Person, *Person]{
 		if strings.TrimSpace(p.Name) == "" && len(p.Emails) == 0 {
 			out = append(out, "a person needs a name, an email or both")
 		}
-		return append(out, listRules("email", p.Emails, emailProblem)...)
+		out = append(out, listRules("email", p.Emails, emailProblem)...)
+		return append(out, affiliationRules(p)...)
 	},
 })
 
@@ -409,7 +410,7 @@ func (ws *Workspace) UpdateOrganization(actor, id string, ch OrganizationChange,
 		return nil, invalidValue("name", "", "an organization needs a name")
 	}
 	if ch.Own != nil && !*ch.Own {
-		holders, err := ws.referrers(id)
+		holders, err := holdersOf(ws, id)
 		if err != nil {
 			return nil, err
 		}

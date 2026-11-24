@@ -196,8 +196,46 @@ func (a *app) personCommand() *cobra.Command {
 	f.StringArrayVar(&ch.RemoveEmails, "remove-email", nil, "remove an email (repeatable)")
 	viewFlags(f, &uv)
 
-	cmd.AddCommand(create, update)
+	cmd.AddCommand(create, update, a.affiliationCommand())
 	cmd.AddCommand(a.verbs("person", "people",
 		(*domain.Workspace).ListPeople, (*domain.Workspace).GetPerson, (*domain.Workspace).DeletePerson)...)
+	return cmd
+}
+
+func (a *app) affiliationCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "affiliation",
+		Short: "A person's affiliations: their title at an organization",
+		Long: "A person has any number of affiliations, at most one per organization, each with a free-text title. " +
+			"An affiliation that ends is removed.",
+		Args: cobra.NoArgs,
+	}
+
+	var title string
+	var av domain.ViewOptions
+	add := &cobra.Command{
+		Use: "add <person> <organization> [--title <text>]", Short: "Link a person to an organization, or update the title of the link",
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				return ws.AddAffiliation(actor, args[0], args[1], changed(cmd, "title", title), av)
+			})
+		},
+	}
+	add.Flags().StringVar(&title, "title", "", `the person's title there, such as CFO; "" clears it`)
+	viewFlags(add.Flags(), &av)
+
+	var rv domain.ViewOptions
+	remove := &cobra.Command{
+		Use: "remove <person> <organization>", Short: "End a person's affiliation to an organization", Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				return ws.RemoveAffiliation(actor, args[0], args[1], rv)
+			})
+		},
+	}
+	viewFlags(remove.Flags(), &rv)
+
+	cmd.AddCommand(add, remove)
 	return cmd
 }

@@ -328,7 +328,7 @@ func (k *kind[T, P]) remove(ws *Workspace, id string, opt ViewOptions) (*Result,
 // referenceScans find the records that refer to an ID. Each record type
 // that refers to others adds its scan here; delete refuses while any finds
 // a referrer.
-var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo}
+var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo, peopleAffiliatedTo}
 
 // referrers lists the records that refer to id, sorted.
 func (ws *Workspace) referrers(id string) ([]string, error) {
@@ -513,16 +513,16 @@ func (k *kind[T, P]) audit(st *storage.Store, add addFinding) error {
 			continue
 		}
 		data, _, err := st.Raw(p)
-		if errors.Is(err, storage.ErrUnavailable) {
-			return err
-		}
 		rec := P(new(T))
 		if err != nil || storage.Decode(data, &anyRecord{}) != nil {
-			continue // missing or not a record at all: Check reports it
+			continue // unreadable, missing or not a record at all: Check reports it
 		}
 		if err := storage.Decode(data, rec); err != nil {
 			add(FindingInvalidRecord, p, "a field has the wrong type: %v", err)
 			continue
+		}
+		if rec.Meta().ID == "" {
+			continue // Check reports a record without an id as malformed
 		}
 		var flags struct{ Live *bool }
 		if json.Unmarshal(data, &flags) != nil || flags.Live == nil {
