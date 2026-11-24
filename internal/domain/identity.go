@@ -218,6 +218,16 @@ func (ws *Workspace) UpdateUser(actor, id string, ch UserChange, opt ViewOptions
 				"%s is the handler of live agents, so it stays live", id).with("referrers", agents)
 		}
 	}
+	if ch.Live != nil && !*ch.Live {
+		live, err := ws.liveTasksOf(id)
+		if err != nil {
+			return nil, err
+		}
+		if len(live) > 0 {
+			return nil, newError(CodeReferenced, "finish, cancel or reassign the tasks in details.referrers first",
+				"%s is the assignee or agent of live tasks, so it stays live", id).with("referrers", live)
+		}
+	}
 	touched := touchedIf("name", ch.Name != nil, "person", ch.Person != nil, "live", ch.Live != nil)
 	rec, changed, err := users.update(ws, actor, id, func(u *User) error {
 		for _, never := range []struct {
@@ -298,7 +308,11 @@ func holdersOf(ws *Workspace, id string) ([]string, error) {
 		return nil, err
 	}
 	its, err := interactionsOf(ws, id)
-	return slices.Concat(us, its), err
+	if err != nil {
+		return nil, err
+	}
+	ts, err := tasksOf(ws, id)
+	return slices.Concat(us, its, ts), err
 }
 
 func referringUsers(ws *Workspace, _ string, refers func(*User) bool) ([]string, error) {

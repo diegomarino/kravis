@@ -12,6 +12,12 @@ import (
 // summaryText reads --summary-file: a path, or - for stdin. An empty path
 // is an empty summary.
 func summaryText(cmd *cobra.Command, path string) (string, error) {
+	return fileText(cmd, "summary-file", path)
+}
+
+// fileText reads the text of a --<flag>-file flag: a path, or - for stdin.
+// An empty path is an empty text.
+func fileText(cmd *cobra.Command, flag, path string) (string, error) {
 	var data []byte
 	var err error
 	switch path {
@@ -23,7 +29,7 @@ func summaryText(cmd *cobra.Command, path string) (string, error) {
 		data, err = os.ReadFile(path)
 	}
 	if err != nil {
-		return "", domain.InvalidFlag("summary-file", nil, "cannot read the summary: %v", err)
+		return "", domain.InvalidFlag(flag, nil, "cannot read the text of --%s: %v", flag, err)
 	}
 	return string(data), nil
 }
