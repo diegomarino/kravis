@@ -45,7 +45,7 @@ func taskFile(t *testing.T, id string) string {
 	if err != nil || len(m) != 1 {
 		t.Fatalf("task file of %s: %v %v", id, m, err)
 	}
-	return m[0]
+	return filepath.ToSlash(m[0])
 }
 
 func writeRecord(t *testing.T, path string, rec map[string]any) {
