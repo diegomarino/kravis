@@ -23,7 +23,7 @@ kravis init | whoami | schema [type] | check
 - Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS) and `%AppData%\kravis\config.json` on Windows. It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options. Reads need no actor.
 - The actor must exist and be live. In the MVP the actor is declared rather than authenticated: it serves attribution and auditing, and it is not a security control.
 - A work record (interaction, task, and later deal, project and note) takes its holder from the actor, so there is no `--holder` flag on writes.
-- A read made with a declared actor is limited to the actor's holder, and the response states that filter. `--all-holders` removes it.
+- A read made with a declared actor is limited to the actor's holder, and the response states that filter: a `list` returns only that holder's work records, and a `get` of another holder's record returns `NOT_FOUND`. `--all-holders` removes the limit. A read without an actor is not limited. People, organizations and users are shared and never filtered.
 - `kravis whoami` prints the resolved actor, where it came from (flag, environment or configuration) and its holder. `kravis whoami --set <user>` stores a live user as this workspace's default actor in the local configuration.
 
 ## Output
