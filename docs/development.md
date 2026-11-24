@@ -7,6 +7,7 @@ Stack, repository layout, tooling and the definition of done for the MVP.
 - **Go.** Code, commands, field names, error codes and messages are in English, using US spelling.
 - **Library first.** All domain logic (validation, rules, writes) lives in a Go library. The CLI is a thin layer over it, built with cobra in `gh` style, and a future MCP server will be another thin layer over the same library. No surface carries logic of its own.
 - **Schemas.** Annotated Go types are the source of truth. `kravis schema` is generated with `invopop/jsonschema`, and the workspace catalogs are injected at run time. Input is validated in Go with Kravis's own errors (`details`, `hint`). Rules that span records are domain logic.
+- **Few dependencies.** The standard library first. The planned dependencies are cobra and `invopop/jsonschema`; any other needs a reason in its commit. Errors are Kravis's own types built with the standard `errors` package (`%w`, `errors.Is`, `errors.As`), with no third-party error library. Tests use the standard `testing` package.
 - **Two decoding modes.** Agent input is decoded strictly and refuses unknown fields. Records read from disk are decoded tolerantly, and their unknown fields are kept when the record is rewritten.
 
 ## Repository layout
