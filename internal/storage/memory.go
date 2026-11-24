@@ -50,9 +50,11 @@ func (m *Memory) hook(op Op, p string) error {
 }
 
 // put stores data under a fresh token; the caller holds the lock.
-func (m *Memory) put(p string, data []byte) {
+func (m *Memory) put(p string, data []byte) Token {
 	m.next++
-	m.objs[p] = memObject{data: slices.Clone(data), token: Token("m" + strconv.Itoa(m.next))}
+	o := memObject{data: slices.Clone(data), token: Token("m" + strconv.Itoa(m.next))}
+	m.objs[p] = o
+	return o.token
 }
 
 // Set writes an object unconditionally, as a concurrent writer would: its
@@ -90,31 +92,29 @@ func (m *Memory) Get(p string) ([]byte, Token, error) {
 }
 
 // Create implements Connector.
-func (m *Memory) Create(p string, data []byte) error {
+func (m *Memory) Create(p string, data []byte) (Token, error) {
 	if err := m.hook(OpCreate, p); err != nil {
-		return err
+		return "", err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, ok := m.objs[p]; ok {
-		return fail("create", p, ErrExists)
+		return "", fail("create", p, ErrExists)
 	}
-	m.put(p, data)
-	return nil
+	return m.put(p, data), nil
 }
 
 // Replace implements Connector.
-func (m *Memory) Replace(p string, data []byte, token Token) error {
+func (m *Memory) Replace(p string, data []byte, token Token) (Token, error) {
 	if err := m.hook(OpReplace, p); err != nil {
-		return err
+		return "", err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.check("replace", p, token); err != nil {
-		return err
+		return "", err
 	}
-	m.put(p, data)
-	return nil
+	return m.put(p, data), nil
 }
 
 // Delete implements Connector.

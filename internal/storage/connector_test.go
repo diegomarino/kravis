@@ -24,41 +24,43 @@ func TestConnectorContract(t *testing.T) {
 			if _, _, err := c.Get(p); !errors.Is(err, ErrNotFound) {
 				t.Fatalf("get of a missing object: %v", err)
 			}
-			if err := c.Create(p, []byte("one")); err != nil {
+			created, err := c.Create(p, []byte("one"))
+			if err != nil {
 				t.Fatal(err)
 			}
-			if err := c.Create(p, []byte("two")); !errors.Is(err, ErrExists) {
+			if _, err := c.Create(p, []byte("two")); !errors.Is(err, ErrExists) {
 				t.Fatalf("create over an object: %v", err)
 			}
 			data, tok, err := c.Get(p)
-			if err != nil || string(data) != "one" || tok == "" {
+			if err != nil || string(data) != "one" || tok == "" || tok != created {
 				t.Fatalf("get = %q, %q, %v", data, tok, err)
 			}
 
-			if err := c.Replace(p, []byte("two"), tok); err != nil {
+			written, err := c.Replace(p, []byte("two"), tok)
+			if err != nil {
 				t.Fatal(err)
 			}
-			if err := c.Replace(p, []byte("three"), tok); !errors.Is(err, ErrTokenMismatch) {
+			if _, err := c.Replace(p, []byte("three"), tok); !errors.Is(err, ErrTokenMismatch) {
 				t.Fatalf("replace with a stale token: %v", err)
 			}
 			if err := c.Delete(p, tok); !errors.Is(err, ErrTokenMismatch) {
 				t.Fatalf("delete with a stale token: %v", err)
 			}
 			data, tok2, _ := c.Get(p)
-			if string(data) != "two" || tok2 == tok {
-				t.Fatalf("after replace: %q, token %q (was %q)", data, tok2, tok)
+			if string(data) != "two" || tok2 == tok || tok2 != written {
+				t.Fatalf("after replace: %q, token %q (was %q, replace gave %q)", data, tok2, tok, written)
 			}
-			if err := c.Replace("records/people/nope.json", nil, tok2); !errors.Is(err, ErrNotFound) {
+			if _, err := c.Replace("records/people/nope.json", nil, tok2); !errors.Is(err, ErrNotFound) {
 				t.Fatalf("replace of a missing object: %v", err)
 			}
 			if err := c.Delete("records/people/nope.json", tok2); !errors.Is(err, ErrNotFound) {
 				t.Fatalf("delete of a missing object: %v", err)
 			}
 
-			_ = c.Create("records/people/pe_ben.json", []byte("b"))
-			_ = c.Create("records/organizations/org_x.json", []byte("x"))
-			_ = c.Create("keys/person-email/ab/abc.json", []byte("k"))
-			_ = c.Create("records/users/us_test.tmp-agent.json", []byte("u")) // only a leading dot marks a temporary file
+			_, _ = c.Create("records/people/pe_ben.json", []byte("b"))
+			_, _ = c.Create("records/organizations/org_x.json", []byte("x"))
+			_, _ = c.Create("keys/person-email/ab/abc.json", []byte("k"))
+			_, _ = c.Create("records/users/us_test.tmp-agent.json", []byte("u")) // only a leading dot marks a temporary file
 			for prefix, want := range map[string][]string{
 				"records/people/":     {"records/people/pe_ana.json", "records/people/pe_ben.json"},
 				"records/people/pe_b": {"records/people/pe_ben.json"},
@@ -90,10 +92,10 @@ func TestLocalRefusesPathsOutsideTheWorkspace(t *testing.T) {
 		if _, _, err := l.Get(p); err == nil {
 			t.Errorf("get %q: want an error", p)
 		}
-		if err := l.Create(p, nil); err == nil {
+		if _, err := l.Create(p, nil); err == nil {
 			t.Errorf("create %q: want an error", p)
 		}
-		if err := l.Replace(p, nil, ""); err == nil {
+		if _, err := l.Replace(p, nil, ""); err == nil {
 			t.Errorf("replace %q: want an error", p)
 		}
 		if err := l.Delete(p, ""); err == nil {
@@ -108,9 +110,9 @@ func TestLocalRefusesPathsOutsideTheWorkspace(t *testing.T) {
 func TestLocalTokenChangesOnEveryWrite(t *testing.T) {
 	l := NewLocal(t.TempDir())
 	const p = "records/x.json"
-	_ = l.Create(p, []byte("same"))
+	_, _ = l.Create(p, []byte("same"))
 	_, before, _ := l.Get(p)
-	if err := l.Replace(p, []byte("same"), before); err != nil {
+	if _, err := l.Replace(p, []byte("same"), before); err != nil {
 		t.Fatal(err)
 	}
 	if _, after, _ := l.Get(p); after == before {
@@ -122,11 +124,11 @@ func TestLocalLeavesNoTemporaryFiles(t *testing.T) {
 	root := t.TempDir()
 	l := NewLocal(root)
 	const p = "records/x.json"
-	_ = l.Create(p, []byte("a"))
-	_ = l.Create(p, []byte("b")) // refused
+	_, _ = l.Create(p, []byte("a"))
+	_, _ = l.Create(p, []byte("b")) // refused
 	_, tok, _ := l.Get(p)
-	_ = l.Replace(p, []byte("c"), "stale") // refused
-	_ = l.Replace(p, []byte("d"), tok)
+	_, _ = l.Replace(p, []byte("c"), "stale") // refused
+	_, _ = l.Replace(p, []byte("d"), tok)
 	entries, _ := os.ReadDir(filepath.Join(root, "records"))
 	if len(entries) != 1 || entries[0].Name() != "x.json" {
 		t.Fatalf("records/ holds %v", entries)
@@ -153,10 +155,10 @@ func TestLocalUnavailable(t *testing.T) {
 	if _, _, err := l.Get("x.json"); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("get: %v", err)
 	}
-	if err := l.Create("x.json", nil); !errors.Is(err, ErrUnavailable) {
+	if _, err := l.Create("x.json", nil); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("create: %v", err)
 	}
-	if err := l.Replace("x.json", nil, ""); !errors.Is(err, ErrUnavailable) {
+	if _, err := l.Replace("x.json", nil, ""); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("replace: %v", err)
 	}
 	if err := l.Delete("x.json", ""); !errors.Is(err, ErrUnavailable) {
@@ -183,10 +185,10 @@ func TestMemoryHookFailsACall(t *testing.T) {
 	if _, _, err := m.Get("a"); !errors.Is(err, boom) {
 		t.Error("get")
 	}
-	if err := m.Create("a", nil); !errors.Is(err, boom) {
+	if _, err := m.Create("a", nil); !errors.Is(err, boom) {
 		t.Error("create")
 	}
-	if err := m.Replace("a", nil, ""); !errors.Is(err, boom) {
+	if _, err := m.Replace("a", nil, ""); !errors.Is(err, boom) {
 		t.Error("replace")
 	}
 	if err := m.Delete("a", ""); !errors.Is(err, boom) {

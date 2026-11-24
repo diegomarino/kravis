@@ -51,8 +51,12 @@ func (l *Local) read(p string) ([]byte, Token, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	return data, tokenOf(data, info), nil
+}
+
+func tokenOf(data []byte, info fs.FileInfo) Token {
 	sum := sha256.Sum256(data)
-	return data, Token(hex.EncodeToString(sum[:]) + "-" + strconv.FormatInt(info.ModTime().UnixNano(), 36)), nil
+	return Token(hex.EncodeToString(sum[:]) + "-" + strconv.FormatInt(info.ModTime().UnixNano(), 36))
 }
 
 // ioErr maps a filesystem error to the connector's errors.
@@ -77,41 +81,41 @@ func (l *Local) Get(p string) ([]byte, Token, error) {
 
 // Create implements Connector: the temporary file is linked into place,
 // which fails if the target exists, so a reader never sees half a file.
-func (l *Local) Create(p string, data []byte) error {
+func (l *Local) Create(p string, data []byte) (Token, error) {
 	if err := validPath("create", p); err != nil {
-		return err
+		return "", err
 	}
-	tmp, err := l.writeTemp(p, data)
+	tmp, written, err := l.writeTemp(p, data)
 	if err != nil {
-		return ioErr("create", p, err)
+		return "", ioErr("create", p, err)
 	}
 	defer func() { _ = os.Remove(tmp) }()
 	if err := os.Link(tmp, l.file(p)); err != nil {
 		if errors.Is(err, fs.ErrExist) {
-			return fail("create", p, ErrExists)
+			return "", fail("create", p, ErrExists)
 		}
-		return ioErr("create", p, err)
+		return "", ioErr("create", p, err)
 	}
-	return nil
+	return written, nil
 }
 
 // Replace implements Connector.
-func (l *Local) Replace(p string, data []byte, token Token) error {
+func (l *Local) Replace(p string, data []byte, token Token) (Token, error) {
 	if err := validPath("replace", p); err != nil {
-		return err
+		return "", err
 	}
-	tmp, err := l.writeTemp(p, data)
+	tmp, written, err := l.writeTemp(p, data)
 	if err != nil {
-		return ioErr("replace", p, err)
+		return "", ioErr("replace", p, err)
 	}
 	defer func() { _ = os.Remove(tmp) }() // a no-op once renamed
 	if err := l.check("replace", p, token); err != nil {
-		return err
+		return "", err
 	}
 	if err := os.Rename(tmp, l.file(p)); err != nil {
-		return ioErr("replace", p, err)
+		return "", ioErr("replace", p, err)
 	}
-	return nil
+	return written, nil
 }
 
 // Delete implements Connector.
@@ -141,28 +145,33 @@ func (l *Local) check(op, p string, token Token) error {
 }
 
 // writeTemp writes data to a new temporary file in the target's folder,
-// creating the folder, and returns its name.
-func (l *Local) writeTemp(p string, data []byte) (string, error) {
+// creating the folder, and returns its name and the token it will have in
+// place: a link or a rename keeps its modification time.
+func (l *Local) writeTemp(p string, data []byte) (string, Token, error) {
 	dir := filepath.Dir(l.file(p))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
+		return "", "", err
 	}
 	f, err := os.CreateTemp(dir, "."+path.Base(p)+tempMark+"*")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	_, err = f.Write(data)
 	if err == nil {
 		err = f.Sync()
+	}
+	var info fs.FileInfo
+	if err == nil {
+		info, err = f.Stat()
 	}
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
 	if err != nil {
 		_ = os.Remove(f.Name())
-		return "", err
+		return "", "", err
 	}
-	return f.Name(), nil
+	return f.Name(), tokenOf(data, info), nil
 }
 
 // List implements Connector. A prefix whose folder does not exist lists

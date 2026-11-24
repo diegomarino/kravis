@@ -138,7 +138,7 @@ func (s *Store) Create(rec Record, actor string, pathOf func(id string) string, 
 		data, err = Encode(rec)
 	}
 	if err == nil {
-		err = s.c.Create(p, data)
+		_, err = s.c.Create(p, data)
 	}
 	if err != nil {
 		return "", false, errors.Join(err, undo(), s.dropKeys(created, b.ID))
@@ -213,7 +213,7 @@ func Update[T any, P interface {
 		}
 		if err == nil {
 			if data, err = Encode(cur); err == nil {
-				err = s.c.Replace(p, data, token)
+				_, err = s.c.Replace(p, data, token)
 			}
 		}
 		if err != nil {
@@ -278,7 +278,7 @@ func (s *Store) addKeys(keys []Key, id string) (created []Key, owner string, err
 		var data []byte
 		data, err = writeObject([]field{{"key", mustMarshal(k.Value)}, {"record", mustMarshal(id)}})
 		if err == nil {
-			err = s.c.Create(k.Path(), data)
+			_, err = s.c.Create(k.Path(), data)
 		}
 		if errors.Is(err, ErrExists) {
 			if owner, err = s.keyOwner(k); err == nil && owner == id {
@@ -316,7 +316,7 @@ func (s *Store) dropKeys(keys []Key, id string) error {
 
 // writeText writes the sidecar of the record at p: nil leaves it alone, an
 // empty text removes it. undo puts the earlier sidecar back, unless someone
-// wrote it since: the sidecar's token is no longer the one of this write.
+// wrote it since: its token is no longer the one this write returned.
 func (s *Store) writeText(p string, text *string) (undo func() error, err error) {
 	undo = func() error { return nil }
 	if text == nil {
@@ -324,29 +324,24 @@ func (s *Store) writeText(p string, text *string) (undo func() error, err error)
 	}
 	sp := SidecarPath(p)
 	old, token, err := s.c.Get(sp)
+	var ours Token // "" when this write removed the sidecar
 	switch {
 	case errors.Is(err, ErrNotFound):
 		if *text == "" {
 			return undo, nil
 		}
-		old, err = nil, s.c.Create(sp, []byte(*text))
+		old = nil
+		ours, err = s.c.Create(sp, []byte(*text))
 	case err != nil:
 		return undo, err
 	case *text == "":
 		err = s.c.Delete(sp, token)
 	default:
 		// Written even when unchanged, so its token says this write was last.
-		err = s.c.Replace(sp, []byte(*text), token)
+		ours, err = s.c.Replace(sp, []byte(*text), token)
 	}
 	if err != nil {
 		return undo, err
-	}
-	if *text == "" {
-		return func() error { return s.restoreText(sp, "", old) }, nil
-	}
-	_, ours, err := s.c.Get(sp)
-	if err != nil {
-		return undo, nil // nothing known to undo
 	}
 	return func() error { return s.restoreText(sp, ours, old) }, nil
 }
@@ -360,7 +355,8 @@ func (s *Store) restoreText(sp string, ours Token, old []byte) error {
 		if ours != "" || old == nil {
 			return nil
 		}
-		return s.c.Create(sp, old)
+		_, err = s.c.Create(sp, old)
+		return err
 	case err != nil:
 		return err
 	case ours == "" || token != ours:
@@ -368,7 +364,8 @@ func (s *Store) restoreText(sp string, ours Token, old []byte) error {
 	case old == nil:
 		return s.c.Delete(sp, token)
 	}
-	return s.c.Replace(sp, old, token)
+	_, err = s.c.Replace(sp, old, token)
+	return err
 }
 
 func mustMarshal(s string) json.RawMessage {

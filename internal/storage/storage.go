@@ -23,11 +23,13 @@ type Token string
 type Connector interface {
 	// Get returns the object's content and its version token.
 	Get(path string) ([]byte, Token, error)
-	// Create writes the object only if the path does not exist (ErrExists).
-	Create(path string, data []byte) error
+	// Create writes the object only if the path does not exist (ErrExists),
+	// and returns the token of what it wrote, as a PUT returns an ETag.
+	Create(path string, data []byte) (Token, error)
 	// Replace writes the object only if its token still matches
-	// (ErrTokenMismatch); a missing object is ErrNotFound.
-	Replace(path string, data []byte, token Token) error
+	// (ErrTokenMismatch); a missing object is ErrNotFound. It returns the
+	// token of what it wrote.
+	Replace(path string, data []byte, token Token) (Token, error)
 	// Delete removes the object only if its token still matches.
 	Delete(path string, token Token) error
 	// List returns the paths under a prefix, sorted. The prefix is a plain
