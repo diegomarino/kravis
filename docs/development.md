@@ -74,6 +74,16 @@ The Go module path is `github.com/diegomarino/kravis`.
 - **`ci.yml`** runs on every push and pull request: format check, lint, tests, build, `govulncheck` and `ddduck check`, plus the commit subject check on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
 - **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS, Linux and Windows and publishes them as GitHub Release assets.
 
+## Autonomy
+
+Agents implement on their own within the spec. Only decisions that change what was already agreed wait for the person.
+
+- **Changes to `main`** arrive only through pull requests with CI green; there are no direct pushes. Tags `v*` are created only by the person.
+- **The spec gate** is a CI job that classifies each pull request:
+  - **Additive** (merges on its own once CI and the review pass): `ddduck diff` against the base shows only added records, or changes to concepts and use cases that add text without removing any; `GLOSSARY.md`, `docs/cli.md` and `docs/storage.md` gain lines without losing any; no commit carries `!`.
+  - **Needs the person** (the job fails until the person adds the `spec-approved` label): `ddduck diff` shows a removed or relocated record, or a changed guarantee or relationship; any file under `docs/ddd/decisions/` is added or changed; `GLOSSARY.md`, `docs/cli.md` or `docs/storage.md` lose or change a line; a contract fixture changes (the output of `kravis schema`, golden record files); or a commit carries `!`.
+- **Issues** are implemented only when labelled `ready`, which the person adds once the issue's behavior is in the model. For an issue without it, an agent may only open a pull request with the proposed spec change, which goes through the spec gate like any other.
+
 ## Installation
 
 - `go install github.com/diegomarino/kravis/cmd/kravis@latest`, or download a binary from GitHub Releases.
