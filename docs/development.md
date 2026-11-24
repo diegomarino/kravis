@@ -20,6 +20,7 @@ skills/kravis/         operational skill (SKILL.md, references/ only if it grows
 docs/                  storage.md, cli.md, development.md
 docs/ddd/              ddduck product model (canonical YAML, ADRs, generated views)
 justfile
+.githooks/             commit-msg
 .golangci.yml
 .goreleaser.yaml
 .github/workflows/     ci.yml, release.yml
@@ -36,6 +37,14 @@ The Go module path is `github.com/diegomarino/kravis`.
 | Test | `go test ./...` | `just test` |
 | Build | `go build ./cmd/kravis` | `just build` |
 | Model | `ddduck check --root docs/ddd` | `just check` |
+| Git hooks | `.githooks/` via `core.hooksPath` | `just hooks` |
+
+### Commits
+
+- Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>)!: <summary>`, with the scope and `!` optional, in English and at most 72 characters.
+- Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, `revert`. A breaking change of the CLI contract or the storage format carries `!`.
+- Scopes are record types or areas when they help: `task`, `interaction`, `storage`, `cli`, `schema`, `skill`, `model`.
+- `just hooks` installs a `commit-msg` hook that checks the subject locally. CI checks it again on every pull request, and goreleaser groups the changelog by type.
 
 ### Tests that guard the contract
 
@@ -46,7 +55,7 @@ The Go module path is `github.com/diegomarino/kravis`.
 
 ## CI and releases
 
-- **`ci.yml`** runs on every push and pull request: format check, lint, tests, build and `ddduck check`. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
+- **`ci.yml`** runs on every push and pull request: format check, lint, tests, build and `ddduck check`, plus the commit subject check on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
 - **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS, Linux and Windows and publishes them as GitHub Release assets.
 
 ## Installation
@@ -58,7 +67,7 @@ The Go module path is `github.com/diegomarino/kravis`.
 ## Definition of done for the MVP
 
 - The behavior: every use case and guarantee in scope in the ddduck model, with the acceptance tests passing.
-- Developer experience: format, lint, tests, build, model check and release automated through `just` and CI.
+- Developer experience: format, lint, tests, build, model check, commit convention and release automated through `just`, the git hooks and CI.
 - The skill installs with `npx skills`, cites only commands and flags that exist, and teaches agents to query `kravis schema` rather than copy it.
 - Quality docs:
   - a README with what Kravis is, how to install it and a five-minute quickstart (`init`, a user, an interaction, a follow-up);

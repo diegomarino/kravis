@@ -1,0 +1,13 @@
+#!/bin/sh
+# Checks that the commit subject follows Conventional Commits.
+subject=$(head -n 1 "$1")
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+pattern='^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([a-z0-9-]+\))?!?: [^ ].{0,71}$'
+if ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+  echo "commit-msg: the subject must follow Conventional Commits, for example:" >&2
+  echo "  feat(task): add the status transition" >&2
+  echo "Allowed types: feat fix docs test refactor perf build ci chore revert. At most 72 characters." >&2
+  exit 1
+fi
