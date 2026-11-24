@@ -47,19 +47,52 @@ var exitCodes = map[string]int{
 
 var retryable = []string{domain.CodeVersionConflict, domain.CodeStorageUnavailable}
 
-// Warning is a structured warning of a success.
-type Warning struct {
-	Code    string         `json:"code"`
-	Message string         `json:"message"`
-	Details map[string]any `json:"details,omitempty"`
-}
-
 // reply is what a command returns on success: the envelope of docs/cli.md.
 type reply struct {
-	Data     any       `json:"data"`
-	Outcome  string    `json:"outcome,omitempty"`
-	Warnings []Warning `json:"warnings,omitempty"`
-	Filters  any       `json:"filters,omitempty"`
+	Data     any
+	Outcome  string
+	Warnings []domain.Warning
+	Filters  any
+	// List marks a list, which always has total and next_cursor (null on
+	// the last page).
+	List       bool
+	Total      int
+	NextCursor *string
+}
+
+// MarshalJSON writes the envelope: data first, then only what applies.
+func (r reply) MarshalJSON() ([]byte, error) {
+	type field struct {
+		key string
+		val any
+	}
+	fields := []field{{"data", r.Data}}
+	if r.Outcome != "" {
+		fields = append(fields, field{"outcome", r.Outcome})
+	}
+	if len(r.Warnings) > 0 {
+		fields = append(fields, field{"warnings", r.Warnings})
+	}
+	if r.Filters != nil {
+		fields = append(fields, field{"filters", r.Filters})
+	}
+	if r.List {
+		fields = append(fields, field{"total", r.Total}, field{"next_cursor", r.NextCursor})
+	}
+	var buf strings.Builder
+	buf.WriteByte('{')
+	for i, f := range fields {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		var b strings.Builder
+		if err := writeJSON(&b, f.val); err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(&buf, "%q:%s", f.key, strings.TrimSuffix(b.String(), "\n"))
+	}
+	buf.WriteByte('}')
+	return []byte(buf.String()), nil
 }
 
 // errorBody is the error object of docs/cli.md.

@@ -41,11 +41,11 @@ func (a *app) initCommand() *cobra.Command {
 			}
 			// A matching rerun keeps an actor already stored; an interrupted
 			// one finds none and gets it now.
-			changed, err := workspace.SetDefaultActor(res.Workspace, res.User.ID, res.Outcome == domain.OutcomeExisting)
+			changed, err := workspace.SetDefaultActor(res.Workspace, res.UserID, res.Outcome == domain.OutcomeExisting)
 			if err != nil {
 				return err
 			}
-			a.log.Debug("default actor", "user", res.User.ID, "stored", changed)
+			a.log.Debug("default actor", "user", res.UserID, "stored", changed)
 			return a.emit(cmd, reply{Data: res, Outcome: res.Outcome})
 		},
 	}

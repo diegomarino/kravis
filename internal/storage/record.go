@@ -44,8 +44,15 @@ type Base struct {
 
 func (b *Base) base() *Base { return b }
 
+// Meta returns the record's ID and metadata, for code that handles any
+// record type.
+func (b *Base) Meta() *Base { return b }
+
 // Record is a type that embeds Base.
-type Record interface{ base() *Base }
+type Record interface {
+	base() *Base
+	Meta() *Base
+}
 
 // metaKeys are written last, in Base's order.
 var metaKeys = []string{"version", "created_at", "created_by", "updated_at", "updated_by"}
@@ -79,6 +86,41 @@ type field struct {
 // first, the domain fields, the unknown fields kept from disk sorted by
 // name, and the metadata last.
 func Encode(rec Record) ([]byte, error) {
+	fields, err := ordered(rec)
+	if err != nil {
+		return nil, err
+	}
+	return writeObject(fields)
+}
+
+// Field is one field of a record as it is stored: its JSON name and value.
+type Field struct {
+	Name  string
+	Value json.RawMessage
+}
+
+// Fields returns the record's fields in the disk order of Encode, with
+// empty fields omitted.
+func Fields(rec Record) ([]Field, error) {
+	fields, err := ordered(rec)
+	out := make([]Field, len(fields))
+	for i, f := range fields {
+		out[i] = Field{f.key, f.val}
+	}
+	return out, err
+}
+
+// FieldNames lists the JSON names the record type defines, metadata
+// included, in declaration order.
+func FieldNames(rec Record) []string {
+	names := jsonNames(reflect.TypeOf(rec))
+	// Base comes first in the struct but its metadata is written last.
+	return slices.Concat(names[:1], slices.DeleteFunc(slices.Clone(names[1:]), func(n string) bool {
+		return slices.Contains(metaKeys, n)
+	}), metaKeys)
+}
+
+func ordered(rec Record) ([]field, error) {
 	raw, err := marshal(rec)
 	if err != nil {
 		return nil, err
@@ -109,7 +151,7 @@ func Encode(rec Record) ([]byte, error) {
 		}
 		body = append(body, field{k, v})
 	}
-	return writeObject(slices.Concat(head, body, tail))
+	return slices.Concat(head, body, tail), nil
 }
 
 // objectFields splits a JSON object into its fields, in order.

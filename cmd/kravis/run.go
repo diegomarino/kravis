@@ -153,7 +153,7 @@ func (a *app) root() *cobra.Command {
 		}
 		return domain.UsageError("a command is required", "run kravis --help")
 	}
-	root.AddCommand(a.initCommand(), a.whoamiCommand(), a.checkCommand())
+	root.AddCommand(a.initCommand(), a.whoamiCommand(), a.checkCommand(), a.organizationCommand(), a.personCommand())
 	return root
 }
 
@@ -246,6 +246,13 @@ func (a *app) actor(ws *domain.Workspace, required bool) (*actor, error) {
 	return &actor{User: user, Source: source}, nil
 }
 
+// synonyms are flags that other products use, with a hint to Kravis's own
+// term (docs/cli.md, Naming for agents).
+var synonyms = map[string]string{
+	"owner":    "Kravis calls the human who answers for a task its assignee: use --assignee on task commands",
+	"delegate": "Kravis calls the agent that carries out a task its assigned agent: use --agent on task commands",
+}
+
 // parserError turns what cobra reports before a command runs into a usage
 // error: an unknown flag is UNKNOWN_FIELD, everything else INVALID_VALUE.
 func parserError(root *cobra.Command, err error) error {
@@ -253,13 +260,22 @@ func parserError(root *cobra.Command, err error) error {
 	for _, prefix := range []string{"unknown flag: --", "unknown shorthand flag: '"} {
 		if rest, ok := strings.CutPrefix(msg, prefix); ok {
 			field, _, _ := strings.Cut(rest, "'")
+			field, _, _ = strings.Cut(field, "=")
+			hint := "run kravis --help"
+			if h, ok := synonyms[field]; ok {
+				hint = h
+			}
 			return &domain.Error{
-				Code: domain.CodeUnknownField, Message: msg, Hint: "run kravis --help",
+				Code: domain.CodeUnknownField, Message: msg, Hint: hint,
 				Details: map[string]any{"field": field},
 			}
 		}
 	}
 	e := &domain.Error{Code: domain.CodeInvalidValue, Message: msg, Hint: "run kravis --help"}
+	if _, rest, ok := strings.Cut(msg, ` for "--`); ok {
+		field, _, _ := strings.Cut(rest, `"`)
+		e.Details = map[string]any{"field": field}
+	}
 	if strings.HasPrefix(msg, "unknown command") {
 		var names []string
 		for _, c := range root.Commands() {
