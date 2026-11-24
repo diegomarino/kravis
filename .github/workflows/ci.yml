@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.23.5
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v4
         with:
           just-version: 1.59.0
       - name: Format
