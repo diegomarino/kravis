@@ -92,7 +92,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 
 - Long text lives in `<id>.md` next to the JSON file, and the file exists only when there is text. The text is an interaction's summary, a task's description, or the content of a note (notes always have one).
 - On write, Kravis writes the `.md` first and the JSON second. The JSON carries the version and confirms the write.
-- `check` reports sidecars that have no JSON next to them, and records edited outside the CLI.
+- `check` reports sidecars that have no JSON next to them. It does not try to tell who edited a file: it validates every record against the rules (format, catalogs, category and `live`, references that exist and share the holder, deduplication keys), so a correct edit made by hand is valid and a wrong one is reported.
 
 ## Configuration
 
