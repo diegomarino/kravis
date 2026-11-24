@@ -20,7 +20,7 @@ kravis init | whoami | schema [type] | check
 
 ## Identity and holder
 
-- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS) and `%AppData%\kravis\config.json` on Windows. It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options. Reads need no actor.
+- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS) and `%AppData%\kravis\config.json` on Windows. It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options, and so does `whoami`, which has nothing to print without one. Other reads need no actor.
 - The actor must exist and be live. In the MVP the actor is declared rather than authenticated: it serves attribution and auditing, and it is not a security control.
 - A work record (interaction, task, and later deal, project and note) takes its holder from the actor, so there is no `--holder` flag on writes.
 - An actor can only write the work records of its own holder: an update, transition or delete of another holder's record returns `NOT_FOUND`, also with `--all-holders`, which only widens reads.
@@ -29,7 +29,7 @@ kravis init | whoami | schema [type] | check
 
 ## Output
 
-- Outside a TTY, every command prints exactly one JSON object, compact and on one line, including `--version` and usage errors such as an unknown command or flag (exit code 2, nothing on stdout). Only `--help` prints text for people. On a TTY it prints tables meant for people; `KRAVIS_OUTPUT=json` or `--output json` forces JSON there.
+- Outside a TTY, every command prints exactly one JSON object, compact and on one line, including `--version` and usage errors such as an unknown command or flag (exit code 2, nothing on stdout). Only `--help` prints text for people. On a TTY it prints tables meant for people; `KRAVIS_OUTPUT=json` or `--output json` forces JSON there. `json` is the only value `--output` accepts; any other is `INVALID_VALUE` with `details.allowed: ["json"]`.
 - An unknown command is `INVALID_VALUE`; `UNKNOWN_FIELD` is only for an unknown flag or field.
 - `kravis --version` prints `{"data":{"version":"0.2.0"}}`, without the leading `v`, and `dev` only when no version is known. The version is the one injected at build time, else the module version from the build info (`go install …@vX.Y.Z`), else `dev`.
 - Data goes to stdout and errors to stderr, so an error is never mixed with data in a pipe.
@@ -112,12 +112,19 @@ Error (stderr):
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
 | `DEDUP_CONFLICT` | error, 4 | The natural key exists with contradicting data, or identifying references are split across two interactions |
 | `REFERENCED` | error, 4 | A delete of a record that others refer to; `details.referrers` lists them |
-| `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace |
+| `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or the files an interrupted `init` left (another organization, user or timezone) |
 | `STORAGE_UNAVAILABLE` | error, 5 | The workspace cannot be read or written |
+| `WORKSPACE_FILE_MISSING` | check finding | `kravis.json` or `config.json` does not exist |
+| `WORKSPACE_FILE_INVALID` | check finding | `kravis.json` or `config.json` exists but cannot be read as the file it should be |
+| `ORPHAN_SIDECAR` | check finding | A `.md` sidecar has no `.json` record next to it |
+| `UNREADABLE_RECORD` | check finding | A record file exists but cannot be read |
+| `MALFORMED_RECORD` | check finding | A record file is not valid JSON for a record, or has no `id` |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |
 | `UNKNOWN_SOURCE` | warning | A source reference to a source that is not in the catalog |
+
+A check finding is data on `kravis check`, with exit code 6, not an error. Later increments add the codes of their types the same way.
 
 ### Input
 
@@ -163,8 +170,8 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 
 | Command | Notes |
 |---|---|
-| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` completes it |
-| `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; `--set` stores the default actor |
+| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with different data (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
+| `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; without an actor it fails with `MISSING_ACTOR`. `--set` stores the default actor |
 | `kravis schema [type]` | See Discovery |
 | `kravis check` | Prints its findings (`code`, record, `message`) on stdout as `data` and exits 6 if there are any. They are data, not a failure of the command. It never writes |
 | `kravis user list\|get\|create\|update\|delete` | `create <key> --human\|--agent --holder <org> [--handler <user>] [--person <id>]`; the ID is `us_<key>`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP. Holder and kind never change. A user is deactivated with `update --live=false`, refused with `REFERENCED` while it is the handler of a live agent or the assignee or agent of a live task |
