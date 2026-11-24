@@ -172,7 +172,7 @@ Keep the workspace's records, catalogs and holder partition consistent, and expo
 - `WORKSPACE-AC-05` - A list returns at most 50 records by default, always reports the total, and returns an opaque cursor. Each type has a fixed default order, declared in the schema, with the ID breaking ties. A record changed between two pages may be skipped or repeated.
 - `WORKSPACE-AC-06` - kravis schema describes each record type with the catalog values that apply to the actor's holder, the category of every status and stage, the value used when a field is omitted, the default order and the possible error codes.
 - `WORKSPACE-AC-07` - Agent input with unknown fields is refused, while unknown fields found in a record on disk are kept when the record is rewritten.
-- `WORKSPACE-AC-08` - When two updates of the same record race, one applies and the other is reapplied on the new version or fails with VERSION_CONFLICT and exit code 4.
+- `WORKSPACE-AC-08` - When the record changes between an update's read and its write, the update is reapplied on the new version, and after 3 attempts it fails with VERSION_CONFLICT and exit code 4.
 - `WORKSPACE-AC-09` - A read made with a declared actor states its holder filter in the response, and --all-holders removes it.
 - `WORKSPACE-AC-10` - Deleting a record that another record refers to fails and lists the records that refer to it.
 - `WORKSPACE-AC-11` - check reports its findings as JSON with a code, the affected record and a message, exits with code 6 when there are findings, and never changes a file.
@@ -186,7 +186,7 @@ Keep the workspace's records, catalogs and holder partition consistent, and expo
 - `WORKSPACE-INV-06` - Categories are fixed and the same everywhere. Every status and stage belongs to exactly one category, and each record stores its category and its live flag next to its status or stage, consistent with the catalog.
 - `WORKSPACE-INV-07` - A record's ID never changes, and its form is fixed per record type.
 - `WORKSPACE-INV-08` - Every write increments the record's version and records which actor wrote it and when.
-- `WORKSPACE-INV-09` - An update applies only to the version it read and never overwrites a concurrent change.
+- `WORKSPACE-INV-09` - An update applies only to the version it read and is replaced only if that version is still current. With a storage that writes conditionally (an object store with If-Match) it never overwrites a concurrent change. The local filesystem leaves a window of under a millisecond between the last check and the replace, which is accepted; on a mounted bucket such as tigrisfs only one writer is supported.
 - `WORKSPACE-INV-10` - Creating a record whose natural key already exists returns the existing record instead of creating a duplicate.
 - `WORKSPACE-INV-11` - A record can be deleted only when no other record refers to it.
 - `WORKSPACE-INV-12` - Reads made with a declared actor are limited to the actor's holder, and the response states that limit.

@@ -4,6 +4,10 @@ id: WORKSPACE-INV-09
 model: model:kravis
 ownerDomain: domain:workspace
 classification: invariant
-statement: An update applies only to the version it read and never overwrites a
-  concurrent change.
+statement: "An update applies only to the version it read and is replaced only if
+  that version is still current. With a storage that writes conditionally
+  (an object store with If-Match) it never overwrites a concurrent change. The
+  local filesystem leaves a window of under a millisecond between the last check
+  and the replace, which is accepted; on a mounted bucket such as tigrisfs only
+  one writer is supported."
 status: active

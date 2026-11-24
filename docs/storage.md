@@ -132,7 +132,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 
 - **Create** uses `create`, which writes only if the path does not exist.
 - **Update** reads the record, applies the change, and writes with `replace`, conditional on the version token it read. If the record changed in between, Kravis rereads and reapplies the change, up to 3 attempts. If it still conflicts, it fails with `VERSION_CONFLICT` (exit code 4).
-- The local filesystem connector writes to a temporary file, checks that the version is unchanged right before renaming it into place, and takes no locks. The residual race window is accepted and `check` reports what it leaves behind. Hardening it (a lock per record locally, `If-Match` / `If-None-Match` on Tigris) is a connector change that leaves the contract as it is.
+- The local filesystem connector writes to a temporary file, checks that the version is unchanged right before renaming it into place, and takes no locks. The residual window between the check and the rename lasts under a millisecond and is accepted: a change lost in it cannot be detected afterwards. Hardening it (a lock per record locally, `If-Match` / `If-None-Match` on Tigris) is a connector change that leaves the contract as it is.
 - **Delete** checks that no record refers to the target, then removes the JSON file with `delete`, conditional on the version token it read, and then its sidecar and its keys. A target that changed in between fails with `VERSION_CONFLICT`. If something refers to the target, it fails and lists the referring records.
 
 ### Deduplication keys
@@ -176,6 +176,6 @@ The catalog of sources lives in code, because each source has its own behavior: 
 
 ## Ready for later
 
-- **Tigris:** an S3 connector implementing the same five calls with conditional writes and deletes. tigrisfs does not preserve conditional writes, so at most it is fit for reads or for a single writer. A bucket with writers in several regions must be Single-region or Multi-region.
+- **Tigris:** an S3 connector implementing the same five calls with conditional writes and deletes. tigrisfs does not preserve conditional writes, and each machine may see a cached version for seconds, so a workspace on tigrisfs supports a single writer; several writing machines need this connector. A bucket with writers in several regions must be Single-region or Multi-region.
 - **History on Tigris:** a change journal of Kravis's own. It would not change the record format.
 - **Index:** a disposable index, to be built when listing open tasks across all history becomes slow.

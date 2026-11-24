@@ -976,7 +976,7 @@
 <!-- WORKSPACE&#45;AC&#45;08 -->
 <g id="node130" class="node">
 <title>WORKSPACE&#45;AC&#45;08</title>
-<g id="a_node130"><a xlink:title="When two updates of the same record race, one applies and the other is reapplied on the new version or fails with VERSION_CONFLICT and exit code 4.">
+<g id="a_node130"><a xlink:title="When the record changes between an update&#39;s read and its write, the update is reapplied on the new version, and after 3 attempts it fails with VERSION_CONFLICT and exit code 4.">
 <polygon fill="#f2cdc4" stroke="black" points="3073.4,-9695.78 3029.7,-9713.78 2942.3,-9713.78 2898.6,-9695.78 2942.3,-9677.78 3029.7,-9677.78 3073.4,-9695.78"/>
 <text xml:space="preserve" text-anchor="middle" x="2986" y="-9692.48" font-family="Helvetica,sans-Serif" font-size="11.00">WORKSPACE&#45;AC&#45;08</text>
 </a>
@@ -2976,7 +2976,7 @@
 <!-- WORKSPACE&#45;INV&#45;09 -->
 <g id="node144" class="node">
 <title>WORKSPACE&#45;INV&#45;09</title>
-<g id="a_node144"><a xlink:title="An update applies only to the version it read and never overwrites a concurrent change.">
+<g id="a_node144"><a xlink:title="An update applies only to the version it read and is replaced only if that version is still current. With a storage that writes conditionally (an object store with If&#45;Match) it never overwrites a concurrent change. The local filesystem leaves a window of under a millisecond between the last check and the replace, which is accepted; on a mounted bucket such as tigrisfs only one writer is supported.">
 <polygon fill="#f2cdc4" stroke="black" points="851.59,-9695.78 806.79,-9713.78 717.21,-9713.78 672.41,-9695.78 717.21,-9677.78 806.79,-9677.78 851.59,-9695.78"/>
 <text xml:space="preserve" text-anchor="middle" x="762" y="-9692.48" font-family="Helvetica,sans-Serif" font-size="11.00">WORKSPACE&#45;INV&#45;09</text>
 </a>
