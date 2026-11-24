@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -65,6 +66,17 @@ func Init(c storage.Connector, now func() time.Time, in InitInput) (*InitResult,
 	if err != nil {
 		return nil, err
 	}
+	res, err := initOnce(c, now, in)
+	if errors.Is(err, storage.ErrExists) {
+		// Another init wrote a file between our read and our create. Look
+		// again: what it wrote is either the same data, which we adopt, or a
+		// conflict.
+		res, err = initOnce(c, now, in)
+	}
+	return res, err
+}
+
+func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitResult, error) {
 	orgID, userID := "org_"+Slug(in.Organization), "us_"+in.UserKey
 	st := storage.NewStore(c, now)
 
@@ -106,7 +118,8 @@ func Init(c storage.Connector, now func() time.Time, in InitInput) (*InitResult,
 	org := &Organization{Name: in.Organization, Own: true, Live: true}
 	org.ID = orgID
 	if err := ensure(st, OrganizationPath(orgID), org, userID, create, func(have *Organization) bool {
-		return have.Name == in.Organization && have.Own && have.Live
+		// Its creator is the first user: another user's init was interrupted here.
+		return have.Name == in.Organization && have.Own && have.Live && have.CreatedBy == userID
 	}, "organization", in.Organization); err != nil {
 		return nil, err
 	}
@@ -137,9 +150,6 @@ func Init(c storage.Connector, now func() time.Time, in InitInput) (*InitResult,
 		if err == nil {
 			_, err = c.Create(MarkerPath, data)
 		}
-		if errors.Is(err, storage.ErrExists) {
-			return nil, exists(MarkerPath, "", "another init finished first")
-		}
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +177,7 @@ func ensure[T any, P interface {
 	case !errors.Is(err, storage.ErrNotFound):
 		return err
 	case !create:
-		return exists(field, given, "the workspace is initialized but has no "+field+" "+given)
+		return exists(field, given, fmt.Sprintf("the workspace already exists and does not have the %s %q", field, given))
 	}
 	_, _, err = storage.Create(st, rec, actor, func(string) string { return path }, nil)
 	return err

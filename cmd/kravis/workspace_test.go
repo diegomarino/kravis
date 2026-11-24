@@ -109,6 +109,10 @@ func TestWORKSPACE_AC_01_OneJSONObjectOutsideATTY(t *testing.T) {
 			{"malformed flag value", []string{"check", "--verbose=maybe"}, "INVALID_VALUE"},
 			{"unexpected argument", []string{"check", "extra"}, "INVALID_VALUE"},
 			{"bad output format", []string{"check", "--output", "yaml"}, "INVALID_VALUE"},
+			{"table off a TTY", []string{"check", "--output", "table"}, "INVALID_VALUE"},
+			{"help command", []string{"help"}, "INVALID_VALUE"},
+			{"completion protocol", []string{"__complete", ""}, "INVALID_VALUE"},
+			{"completion command", []string{"completion", "bash"}, "INVALID_VALUE"},
 			{"no command", nil, "INVALID_VALUE"},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
@@ -145,7 +149,6 @@ func TestWORKSPACE_AC_01_OneJSONObjectOutsideATTY(t *testing.T) {
 				t.Errorf("%v: code %d, stdout %q, stderr %q", args, r.Code, r.Stdout, r.Stderr)
 			}
 		}
-		wantError(t, e.run("help"), "INVALID_VALUE", 2) // there is no help command
 	})
 
 	t.Run("no HTML escaping", func(t *testing.T) {
@@ -191,7 +194,8 @@ func TestWORKSPACE_AC_01_OneJSONObjectOutsideATTY(t *testing.T) {
 		if got := e.run("whoami"); !strings.HasPrefix(got.Stdout, "{") {
 			t.Errorf("KRAVIS_OUTPUT=json: %q", got.Stdout)
 		}
-		r = e.run("check", "--output", "table") // a list
+		t.Setenv("KRAVIS_OUTPUT", "")
+		r = e.run("check") // a list
 		if r.Code != 0 || strings.HasPrefix(r.Stdout, "{") {
 			t.Errorf("list table: %q", r.Stdout)
 		}
@@ -867,4 +871,75 @@ func TestWORKSPACE_AC_11_CheckReportsAndNeverWrites(t *testing.T) {
 	// A failure to look is an error, not a finding.
 	e.Connector = errConnector{storage.NewMemory(), storage.ErrUnavailable}
 	wantError(t, e.run("check"), "STORAGE_UNAVAILABLE", 5)
+}
+
+func TestInterruptedInitRefusesAnotherUser(t *testing.T) {
+	e := newEnv(t)
+	e.Connector = &failAt{Connector: storage.NewLocal(e.Workspace), sub: "records/users/"}
+	wantError(t, e.init(), "INTERNAL", 1) // ana's init stops after the organization
+	e.Connector = nil
+	before := e.Files()
+	// bo retries with the same organization: the organization is attributed to ana.
+	r := e.run("init", "--timezone", tz, "--organization", orgName, "--user", "bo-acme")
+	wantError(t, r, "WORKSPACE_EXISTS", 2)
+	if !maps.Equal(before, e.Files()) {
+		t.Error("files changed")
+	}
+}
+
+// raceOn lets another init, with the same data, win the create of a path.
+type raceOn struct {
+	storage.Connector
+	sub   string
+	rival func()
+	done  bool
+}
+
+func (c *raceOn) Create(p string, data []byte) (storage.Token, error) {
+	if !c.done && strings.Contains(p, c.sub) {
+		c.done = true
+		c.rival()
+	}
+	return c.Connector.Create(p, data)
+}
+
+func TestConcurrentMatchingInitsAdoptEachOther(t *testing.T) {
+	for _, sub := range []string{"config.json", "records/organizations/", "records/users/", "kravis.json"} {
+		t.Run(sub, func(t *testing.T) {
+			e := newEnv(t)
+			local := storage.NewLocal(e.Workspace)
+			e.Connector = &raceOn{Connector: local, sub: sub, rival: func() {
+				_, err := domain.Init(local, nil, domain.InitInput{Timezone: tz, Organization: orgName, UserKey: userKey, UserName: userName})
+				must(t, err)
+			}}
+			r := e.init()
+			if r.Code != 0 {
+				t.Fatalf("code %d, stderr %q", r.Code, r.Stderr)
+			}
+			if got := e.Files(); len(got) != 5 {
+				t.Errorf("files: %v", got)
+			}
+			if r := e.init(); r.JSON(t)["outcome"] != "existing" {
+				t.Errorf("rerun: %q", r.Stdout)
+			}
+		})
+	}
+	// A rival with other data is a conflict, not an internal error.
+	e := newEnv(t)
+	local := storage.NewLocal(e.Workspace)
+	e.Connector = &raceOn{Connector: local, sub: "config.json", rival: func() {
+		_, err := domain.Init(local, nil, domain.InitInput{Timezone: "UTC", Organization: orgName, UserKey: userKey})
+		must(t, err)
+	}}
+	wantError(t, e.init(), "WORKSPACE_EXISTS", 2)
+}
+
+func TestCheckFlagsAnInvalidWorkspaceID(t *testing.T) {
+	e := newEnv(t)
+	e.mustInit()
+	must(t, os.WriteFile("kravis.json", []byte(`{"workspace":"ws_x","schema_version":1}`), 0o600))
+	r := e.run("check")
+	if r.Code != 6 || !strings.Contains(r.Stdout, "WORKSPACE_FILE_INVALID") {
+		t.Errorf("code %d, %q", r.Code, r.Stdout)
+	}
 }

@@ -10,6 +10,8 @@ import (
 	"time"
 	_ "time/tzdata" // zones resolve without a system database
 
+	"go.jetify.com/typeid"
+
 	"github.com/diegomarino/kravis/internal/storage"
 )
 
@@ -96,8 +98,8 @@ func ValidTimezone(name string) error {
 
 // Validate reports the first thing wrong with the marker.
 func (m Marker) Validate() error {
-	if len(m.Workspace) <= len("ws_") || m.Workspace[:3] != "ws_" {
-		return fmt.Errorf("workspace %q is not a workspace ID (ws_…)", m.Workspace)
+	if id, err := typeid.FromString(m.Workspace); err != nil || id.Prefix() != "ws" {
+		return fmt.Errorf("workspace %q is not a workspace ID (ws_<typeid>)", m.Workspace)
 	}
 	if m.SchemaVersion != SchemaVersion {
 		return fmt.Errorf("schema_version %d is not %d", m.SchemaVersion, SchemaVersion)

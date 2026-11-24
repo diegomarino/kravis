@@ -138,7 +138,7 @@ func nonNull(v any) any {
 // a table for people on one.
 func (a *app) emit(cmd *cobra.Command, r reply) error {
 	r.Data = nonNull(r.Data)
-	if a.output == "table" || (a.output == "" && a.isTTY(a.stdout)) {
+	if a.output != "json" && a.isTTY(a.stdout) {
 		return writeTable(a.stdout, r)
 	}
 	return writeJSON(a.stdout, r)

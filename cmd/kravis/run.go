@@ -105,6 +105,10 @@ func (a *app) execute(root *cobra.Command, args []string, stdin io.Reader, stdou
 		}
 	}()
 
+	if len(args) > 0 && strings.HasPrefix(args[0], "__") {
+		// Cobra's own completion protocol prints text: it is not a command.
+		return writeError(stderr, parserError(root, fmt.Errorf("unknown command %q for %q", args[0], root.Name())))
+	}
 	if err := root.Execute(); err != nil {
 		if !a.started {
 			err = parserError(root, err)
@@ -129,11 +133,16 @@ func (a *app) root() *cobra.Command {
 	}
 	root.SetVersionTemplate("") // the version is printed as JSON below
 	root.CompletionOptions.DisableDefaultCmd = true
-	// Only --help prints text: there is no help command.
-	root.SetHelpCommand(&cobra.Command{Use: "no-help", Hidden: true})
+	// Only --help prints text: the help command is a usage error.
+	root.SetHelpCommand(&cobra.Command{
+		Use: "help", Hidden: true, DisableFlagParsing: true,
+		RunE: func(*cobra.Command, []string) error {
+			return domain.UsageError("there is no help command", "use --help, as in kravis init --help")
+		},
+	})
 	flags := root.PersistentFlags()
 	flags.StringVar(&a.actorFlag, "actor", "", "the user who performs a write (default: KRAVIS_ACTOR, then the local configuration)")
-	flags.StringVar(&a.output, "output", "", "output format: json or table (default: table on a terminal, json otherwise)")
+	flags.StringVar(&a.output, "output", "", "output format: json forces JSON on a terminal (default: a table there, JSON otherwise)")
 	flags.BoolVar(&a.verbose, "verbose", false, "log what Kravis does on stderr")
 	root.Flags().Bool("version", false, "print the version")
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
@@ -151,8 +160,8 @@ func (a *app) configure(cmd *cobra.Command) error {
 	if v := os.Getenv("KRAVIS_OUTPUT"); a.output == "" && v != "" {
 		a.output = v
 	}
-	if a.output != "" && a.output != "json" && a.output != "table" {
-		return domain.InvalidFlag("output", []string{"json", "table"}, "%q is not an output format", a.output)
+	if a.output != "" && a.output != "json" {
+		return domain.InvalidFlag("output", []string{"json"}, "%q is not an output format", a.output)
 	}
 	if a.verbose || os.Getenv("KRAVIS_LOG") == "debug" {
 		a.log = slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -170,7 +179,7 @@ func (a *app) find() (string, error) {
 	if !ok {
 		return "", domain.NoWorkspace()
 	}
-	a.log.Debug("workspace folder", "root", root, "found by", source)
+	a.log.Debug("workspace folder", "root", root, "source", source)
 	return root, nil
 }
 

@@ -17,10 +17,10 @@ func TestConfigAndMarkerValidation(t *testing.T) {
 			t.Errorf("%s: want an error", name)
 		}
 	}
-	if (Marker{"ws_01abc", 1}).Validate() != nil {
+	if (Marker{"ws_01m87h2v9yeb99qvk5s79srn07", 1}).Validate() != nil {
 		t.Error("a valid marker")
 	}
-	for name, m := range map[string]Marker{"id": {"x_1", 1}, "empty": {"ws_", 1}, "version": {"ws_1", 2}} {
+	for name, m := range map[string]Marker{"id": {"x_1", 1}, "empty": {"ws_", 1}, "version": {"ws_01m87h2v9yeb99qvk5s79srn07", 2}, "typeid": {"ws_x", 1}, "prefix": {"us_01m87h2v9yeb99qvk5s79srn07", 1}} {
 		if m.Validate() == nil {
 			t.Errorf("%s: want an error", name)
 		}
