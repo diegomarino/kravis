@@ -146,11 +146,17 @@ type Workspace struct {
 	Store  *storage.Store
 }
 
+// ErrNoWorkspace is the cause of NoWorkspace: waiting never fixes it, so the
+// CLI reports it as not retryable.
+var ErrNoWorkspace = errors.New("no workspace found")
+
 // NoWorkspace is the error of a command run outside any workspace.
 func NoWorkspace() *Error {
-	return newError(CodeStorageUnavailable,
+	e := newError(CodeStorageUnavailable,
 		"run kravis init in a new folder, or set KRAVIS_WORKSPACE to an existing workspace",
 		"no workspace found: there is no kravis.json in this folder or any folder above it")
+	e.Cause = ErrNoWorkspace
+	return e
 }
 
 // Open reads kravis.json and config.json of the workspace on c. now gives

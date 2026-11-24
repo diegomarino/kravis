@@ -241,10 +241,10 @@ func TestWORKSPACE_AC_02_EveryErrorIsComplete(t *testing.T) {
 		}
 	}
 
-	// STORAGE_UNAVAILABLE is retryable.
+	// No workspace is STORAGE_UNAVAILABLE, but waiting never fixes it.
 	t.Chdir(t.TempDir())
 	eo := wantError(t, e.run("check"), "STORAGE_UNAVAILABLE", 5)
-	if eo["retryable"] != true {
+	if eo["retryable"] != false {
 		t.Errorf("retryable = %v", eo["retryable"])
 	}
 	if h, _ := eo["hint"].(string); !strings.Contains(h, "kravis init") {
@@ -966,5 +966,22 @@ func TestInitAdoptsWhatSeveralRivalsWrote(t *testing.T) {
 	}
 	if got := e.Files(); len(got) != 5 {
 		t.Errorf("files: %v", got)
+	}
+}
+
+func TestNoWorkspaceIsNotRetryable(t *testing.T) {
+	e := newEnv(t)
+	t.Chdir(t.TempDir()) // outside any workspace
+
+	eo := wantError(t, e.run("whoami"), "STORAGE_UNAVAILABLE", 5)
+	if eo["retryable"] != false {
+		t.Errorf("no workspace: retryable = %v, want false", eo["retryable"])
+	}
+
+	// A workspace folder that is incomplete is a storage failure that may pass.
+	t.Setenv("KRAVIS_WORKSPACE", t.TempDir())
+	eo = wantError(t, e.run("whoami"), "STORAGE_UNAVAILABLE", 5)
+	if eo["retryable"] != true {
+		t.Errorf("incomplete workspace: retryable = %v, want true", eo["retryable"])
 	}
 }
