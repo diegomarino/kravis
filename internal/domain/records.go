@@ -22,7 +22,8 @@ type User struct {
 	Live   bool   `json:"live"`
 }
 
-// Organization is a company or group Kravis keeps track of.
+// Organization is a company or group Kravis keeps track of. It has no
+// holder: every holder shares it (DIRECTORY-INV-01).
 type Organization struct {
 	storage.Base
 	Name    string   `json:"name"`
@@ -31,48 +32,47 @@ type Organization struct {
 	Live    bool     `json:"live"`
 }
 
-// UserView is the compact view of a user.
-type UserView struct {
-	ID     string `json:"id"`
-	Name   string `json:"name,omitempty"`
-	Live   bool   `json:"live"`
-	Kind   string `json:"kind"`
-	Holder string `json:"holder"`
+// Person is an individual with whom a relationship is kept. It has a name,
+// an email or both, and no holder.
+type Person struct {
+	storage.Base
+	Name   string   `json:"name,omitempty"`
+	Emails []string `json:"emails,omitempty"`
+	Live   bool     `json:"live"`
 }
 
-// OrganizationView is the compact view of an organization.
-type OrganizationView struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Live    bool     `json:"live"`
-	Domains []string `json:"domains"`
-	Own     bool     `json:"own"`
-}
+var users = newKind(kind[User, *User]{
+	Type: Type{Name: "user", Dir: "users", Prefix: "us_",
+		Order: "name compared as its slug, else the ID; then the ID"},
+	compact: []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"kind", ""}, {"holder", ""}},
+	sortKey: func(u *User) string { return firstOf(u.Name, u.ID) },
+	live:    func(u *User) bool { return u.Live },
+	rules:   func(*User) []string { return nil },
+})
 
-// View returns the user's compact view.
-func (u *User) View() UserView {
-	return UserView{ID: u.ID, Name: u.Name, Live: u.Live, Kind: u.Kind, Holder: u.Holder}
-}
+// Types lists every record type that has a declared view and order.
+func Types() []Type { return []Type{users.Type, organizations.Type, people.Type} }
 
-// View returns the organization's compact view; domains is never null.
-func (o *Organization) View() OrganizationView {
-	d := o.Domains
-	if d == nil {
-		d = []string{}
+func firstOf(s ...string) string {
+	for _, v := range s {
+		if v != "" {
+			return v
+		}
 	}
-	return OrganizationView{ID: o.ID, Name: o.Name, Live: o.Live, Domains: d, Own: o.Own}
+	return ""
 }
 
 // A user's key is lowercase ASCII words joined by hyphens.
 var userKey = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
-var userID = regexp.MustCompile(`^us_[a-z0-9]+(-[a-z0-9]+)*$`)
-
 // UserPath is where the user with the given ID lives.
-func UserPath(id string) string { return "records/users/" + id + ".json" }
+func UserPath(id string) string { return users.Path(id) }
 
 // OrganizationPath is where the organization with the given ID lives.
-func OrganizationPath(id string) string { return "records/organizations/" + id + ".json" }
+func OrganizationPath(id string) string { return organizations.Path(id) }
+
+// PersonPath is where the person with the given ID lives.
+func PersonPath(id string) string { return people.Path(id) }
 
 // Actor loads the user that acts. The user must exist and be live
 // (IDENTITY-INV-05, WORKSPACE-INV-14); otherwise it is ACTOR_NOT_LIVE.
@@ -82,7 +82,7 @@ func (ws *Workspace) Actor(id string) (*User, error) {
 			"use a live user's ID, with --actor or KRAVIS_ACTOR, or store one with kravis whoami --set <user>",
 			"the actor %q %s", id, why).with("actor", id)
 	}
-	if !userID.MatchString(id) {
+	if !users.validID(id) {
 		return nil, notLive("is not a user ID (us_…)")
 	}
 	u := &User{}
@@ -96,4 +96,19 @@ func (ws *Workspace) Actor(id string) (*User, error) {
 		return nil, notLive("is not live")
 	}
 	return u, nil
+}
+
+// usersReferringTo finds the users whose holder is id.
+func usersReferringTo(ws *Workspace, id string) ([]string, error) {
+	rows, err := users.scan(ws)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, r := range rows {
+		if r.rec.Holder == id {
+			out = append(out, r.id)
+		}
+	}
+	return out, nil
 }

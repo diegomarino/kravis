@@ -79,6 +79,9 @@ func (s *Store) Text(p string) (string, error) {
 	return string(data), err
 }
 
+// Raw returns an object's bytes and token as the connector stores them.
+func (s *Store) Raw(p string) ([]byte, Token, error) { return s.c.Get(p) }
+
 // List returns the paths under prefix, as the connector does.
 func (s *Store) List(prefix string) ([]string, error) { return s.c.List(prefix) }
 
@@ -172,7 +175,8 @@ func Create[T any, P interface {
 // keys, when not nil, gives a record's natural keys. Keys the change adds are
 // created first, and one that belongs to another record fails the update
 // with ErrKeyConflict before the record is written; keys it removes are
-// deleted after. The record's version goes up by one, and updated_at and
+// deleted after. A change that leaves the record as it was writes nothing
+// and keeps the version: apply can note the version it saw to tell. The record's version goes up by one, and updated_at and
 // updated_by are set; its ID and creation fields cannot change.
 func Update[T any, P interface {
 	*T
@@ -197,6 +201,11 @@ func Update[T any, P interface {
 		ob, cb := old.base(), cur.base()
 		if cb.ID != ob.ID {
 			return nil, fail("update", p, ErrIDChanged)
+		}
+		if same, err := sameContent(old, cur); err != nil {
+			return nil, err
+		} else if same {
+			return cur, nil // nothing changed: no write, no new version
 		}
 		cb.Version, cb.CreatedAt, cb.CreatedBy = ob.Version+1, ob.CreatedAt, ob.CreatedBy
 		cb.UpdatedAt, cb.UpdatedBy = s.stamp(), actor
@@ -239,6 +248,20 @@ func Update[T any, P interface {
 		return cur, s.dropKeys(removed, cb.ID)
 	}
 	return nil, fail("update", p, ErrVersionConflict)
+}
+
+// sameContent says whether two records encode to the same bytes, sidecar
+// text included.
+func sameContent(a, b Record) (bool, error) {
+	if b.base().Text != nil && (a.base().Text == nil || *a.base().Text != *b.base().Text) {
+		return false, nil
+	}
+	ea, err := Encode(a)
+	if err != nil {
+		return false, err
+	}
+	eb, err := Encode(b)
+	return err == nil && string(ea) == string(eb), err
 }
 
 // heldKeys returns the keys of the record now at p.
@@ -285,6 +308,10 @@ func (s *Store) exists(p string) (bool, error) {
 	}
 	return err == nil, err
 }
+
+// KeyOwner returns the ID of the record a natural key points to;
+// ErrNotFound when no record holds it.
+func (s *Store) KeyOwner(k Key) (string, error) { return s.keyOwner(k) }
 
 func (s *Store) keyOwner(k Key) (string, error) {
 	owner, _, err := s.readKey(k)

@@ -3,6 +3,7 @@ package storage
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"maps"
 	"slices"
@@ -288,8 +289,45 @@ func TestUpdateErrors(t *testing.T) {
 		}
 		return nil
 	}
-	if _, err := Update(s, p, "us_a", func(*testTask) error { return nil }, nil); !errors.Is(err, ErrUnavailable) {
+	if _, err := Update(s, p, "us_a", func(r *testTask) error { r.Status = "done"; return nil }, nil); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("an outage is not retried: %v", err)
+	}
+}
+
+func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
+	s, m := newTestStore()
+	p := newTask(t, s)
+	before := m.Snapshot()
+	seen := 0
+	got, err := Update(s, p, "us_b", func(r *testTask) error { seen = r.Version; return nil }, nil)
+	if err != nil || got.Version != seen || got.UpdatedBy == "us_b" {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if !maps.Equal(before, m.Snapshot()) {
+		t.Error("an update that changes nothing wrote")
+	}
+	// A new sidecar text is a change.
+	got, err = Update(s, p, "us_b", func(r *testTask) error { r.Text = text("new"); return nil }, nil)
+	if err != nil || got.Version != seen+1 {
+		t.Fatalf("text change: %+v, %v", got, err)
+	}
+}
+
+func TestFieldsAndNames(t *testing.T) {
+	p := &testPerson{Base: Base{ID: "pe_ana", Version: 2, Unknown: map[string]json.RawMessage{"zz": []byte(`1`)}}, Name: "Ana"}
+	fs, err := Fields(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, f := range fs {
+		names = append(names, f.Name)
+	}
+	if !slices.Equal(names, []string{"id", "name", "zz", "version"}) {
+		t.Errorf("Fields = %v", names)
+	}
+	if got := FieldNames(p); !slices.Equal(got, []string{"id", "name", "emails", "phone", "version", "created_at", "created_by", "updated_at", "updated_by"}) {
+		t.Errorf("FieldNames = %v", got)
 	}
 }
 

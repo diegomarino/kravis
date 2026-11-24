@@ -119,6 +119,9 @@ Error (stderr):
 | `ORPHAN_SIDECAR` | check finding | A `.md` sidecar has no `.json` record next to it |
 | `UNREADABLE_RECORD` | check finding | A record file exists but cannot be read |
 | `MALFORMED_RECORD` | check finding | A record file is not valid JSON for a record, or has no `id` |
+| `INVALID_RECORD` | check finding | A record breaks its type's rules: an ID of the wrong form or that does not match its file name, a field of the wrong type, no `live` flag, a person with neither name nor email, an invalid or repeated email or domain, or a provider domain on an organization |
+| `KEY_WITHOUT_VALUE` | check finding | A deduplication key points to a record that does not exist or no longer has the value |
+| `VALUE_WITHOUT_KEY` | check finding | A record has an email or domain whose deduplication key is missing or points to another record |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |

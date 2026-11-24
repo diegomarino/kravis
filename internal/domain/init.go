@@ -29,11 +29,12 @@ const (
 
 // InitResult is what init created, or found.
 type InitResult struct {
-	Outcome      string           `json:"-"`
-	Workspace    string           `json:"workspace"`
-	Timezone     string           `json:"timezone"`
-	Organization OrganizationView `json:"organization"`
-	User         UserView         `json:"user"`
+	Outcome      string `json:"-"`
+	UserID       string `json:"-"`
+	Workspace    string `json:"workspace"`
+	Timezone     string `json:"timezone"`
+	Organization View   `json:"organization"`
+	User         View   `json:"user"`
 }
 
 // validate checks every input before anything is written.
@@ -135,12 +136,13 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 		return nil, err
 	}
 
-	res := &InitResult{
-		Outcome:      OutcomeExisting,
-		Workspace:    marker.Workspace,
-		Timezone:     cfg.Timezone,
-		Organization: org.View(),
-		User:         user.View(),
+	var err error
+	res := &InitResult{Outcome: OutcomeExisting, UserID: user.ID, Workspace: marker.Workspace, Timezone: cfg.Timezone}
+	if res.Organization, err = organizations.view(org, nil, ViewOptions{}); err != nil {
+		return nil, err
+	}
+	if res.User, err = users.view(user, nil, ViewOptions{}); err != nil {
+		return nil, err
 	}
 	if create {
 		id, err := typeid.WithPrefix("ws")
