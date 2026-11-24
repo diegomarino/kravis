@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/diegomarino/kravis/internal/storage"
 )
 
 func TestHelperIsolatesTheEnvironment(t *testing.T) {
@@ -47,6 +49,17 @@ func TestPoisonedHomeRefusesAccess(t *testing.T) {
 	}
 	if _, err := os.ReadDir(home); err == nil {
 		t.Fatalf("the process HOME %q must be unreadable in tests", home)
+	}
+}
+
+func TestRunsOnAnInjectedConnector(t *testing.T) {
+	e := newEnv(t)
+	e.Connector = storage.NewMemory()
+	if r := e.run("--version"); r.Code != 0 {
+		t.Fatalf("code %d, stderr %q", r.Code, r.Stderr)
+	}
+	if _, ok := defaultDeps().connect(e.Workspace).(*storage.Local); !ok {
+		t.Fatal("the CLI runs on the local filesystem by default")
 	}
 }
 

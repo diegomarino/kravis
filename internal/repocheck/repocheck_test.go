@@ -1,6 +1,6 @@
 // Package repocheck holds the checks that cover the whole repository, not one
 // package: nothing personal in tracked files, and the inventory of the
-// acceptance criteria in scope.
+// acceptance criteria and invariants in scope.
 package repocheck
 
 import (
@@ -104,7 +104,7 @@ func TestPersonalDetector(t *testing.T) {
 	}
 }
 
-// --- Acceptance-criteria inventory ---
+// --- Inventory of acceptance criteria and invariants ---
 
 var (
 	testFunc = regexp.MustCompile(`(?m)^func (Test\w+)\(`)
@@ -123,8 +123,9 @@ func readScope(text string) []string {
 	return ids
 }
 
-// inventoryProblems reports each in-scope ID with no test naming it
-// (WORKSPACE-AC-04 -> TestWORKSPACE_AC_04...) or not in the model.
+// inventoryProblems reports each in-scope ID, an acceptance criterion or an
+// invariant, with no test naming it (WORKSPACE-AC-04 -> TestWORKSPACE_AC_04...,
+// WORKSPACE-INV-07 -> TestWORKSPACE_INV_07...) or not in the model.
 func inventoryProblems(scope, tests, model []string) []string {
 	var problems []string
 	for _, id := range scope {
@@ -205,9 +206,26 @@ func TestInventoryDetector(t *testing.T) {
 	}
 }
 
+func TestInventoryDetectorTakesInvariants(t *testing.T) {
+	model := []string{"WORKSPACE-INV-07", "WORKSPACE-INV-08"}
+	tests := []string{"TestWORKSPACE_INV_07_IDNeverChanges"}
+
+	if got := inventoryProblems([]string{"WORKSPACE-INV-07"}, tests, model); len(got) != 0 {
+		t.Errorf("a covered, real invariant passes, got %v", got)
+	}
+	if got := inventoryProblems([]string{"WORKSPACE-INV-08"}, tests, model); len(got) != 1 || !strings.Contains(got[0], "TestWORKSPACE_INV_08") {
+		t.Errorf("a listed invariant with no test fails, got %v", got)
+	}
+	if got := inventoryProblems([]string{"WORKSPACE-INV-99"}, []string{"TestWORKSPACE_INV_99"}, model); len(got) != 1 || !strings.Contains(got[0], "not a guarantee") {
+		t.Errorf("an invented invariant fails, got %v", got)
+	}
+}
+
 func TestModelIDsAreReadable(t *testing.T) {
 	ids := modelGuaranteeIDs(t, root(t))
-	if !slices.Contains(ids, "WORK-AC-01") {
-		t.Fatalf("WORK-AC-01 missing from %v", ids)
+	for _, id := range []string{"WORK-AC-01", "WORKSPACE-INV-07"} {
+		if !slices.Contains(ids, id) {
+			t.Fatalf("%s missing from %v", id, ids)
+		}
 	}
 }

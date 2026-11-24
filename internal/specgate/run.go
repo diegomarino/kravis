@@ -34,6 +34,11 @@ const (
 
 var guardedDocs = []string{"GLOSSARY.md", "docs/cli.md", "docs/storage.md"}
 
+// contractPaths hold the files that are part of the contract, such as the
+// golden record files: a new file under one is additive, a changed or
+// removed one needs the person.
+var contractPaths = []string{"internal/storage/testdata/golden"}
+
 // Main runs the gate: kravis's own spec rules between --base and HEAD.
 func Main(args []string, stdout, stderr io.Writer, run Runner) int {
 	fs := flag.NewFlagSet("specgate", flag.ContinueOnError)
@@ -77,7 +82,13 @@ func gather(base string, run Runner) ([]string, error) {
 	}
 	reasons = append(reasons, ClassifyNameStatus(string(out))...)
 
-	args := append([]string{"diff", "-U0", base + "...HEAD", "--"}, guardedDocs...)
+	args := append([]string{"diff", "--name-status", base + "...HEAD", "--"}, contractPaths...)
+	if out, err = run("git", args...); err != nil {
+		return nil, err
+	}
+	reasons = append(reasons, ClassifyContractFiles(string(out))...)
+
+	args = append([]string{"diff", "-U0", base + "...HEAD", "--"}, guardedDocs...)
 	if out, err = run("git", args...); err != nil {
 		return nil, err
 	}

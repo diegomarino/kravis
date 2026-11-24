@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/diegomarino/kravis/internal/storage"
 )
 
 // Every test that touches the CLI goes through env: a workspace in
@@ -72,6 +74,9 @@ type env struct {
 	t         *testing.T
 	Workspace string
 	Home      string
+	// Connector, when set, is the storage every run uses instead of the
+	// workspace folder: a storage.Memory lets a test force conflicts.
+	Connector storage.Connector
 }
 
 type result struct {
@@ -112,7 +117,11 @@ func (e *env) run(args ...string) result {
 func (e *env) runWithStdin(stdin string, args ...string) result {
 	e.t.Helper()
 	var stdout, stderr bytes.Buffer
-	code := run(args, strings.NewReader(stdin), &stdout, &stderr)
+	d := defaultDeps()
+	if e.Connector != nil {
+		d.connect = func(string) storage.Connector { return e.Connector }
+	}
+	code := runWith(d, args, strings.NewReader(stdin), &stdout, &stderr)
 	return result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}
 }
 

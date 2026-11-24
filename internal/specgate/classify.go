@@ -136,6 +136,20 @@ func ClassifyNameStatus(nameStatus string) []string {
 	return reasons
 }
 
+// ClassifyContractFiles reads `git diff --name-status` limited to the
+// contract paths: an added file is additive, any other change needs the
+// person.
+func ClassifyContractFiles(nameStatus string) []string {
+	var reasons []string
+	for _, line := range strings.Split(nameStatus, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 0 && fields[0] != "A" {
+			reasons = append(reasons, "contract file changed: "+strings.Join(fields, " "))
+		}
+	}
+	return reasons
+}
+
 var breaking = regexp.MustCompile(`^[a-z]+(\([^)]*\))?!:`)
 
 // ClassifySubjects flags every commit subject that carries `!`.

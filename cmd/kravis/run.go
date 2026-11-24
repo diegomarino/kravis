@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/diegomarino/kravis/internal/storage"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -18,10 +20,26 @@ const (
 	exitUsage = 2
 )
 
+// deps is what the CLI runs on. Tests swap the connector for a fake one, to
+// force conflicts in process.
+type deps struct {
+	// connect opens the storage of the workspace folder root.
+	connect func(root string) storage.Connector
+}
+
+func defaultDeps() deps {
+	return deps{connect: func(root string) storage.Connector { return storage.NewLocal(root) }}
+}
+
 // run executes the CLI in process and returns its exit code. Every test
-// calls it; main only forwards the process arguments and streams.
+// calls it, or runWith; main only forwards the process arguments and streams.
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	root := newRootCommand()
+	return runWith(defaultDeps(), args, stdin, stdout, stderr)
+}
+
+// runWith is run on the given dependencies.
+func runWith(d deps, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	root := newRootCommand(d)
 	root.SetArgs(args)
 	root.SetIn(stdin)
 	root.SetOut(stdout)
@@ -34,7 +52,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return exitOK
 }
 
-func newRootCommand() *cobra.Command {
+// newRootCommand builds the command tree; commands reach storage only
+// through d.
+func newRootCommand(d deps) *cobra.Command {
+	_ = d // the first commands that touch storage use it
 	root := &cobra.Command{
 		Use:           "kravis",
 		Short:         "A CRM for agents",

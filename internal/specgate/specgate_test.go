@@ -82,6 +82,35 @@ func TestClassifyNameStatus(t *testing.T) {
 	}
 }
 
+func TestClassifyContractFiles(t *testing.T) {
+	if got := ClassifyContractFiles("A\tinternal/storage/testdata/golden/person.json\n"); len(got) != 0 {
+		t.Fatalf("a new golden file is additive, got %v", got)
+	}
+	got := ClassifyContractFiles("M\tinternal/storage/testdata/golden/task.json\nD\tinternal/storage/testdata/golden/x.json\nR100\tinternal/storage/testdata/golden/a.json\tinternal/storage/testdata/golden/b.json\n")
+	if len(got) != 3 || !strings.Contains(got[0], "contract file changed: M internal/storage/testdata/golden/task.json") {
+		t.Fatalf("changed, removed and renamed golden files need the person, got %v", got)
+	}
+}
+
+func TestMainContractFiles(t *testing.T) {
+	const golden = "internal/storage/testdata/golden"
+	added := map[string]string{golden: "A\t" + golden + "/person.json\n"}
+	if code, out := runMain(t, added, "", "--base", "main"); code != ExitAdditive {
+		t.Fatalf("a new golden file: want additive, got %d: %s", code, out)
+	}
+	changed := map[string]string{golden: "M\t" + golden + "/task.json\n"}
+	code, out := runMain(t, changed, "", "--base", "main")
+	if code != ExitNeedsPerson || !strings.Contains(out, "task.json") {
+		t.Fatalf("a changed golden file: want needs-person, got %d: %s", code, out)
+	}
+	if code, _ := runMain(t, changed, "", "--base", "main", "--approved"); code != ExitAdditive {
+		t.Fatalf("the label lets a changed golden file through, got %d", code)
+	}
+	if code, _ := runMain(t, nil, golden, "--base", "main"); code != ExitFailure {
+		t.Fatal("a failing contract diff is a failure")
+	}
+}
+
 func TestClassifySubjects(t *testing.T) {
 	subjects := []string{"feat(cli): add init", "fix!: drop a field", "refactor(storage)!: rename", "docs: say wow! now", ""}
 	if got := ClassifySubjects(subjects); len(got) != 2 {
