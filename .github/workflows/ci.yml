@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
     # labeled and unlabeled rerun the spec gate when spec-approved changes
     types: [opened, synchronize, reopened, labeled, unlabeled]
@@ -9,10 +10,26 @@ on:
 permissions:
   contents: read
 
+env:
+  GOLANGCI_LINT_VERSION: v2.15.0
+  GOVULNCHECK_VERSION: v1.10.0
+  DDDUCK_VERSION: 0.5.0
+
 jobs:
   check:
-    runs-on: ubuntu-latest
+    name: check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
+      # Keep LF line endings on Windows so gofmt and golden files match.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -21,25 +38,28 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.23.5
       - uses: extractions/setup-just@v2
+        with:
+          just-version: 1.59.0
       - name: Format
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
       - name: Test
         run: just test
       - name: Build
         run: just build
       - name: Vulnerabilities
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+        run: go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} && govulncheck ./...
       - name: Model
-        run: npm install --global ddduck && ddduck check --root docs/ddd
+        run: npm install --global ddduck@${DDDUCK_VERSION} &&ddduck check --root docs/ddd
 
   commits:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,6 +85,7 @@ jobs:
   spec-gate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,8 +95,8 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - run: npm install --global ddduck
+          node-version: 22.23.5
+      - run: npm install --global ddduck@${DDDUCK_VERSION}
       - name: Spec gate
         env:
           APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'spec-approved') }}

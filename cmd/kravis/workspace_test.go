@@ -39,7 +39,18 @@ func (e *env) mustInit() {
 	}
 }
 
-func (e *env) localConfig() string { return filepath.Join(e.Home, ".config", "kravis", "config.json") }
+// localConfigRel is the local configuration under the throwaway home: the
+// helper sets XDG_CONFIG_HOME to home/.config and APPDATA to home/AppData.
+func localConfigRel() string {
+	if runtime.GOOS == "windows" {
+		return "AppData/kravis/config.json"
+	}
+	return ".config/kravis/config.json"
+}
+
+func (e *env) localConfig() string {
+	return filepath.Join(e.Home, filepath.FromSlash(localConfigRel()))
+}
 
 func obj(t *testing.T, v any, key string) map[string]any {
 	t.Helper()
@@ -365,7 +376,7 @@ func TestWORKSPACE_AC_12_InitCreatesExistsAndRefuses(t *testing.T) {
 
 	files := e.Files()
 	for _, want := range []string{"ws:kravis.json", "ws:config.json", "ws:records/organizations/" + orgID + ".json",
-		"ws:records/users/" + userID + ".json", "home:.config/kravis/config.json"} {
+		"ws:records/users/" + userID + ".json", "home:" + localConfigRel()} {
 		if _, ok := files[want]; !ok {
 			t.Errorf("missing %s in %v", want, files)
 		}
@@ -845,7 +856,9 @@ func TestWORKSPACE_AC_11_CheckReportsAndNeverWrites(t *testing.T) {
 		"records/users/us_bad.json":  "MALFORMED_RECORD",
 		"records/users/us_noid.json": "MALFORMED_RECORD",
 	}
-	if !canRead {
+	if canRead { // chmod 000 locks nothing on Windows: "{}" has no id
+		want["records/users/us_locked.json"] = "MALFORMED_RECORD"
+	} else {
 		want["records/users/us_locked.json"] = "UNREADABLE_RECORD"
 	}
 	for rec, code := range want {
