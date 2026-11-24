@@ -78,9 +78,10 @@ jobs:
       - run: npm install --global ddduck
       - name: Spec gate
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
           APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'spec-approved') }}
         run: |
+          # The checkout is the merge commit: its first parent is the base it merges into.
+          BASE=$(git rev-parse HEAD^1)
           flag=""
           if [ "$APPROVED" = "true" ]; then flag="--approved"; fi
           go run ./cmd/specgate --base "$BASE" $flag
