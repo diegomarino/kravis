@@ -16,7 +16,16 @@ const (
 	FindingOrphanSidecar    = "ORPHAN_SIDECAR"
 	FindingUnreadableRecord = "UNREADABLE_RECORD"
 	FindingMalformedRecord  = "MALFORMED_RECORD"
+	FindingInvalidRecord    = "INVALID_RECORD"
+	FindingKeyWithoutValue  = "KEY_WITHOUT_VALUE"
+	FindingValueWithoutKey  = "VALUE_WITHOUT_KEY"
 )
+
+// audits check the records of each type against its rules, and its
+// natural keys against the values they stand for.
+var audits = []func(st *storage.Store, add addFinding) error{people.audit, organizations.audit}
+
+type addFinding func(code, record, format string, args ...any)
 
 // Finding is one thing `check` found wrong. Record is the path of the file
 // it concerns, relative to the workspace.
@@ -81,6 +90,12 @@ func Check(c storage.Connector) ([]Finding, error) {
 			if json := strings.TrimSuffix(p, ".md") + ".json"; !slices.Contains(paths, json) {
 				add(FindingOrphanSidecar, p, "the sidecar has no JSON record next to it")
 			}
+		}
+	}
+	st := storage.NewStore(c, nil)
+	for _, audit := range audits {
+		if err := audit(st, add); err != nil {
+			return nil, err
 		}
 	}
 	return findings, nil

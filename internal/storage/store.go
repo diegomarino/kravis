@@ -79,6 +79,9 @@ func (s *Store) Text(p string) (string, error) {
 	return string(data), err
 }
 
+// Raw returns an object's bytes and token as the connector stores them.
+func (s *Store) Raw(p string) ([]byte, Token, error) { return s.c.Get(p) }
+
 // List returns the paths under prefix, as the connector does.
 func (s *Store) List(prefix string) ([]string, error) { return s.c.List(prefix) }
 

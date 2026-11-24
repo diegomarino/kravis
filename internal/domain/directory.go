@@ -100,7 +100,8 @@ var people = newKind(kind[Person, *Person]{
 		}
 		return firstOf(p.Name, p.ID)
 	},
-	live: func(p *Person) bool { return p.Live },
+	live:     func(p *Person) bool { return p.Live },
+	keyKinds: []string{KeyPersonEmail},
 	keys: func(p *Person) []storage.Key {
 		var keys []storage.Key
 		for _, e := range p.Emails {
@@ -120,9 +121,10 @@ var people = newKind(kind[Person, *Person]{
 var organizations = newKind(kind[Organization, *Organization]{
 	Type: Type{Name: "organization", Dir: "organizations", Prefix: "org_",
 		Order: "name compared as its slug; then the ID"},
-	compact: []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"domains", "[]"}, {"own", "false"}},
-	sortKey: func(o *Organization) string { return o.Name },
-	live:    func(o *Organization) bool { return o.Live },
+	compact:  []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"domains", "[]"}, {"own", "false"}},
+	sortKey:  func(o *Organization) string { return o.Name },
+	live:     func(o *Organization) bool { return o.Live },
+	keyKinds: []string{KeyOrganizationDomain},
 	keys: func(o *Organization) []storage.Key {
 		var keys []storage.Key
 		for _, d := range o.Domains {

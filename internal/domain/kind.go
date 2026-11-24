@@ -53,8 +53,10 @@ type kind[T any, P interface {
 	// sortKey is the record's default sort value; the ID breaks ties.
 	sortKey func(P) string
 	live    func(P) bool
-	// keys are the record's natural keys (nil: none).
-	keys func(P) []storage.Key
+	// keys are the record's natural keys (nil: none), of the kinds in
+	// keyKinds.
+	keys     func(P) []storage.Key
+	keyKinds []string
 	// rules reports what is wrong with a record's fields, for writes and
 	// check; problems adds its ID.
 	rules func(P) []string
@@ -495,4 +497,77 @@ func touchedIf(pairs ...any) []string {
 		}
 	}
 	return out
+}
+
+// audit reports the type's records that break its rules, values without
+// their key and keys without their value. Records that do not decode are
+// reported by Check itself.
+func (k *kind[T, P]) audit(st *storage.Store, add addFinding) error {
+	paths, err := st.List("records/" + k.Dir + "/")
+	if err != nil {
+		return err
+	}
+	byID := map[string]P{}
+	for _, p := range paths {
+		if !strings.HasSuffix(p, ".json") {
+			continue
+		}
+		rec := P(new(T))
+		if _, err := st.Load(p, rec); err != nil {
+			if errors.Is(err, storage.ErrUnavailable) {
+				return err
+			}
+			continue
+		}
+		id := rec.Meta().ID
+		for _, problem := range k.problems(rec) {
+			add(FindingInvalidRecord, p, "%s", problem)
+		}
+		if id != "" && k.Path(id) != p {
+			add(FindingInvalidRecord, p, "the ID %q does not match the file name", id)
+			continue
+		}
+		byID[id] = rec
+		for _, key := range k.keys(rec) {
+			switch owner, err := st.KeyOwner(key); {
+			case errors.Is(err, storage.ErrNotFound):
+				add(FindingValueWithoutKey, p, "%s %q has no deduplication key", key.Kind, key.Value)
+			case err != nil:
+				add(FindingValueWithoutKey, p, "the key of %s %q cannot be read: %v", key.Kind, key.Value, err)
+			case owner != id:
+				add(FindingValueWithoutKey, p, "%s %q is also on this record, but its key belongs to %s", key.Kind, key.Value, owner)
+			}
+		}
+	}
+	for _, kind := range k.keyKinds {
+		keyPaths, err := st.List("keys/" + kind + "/")
+		if err != nil {
+			return err
+		}
+		for _, kp := range keyPaths {
+			var f struct {
+				Key    string `json:"key"`
+				Record string `json:"record"`
+			}
+			data, _, err := st.Raw(kp)
+			if err == nil {
+				err = json.Unmarshal(data, &f)
+			}
+			if err != nil {
+				add(FindingKeyWithoutValue, kp, "the key file cannot be read: %v", err)
+				continue
+			}
+			key := storage.Key{Kind: kind, Value: f.Key}
+			rec, ok := byID[f.Record]
+			switch {
+			case key.Path() != kp:
+				add(FindingKeyWithoutValue, kp, "the key file is not at the path of its key %q", f.Key)
+			case !ok:
+				add(FindingKeyWithoutValue, kp, "%s %q points to %s, which does not exist", kind, f.Key, f.Record)
+			case !slices.Contains(k.keys(rec), key):
+				add(FindingKeyWithoutValue, kp, "%s %q points to %s, which does not have it", kind, f.Key, f.Record)
+			}
+		}
+	}
+	return nil
 }
