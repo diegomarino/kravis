@@ -35,9 +35,9 @@ const (
 var guardedDocs = []string{"GLOSSARY.md", "docs/cli.md", "docs/storage.md"}
 
 // contractPaths hold the files that are part of the contract, such as the
-// golden record files: a new file under one is additive, a changed or
-// removed one needs the person.
-var contractPaths = []string{"internal/storage/testdata/golden"}
+// golden record files and the golden output of kravis schema: a new file
+// under one is additive, a changed or removed one needs the person.
+var contractPaths = []string{"internal/storage/testdata/golden", "cmd/kravis/testdata/schema"}
 
 // Main runs the gate: kravis's own spec rules between --base and HEAD.
 func Main(args []string, stdout, stderr io.Writer, run Runner) int {

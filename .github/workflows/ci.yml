@@ -49,6 +49,9 @@ jobs:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
       - name: Test
         run: just test
+      - name: Skill installs
+        if: matrix.os == 'ubuntu-latest'
+        run: SKILL_INSTALL_TEST=1 go test ./cmd/kravis -run TestSkillInstalls -count=1
       - name: Build
         run: just build
       - name: Vulnerabilities

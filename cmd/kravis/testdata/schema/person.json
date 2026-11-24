@@ -1,0 +1,77 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      {
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      {
+        "properties": {
+          "emails": {
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      }
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "a person needs a name or an email: the name may not be blank when there is no email",
+        "x-cli": "--name"
+      },
+      "emails": {
+        "items": {
+          "type": "string",
+          "pattern": "^\\s*[^@\\s]+@[^@\\s]+\\.[^@\\s]+\\s*$"
+        },
+        "type": "array",
+        "description": "lowercase addresses",
+        "x-cli": "--email (repeatable)"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "title": "person",
+    "description": "The fields of kravis person create.",
+    "x-kravis": {
+      "defaults": null,
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "name",
+          "live",
+          "emails"
+        ],
+        "default_limit": 50,
+        "order": "name compared as its slug, else the smallest email, else the ID; then the ID"
+      },
+      "type": "person"
+    }
+  }
+}

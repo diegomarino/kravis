@@ -195,8 +195,8 @@ func sameData(name, id string, clashes ...clash) error {
 
 // PersonInput is what person create takes.
 type PersonInput struct {
-	Name   string
-	Emails []string
+	Name   string   `json:"name,omitempty" jsonschema:"description=a person needs a name or an email: the name may not be blank when there is no email" jsonschema_extras:"x-cli=--name"`
+	Emails []string `json:"emails,omitempty" jsonschema:"description=lowercase addresses" jsonschema_extras:"x-cli=--email (repeatable)"`
 }
 
 // CreatePerson creates a person, or returns the person that already has one
@@ -363,9 +363,9 @@ func (ws *Workspace) DeletePerson(ref string, opt ViewOptions) (*Result, error) 
 
 // OrganizationInput is what organization create takes.
 type OrganizationInput struct {
-	Name    string
-	Own     bool
-	Domains []string
+	Name    string   `json:"name" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--name"`
+	Own     bool     `json:"own,omitempty" jsonschema:"description=marks an own organization: a holder" jsonschema_extras:"x-cli=--own"`
+	Domains []string `json:"domains,omitempty" jsonschema:"description=lowercase and without www. and never an email provider domain" jsonschema_extras:"x-cli=--domain (repeatable)"`
 }
 
 // CreateOrganization creates an organization, or returns the one that

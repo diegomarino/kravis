@@ -1,0 +1,65 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "name": {
+        "type": "string",
+        "pattern": "\\S",
+        "x-cli": "--name"
+      },
+      "own": {
+        "type": "boolean",
+        "description": "marks an own organization: a holder",
+        "x-cli": "--own"
+      },
+      "domains": {
+        "items": {
+          "not": {
+            "pattern": "^\\s*([wW][wW][wW]\\.)?([gG][mM][aA][iI][lL]\\.[cC][oO][mM]|[gG][oO][oO][gG][lL][eE][mM][aA][iI][lL]\\.[cC][oO][mM]|[oO][uU][tT][lL][oO][oO][kK]\\.[cC][oO][mM]|[hH][oO][tT][mM][aA][iI][lL]\\.[cC][oO][mM]|[lL][iI][vV][eE]\\.[cC][oO][mM]|[yY][aA][hH][oO][oO]\\.[cC][oO][mM]|[iI][cC][lL][oO][uU][dD]\\.[cC][oO][mM]|[mM][eE]\\.[cC][oO][mM]|[pP][rR][oO][tT][oO][nN]\\.[mM][eE]|[pP][rR][oO][tT][oO][nN][mM][aA][iI][lL]\\.[cC][oO][mM]|[gG][mM][xX]\\.[cC][oO][mM])\\s*$"
+          },
+          "type": "string",
+          "pattern": "^\\s*[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+\\s*$"
+        },
+        "type": "array",
+        "description": "lowercase and without www. and never an email provider domain",
+        "x-cli": "--domain (repeatable)"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "name"
+    ],
+    "title": "organization",
+    "description": "The fields of kravis organization create.",
+    "x-kravis": {
+      "defaults": null,
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "name",
+          "live",
+          "domains",
+          "own"
+        ],
+        "default_limit": 50,
+        "order": "name compared as its slug; then the ID"
+      },
+      "type": "organization"
+    }
+  }
+}
