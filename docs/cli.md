@@ -122,6 +122,7 @@ Error (stderr):
 | `INVALID_RECORD` | check finding | A record breaks its type's rules: an ID of the wrong form or that does not match its file name, a field of the wrong type, no `live` flag, a person with neither name nor email, an invalid or repeated email or domain, or a provider domain on an organization |
 | `KEY_WITHOUT_VALUE` | check finding | A deduplication key points to a record that does not exist or no longer has the value |
 | `VALUE_WITHOUT_KEY` | check finding | A record has an email or domain whose deduplication key is missing or points to another record |
+| `BROKEN_REFERENCE` | check finding | A user or an affiliation refers to a record that does not exist: a holder, a handler, a linked person or an organization |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |

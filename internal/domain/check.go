@@ -23,7 +23,7 @@ const (
 
 // audits check the records of each type against its rules, and its
 // natural keys against the values they stand for.
-var audits = []func(st *storage.Store, add addFinding) error{people.audit, organizations.audit}
+var audits = []func(st *storage.Store, add addFinding) error{people.audit, organizations.audit, users.audit, auditReferences}
 
 type addFinding func(code, record, format string, args ...any)
 

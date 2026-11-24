@@ -114,6 +114,31 @@ func TestWORKSPACE_AC_04_EveryWriteReturnsAnOutcomeAndTheCompactView(t *testing.
 		t.Error("unchanged wrote")
 	}
 
+	// Users: created, existing, conflict, updated, unchanged.
+	d = outcomeOf(t, e.ok("user", "create", "bot-acme", "--agent", "--holder", orgID, "--handler", userID), "created")
+	if d["id"] != "us_bot-acme" || d["kind"] != "agent" || d["holder"] != orgID || d["live"] != true {
+		t.Errorf("user created: %v", d)
+	}
+	before = e.Files()
+	outcomeOf(t, e.ok("user", "create", "bot-acme", "--agent", "--holder", orgID, "--handler", userID), "existing")
+	if !maps.Equal(before, e.Files()) {
+		t.Error("user existing wrote")
+	}
+	e.refused("DEDUP_CONFLICT", 4, "user", "create", "bot-acme", "--human", "--holder", orgID)
+	d = outcomeOf(t, e.ok("user", "update", "us_bot-acme", "--name", "Bot Acme", "--fields", "version"), "updated")
+	if d["name"] != "Bot Acme" || d["version"] != float64(2) {
+		t.Errorf("user updated: %v", d)
+	}
+	before = e.Files()
+	outcomeOf(t, e.ok("user", "update", "us_bot-acme", "--name", "Bot Acme"), "unchanged")
+	if !maps.Equal(before, e.Files()) {
+		t.Error("user unchanged wrote")
+	}
+	d = outcomeOf(t, e.ok("user", "delete", "us_bot-acme"), "deleted")
+	if d["id"] != "us_bot-acme" {
+		t.Errorf("user deleted: %v", d)
+	}
+
 	// Organizations: created, existing by domain, conflict.
 	d = outcomeOf(t, e.ok("organization", "create", "--name", "Grupo Sierra", "--domain", "WWW.GrupoSierra.example.com"), "created")
 	if d["id"] != "org_grupo-sierra" || fmt.Sprint(d["domains"]) != "[gruposierra.example.com]" || d["own"] != false {
@@ -187,6 +212,49 @@ func TestWORKSPACE_AC_05_ListsPageInSlugOrderWithATotalAndACursor(t *testing.T) 
 		t.Errorf("paged %d records, want %d, in slug order without gaps or repeats\ngot  %v\nwant %v", len(got)-1, len(want), got[1:], want)
 	}
 
+	// Users page the same way, by the name as a slug, the ID for a user without one.
+	type named struct{ id, name string }
+	wantNamed := []named{{userID, userName}, {"us_bot-acme", ""}}
+	for i := range 7 {
+		first := []string{"Álvaro", "bruno", "Çelik"}[i%3]
+		n := named{fmt.Sprintf("us_u%02d-acme", i), fmt.Sprintf("%s %02d", first, i)}
+		e.ok("user", "create", strings.TrimPrefix(n.id, "us_"), "--human", "--holder", orgID, "--name", n.name)
+		wantNamed = append(wantNamed, n)
+	}
+	e.ok("user", "create", "bot-acme", "--agent", "--holder", orgID, "--handler", userID)
+	slices.SortFunc(wantNamed, func(a, b named) int {
+		return strings.Compare(domain.Slug(firstNonEmpty(a.name, a.id))+a.id, domain.Slug(firstNonEmpty(b.name, b.id))+b.id)
+	})
+	var wantUsers, gotUsers []string
+	for _, n := range wantNamed {
+		wantUsers = append(wantUsers, n.id)
+	}
+	userCursor := ""
+	for {
+		args := []string{"user", "list", "--limit", "3"}
+		if userCursor != "" {
+			args = append(args, "--cursor", userCursor)
+		}
+		out := e.ok(args...)
+		if out["total"] != float64(9) {
+			t.Fatalf("users total %v", out["total"])
+		}
+		for _, r := range out["data"].([]any) {
+			gotUsers = append(gotUsers, r.(map[string]any)["id"].(string))
+		}
+		next, isString := out["next_cursor"].(string)
+		if !isString {
+			if v, present := out["next_cursor"]; !present || v != nil {
+				t.Fatalf("the last page needs next_cursor null: %v", out)
+			}
+			break
+		}
+		userCursor = next
+	}
+	if !slices.Equal(gotUsers, wantUsers) {
+		t.Errorf("users paged\ngot  %v\nwant %v", gotUsers, wantUsers)
+	}
+
 	all := e.ok("person", "list", "--limit", "0")
 	if len(all["data"].([]any)) != 120 || all["next_cursor"] != nil {
 		t.Errorf("--limit 0: %d records, next %v", len(all["data"].([]any)), all["next_cursor"])
@@ -195,12 +263,13 @@ func TestWORKSPACE_AC_05_ListsPageInSlugOrderWithATotalAndACursor(t *testing.T) 
 	two := e.ok("person", "list", "--limit", "2")
 	c := two["next_cursor"].(string)
 	for name, args := range map[string][]string{
-		"negative limit":     {"person", "list", "--limit", "-1"},
-		"non-numeric limit":  {"person", "list", "--limit", "many"},
-		"limit 0 and cursor": {"person", "list", "--limit", "0", "--cursor", c},
-		"corrupt cursor":     {"person", "list", "--cursor", "not-a-cursor"},
-		"other filters":      {"person", "list", "--all", "--cursor", c},
-		"other type":         {"organization", "list", "--cursor", c},
+		"negative limit":             {"person", "list", "--limit", "-1"},
+		"non-numeric limit":          {"person", "list", "--limit", "many"},
+		"limit 0 and cursor":         {"person", "list", "--limit", "0", "--cursor", c},
+		"corrupt cursor":             {"person", "list", "--cursor", "not-a-cursor"},
+		"other filters":              {"person", "list", "--all", "--cursor", c},
+		"other type":                 {"organization", "list", "--cursor", c},
+		"users with a people cursor": {"user", "list", "--cursor", c},
 	} {
 		t.Run(name, func(t *testing.T) {
 			eo := e.refused("INVALID_VALUE", 2, args...)
@@ -711,4 +780,11 @@ func TestConcurrentCreatesTakeSuffixesOrFindTheSameEmail(t *testing.T) {
 	if r := e.run("check"); r.Code != 0 {
 		t.Errorf("check: %s", r.Stdout)
 	}
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

@@ -18,6 +18,10 @@ type User struct {
 	storage.Base
 	Holder string `json:"holder"`
 	Kind   string `json:"kind"`
+	// Handler is an agent's handler: a live human of the same holder.
+	Handler string `json:"handler,omitempty"`
+	// Person is the human's own person, if linked.
+	Person string `json:"person,omitempty"`
 	Name   string `json:"name,omitempty"`
 	Live   bool   `json:"live"`
 }
@@ -38,7 +42,9 @@ type Person struct {
 	storage.Base
 	Name   string   `json:"name,omitempty"`
 	Emails []string `json:"emails,omitempty"`
-	Live   bool     `json:"live"`
+	// Affiliations are sorted by organization, at most one per organization.
+	Affiliations []Affiliation `json:"affiliations,omitempty"`
+	Live         bool          `json:"live"`
 }
 
 var users = newKind(kind[User, *User]{
@@ -47,7 +53,7 @@ var users = newKind(kind[User, *User]{
 	compact: []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"kind", ""}, {"holder", ""}},
 	sortKey: func(u *User) string { return firstOf(u.Name, u.ID) },
 	live:    func(u *User) bool { return u.Live },
-	rules:   func(*User) []string { return nil },
+	rules:   userRules,
 })
 
 // Types lists every record type that has a declared view and order.
@@ -96,19 +102,4 @@ func (ws *Workspace) Actor(id string) (*User, error) {
 		return nil, notLive("is not live")
 	}
 	return u, nil
-}
-
-// usersReferringTo finds the users whose holder is id.
-func usersReferringTo(ws *Workspace, id string) ([]string, error) {
-	rows, err := users.scan(ws)
-	if err != nil {
-		return nil, err
-	}
-	var out []string
-	for _, r := range rows {
-		if r.rec.Holder == id {
-			out = append(out, r.id)
-		}
-	}
-	return out, nil
 }
