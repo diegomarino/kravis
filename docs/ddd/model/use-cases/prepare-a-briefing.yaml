@@ -1,0 +1,18 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:prepare-a-briefing
+model: model:kravis
+name: Prepare a briefing
+goal: An agent gathers everything about a person or organization, and what is
+  due today, from the basic reads and their filters.
+preconditions:
+  requires: []
+success:
+  preserves:
+    - WORKSPACE-INV-12
+    - WORKSPACE-INV-13
+  establishes:
+    - WORKSPACE-AC-05
+    - WORKSPACE-AC-06
+    - WORKSPACE-AC-09
+    - WORK-AC-02

@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:agent
+model: model:kravis
+ownerDomain: domain:identity
+name: Agent
+purpose: A non-human user with its own identity that works under a handler.

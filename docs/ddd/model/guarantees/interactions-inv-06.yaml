@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-06
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: Every interaction has one channel from the catalog.
+status: active

@@ -1,0 +1,20 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:correct-a-mistake
+model: model:kravis
+name: Correct a mistake
+goal: A user removes a record created by mistake, for example under the wrong
+  holder, and creates it again with the right actor, leaving no tombstone
+  behind.
+preconditions:
+  requires:
+    - IDENTITY-INV-04
+    - IDENTITY-INV-05
+    - WORKSPACE-INV-14
+success:
+  preserves:
+    - WORKSPACE-INV-03
+    - WORKSPACE-INV-11
+  establishes:
+    - WORKSPACE-AC-10
+    - WORKSPACE-AC-11

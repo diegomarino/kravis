@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:source-reference
+model: model:kravis
+ownerDomain: domain:interactions
+name: Source reference
+purpose: A pointer to an item in a source, such as a Gmail message or a Drive
+  file, kept so that the original can be found again.

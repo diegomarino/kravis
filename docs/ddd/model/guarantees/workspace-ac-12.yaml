@@ -1,0 +1,11 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-12
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: init validates every input before writing. On an initialized
+  workspace it returns existing when the organization and user match and fails
+  with a hint otherwise. Rerunning an interrupted init completes what is
+  missing, because kravis.json is written last.
+status: active

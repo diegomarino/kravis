@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:participant
+model: model:kravis
+ownerDomain: domain:interactions
+name: Participant
+purpose: A person or organization involved in an interaction.

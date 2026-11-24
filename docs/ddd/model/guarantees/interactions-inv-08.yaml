@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-08
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: Kravis keeps source references and summaries, never a copy of the
+  original content.
+status: active

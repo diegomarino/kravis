@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DIRECTORY-INV-02
+model: model:kravis
+ownerDomain: domain:directory
+classification: invariant
+statement: Creating a person with an email that already belongs to a person
+  returns that person, and creating an organization with a domain that already
+  belongs to an organization returns that organization.
+status: active

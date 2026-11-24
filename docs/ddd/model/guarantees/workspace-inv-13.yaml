@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-13
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Every record has a live flag. Lists show only live records by
+  default, and the others are included on request.
+status: active

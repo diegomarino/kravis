@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:interaction-identified-by-source-reference
+model: model:kravis
+from: concept:interaction
+to: concept:source-reference
+relationshipType: identified-by
+mode: deduplication-key
+description: "Some source references identify their interaction, and the pair (reference, holder) is unique."
+ownedBy: domain:interactions
+constraints:
+  - "Zero, one or several identifying references per interaction."
+  - "Other references, such as a Drive file or a URL, only point to related material."

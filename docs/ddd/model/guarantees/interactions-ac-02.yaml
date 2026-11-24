@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-AC-02
+model: model:kravis
+ownerDomain: domain:interactions
+classification: acceptance-criterion
+statement: A person's outreach in a month is obtained by listing interactions by
+  direction, initiator and date range.
+status: active

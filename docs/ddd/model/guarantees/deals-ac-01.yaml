@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DEALS-AC-01
+model: model:kravis
+ownerDomain: domain:deals
+classification: acceptance-criterion
+statement: A general deal update cannot change the stage, and moving a deal to a
+  lost stage without a lost reason fails with the allowed reasons.
+status: active

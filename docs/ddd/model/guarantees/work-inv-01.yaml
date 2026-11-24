@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-01
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task has at most one work parent, a project or a deal. A task in a
+  project belongs to that project's deal, if it has one. A task without a parent
+  is an internal task of its holder.
+status: active

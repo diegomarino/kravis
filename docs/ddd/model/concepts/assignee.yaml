@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:assignee
+model: model:kravis
+ownerDomain: domain:work
+name: Assignee
+purpose: The human user who answers for a task getting done. They may hand its
+  execution to one of their agents.

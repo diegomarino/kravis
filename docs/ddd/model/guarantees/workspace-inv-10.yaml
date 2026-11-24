@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-10
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Creating a record whose natural key already exists returns the
+  existing record instead of creating a duplicate.
+status: active

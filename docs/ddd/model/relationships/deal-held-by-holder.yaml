@@ -1,0 +1,14 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:deal-held-by-holder
+model: model:kravis
+from: concept:deal
+to: concept:holder
+relationshipType: held-by
+mode: record-reference
+description: "Every deal is kept in the name of one holder."
+ownedBy: domain:deals
+constraints:
+  - "Workspace rules apply: the holder comes from the actor and never changes."
+decisions:
+  - ADR-001

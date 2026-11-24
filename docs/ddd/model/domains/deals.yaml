@@ -1,0 +1,26 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:deals
+model: model:kravis
+name: Deals
+purpose: Follow each deal through its pipeline with every party involved, the
+  roles each one plays, and the outcome.
+concepts:
+  [
+    concept:deal,
+    concept:pipeline,
+    concept:stage,
+    concept:party,
+    concept:party-role,
+    concept:lost-reason
+  ]
+interfaces: []
+guarantees:
+  [
+    DEALS-INV-01,
+    DEALS-INV-02,
+    DEALS-INV-03,
+    DEALS-INV-04,
+    DEALS-INV-05,
+    DEALS-AC-01
+  ]

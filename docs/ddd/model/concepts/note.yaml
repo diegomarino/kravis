@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:note
+model: model:kravis
+ownerDomain: domain:interactions
+name: Note
+purpose: Something a user knows about a person, organization, deal or project
+  that did not happen as an interaction, recorded as free text.

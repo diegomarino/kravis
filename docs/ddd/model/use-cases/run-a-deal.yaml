@@ -1,0 +1,25 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:run-a-deal
+model: model:kravis
+name: Run a deal
+goal: A user creates a deal with its holder's party role, adds the parties and
+  their party roles, moves it through its stages and closes it as won or lost
+  with a lost reason.
+preconditions:
+  requires:
+    - IDENTITY-INV-04
+    - IDENTITY-INV-05
+    - WORKSPACE-INV-14
+success:
+  preserves:
+    - WORKSPACE-INV-05
+    - WORKSPACE-INV-06
+    - DEALS-INV-01
+    - DEALS-INV-02
+    - DEALS-INV-03
+    - DEALS-INV-04
+    - DEALS-INV-05
+  establishes:
+    - DEALS-AC-01
+    - WORKSPACE-AC-13

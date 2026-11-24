@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-01
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: Every interaction has at least one participant, and each participant
+  is exactly one person or one organization. The holder's own users are implied
+  and need not be listed.
+status: active

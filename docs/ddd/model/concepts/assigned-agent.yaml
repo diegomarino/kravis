@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:assigned-agent
+model: model:kravis
+ownerDomain: domain:work
+name: Assigned agent
+purpose: The agent, if any, that carries out a task on behalf of its assignee.

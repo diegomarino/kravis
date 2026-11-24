@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:title
+model: model:kravis
+ownerDomain: domain:directory
+name: Title
+purpose: How a person's place in an organization is described, written freely,
+  such as CFO or board member.

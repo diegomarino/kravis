@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:assigned-agent-is-agent
+model: model:kravis
+from: concept:assigned-agent
+to: concept:agent
+relationshipType: is-a
+mode: role
+description: "An assigned agent is an agent user acting in that role for a task."
+ownedBy: domain:work
+constraints:
+  - "Its handler is the task's assignee."

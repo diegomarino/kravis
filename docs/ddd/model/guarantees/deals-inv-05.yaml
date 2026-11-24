@@ -1,0 +1,11 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DEALS-INV-05
+model: model:kravis
+ownerDomain: domain:deals
+classification: invariant
+statement: "Each party of a deal is exactly one person or one organization. Each
+  person or organization appears at most once among a deal's parties, with any
+  number of party roles from the catalog. The deal's holder is never one of its
+  parties."
+status: active

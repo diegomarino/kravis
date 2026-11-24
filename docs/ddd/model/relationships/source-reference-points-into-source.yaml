@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:source-reference-points-into-source
+model: model:kravis
+from: concept:source-reference
+to: concept:source
+relationshipType: points-into
+mode: external-reference
+description: "A source reference points to one item of a source; each known source defines how its references are made canonical and which ones identify an interaction."
+ownedBy: domain:interactions
+constraints:
+  - "The catalog of sources lives in code, because sources carry behavior."
+  - "Kravis never connects to sources; agents do."

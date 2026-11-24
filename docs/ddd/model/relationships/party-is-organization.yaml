@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:party-is-organization
+model: model:kravis
+from: concept:party
+to: concept:organization
+relationshipType: refers-to
+mode: record-reference
+description: "A party may be an organization from the shared directory."
+ownedBy: domain:deals
+constraints:
+  - "A party is exactly one person or one organization (DEALS-INV-05; sibling: rel:party-is-person)."
+  - "At most one party entry per organization in a deal."

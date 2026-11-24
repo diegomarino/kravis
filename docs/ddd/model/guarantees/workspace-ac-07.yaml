@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-07
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: Agent input with unknown fields is refused, while unknown fields
+  found in a record on disk are kept when the record is rewritten.
+status: active

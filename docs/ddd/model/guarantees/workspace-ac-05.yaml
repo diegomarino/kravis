@@ -1,0 +1,11 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-05
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: A list returns at most 50 records by default, always reports the
+  total, and returns an opaque cursor. Each type has a fixed default order,
+  declared in the schema, with the ID breaking ties. A record changed between
+  two pages may be skipped or repeated.
+status: active

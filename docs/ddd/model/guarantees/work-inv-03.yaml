@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-03
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: "Every task has exactly one assignee: a live human of the task's holder."
+status: active

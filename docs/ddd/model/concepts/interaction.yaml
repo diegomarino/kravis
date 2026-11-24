@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:interaction
+model: model:kravis
+ownerDomain: domain:interactions
+name: Interaction
+purpose: Something that happened with people or organizations through a channel,
+  recorded with its date and a summary.

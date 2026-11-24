@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-04
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: An own organization that is the holder of any record cannot lose its own mark.
+status: active

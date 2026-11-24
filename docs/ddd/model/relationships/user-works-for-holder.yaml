@@ -1,0 +1,15 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:user-works-for-holder
+model: model:kravis
+from: concept:user
+to: concept:holder
+relationshipType: belongs-to
+mode: record-reference
+description: "Each user works for exactly one holder, and every write by that user takes this holder."
+ownedBy: domain:identity
+constraints:
+  - "Exactly one holder per user, which never changes."
+  - "Workspace owns the holder partition; Identity only binds users to it."
+decisions:
+  - ADR-001

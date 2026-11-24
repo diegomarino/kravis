@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-06
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: kravis schema describes each record type with the catalog values that
+  apply to the actor's holder, the category of every status and stage, the value
+  used when a field is omitted, the default order and the possible error codes.
+status: active

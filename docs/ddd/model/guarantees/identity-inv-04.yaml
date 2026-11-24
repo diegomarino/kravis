@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-04
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: Every write declares an actor, taken from the command flag, then the
+  environment, then the local configuration. A write without an actor is
+  refused; reads need none.
+status: active

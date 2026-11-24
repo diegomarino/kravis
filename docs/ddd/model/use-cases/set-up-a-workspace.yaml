@@ -1,0 +1,18 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:set-up-a-workspace
+model: model:kravis
+name: Set up a workspace
+goal: A human initializes a workspace with its first own organization and user,
+  then adds other own organizations, humans and their agents.
+preconditions:
+  requires: []
+success:
+  preserves:
+    - IDENTITY-INV-01
+    - IDENTITY-INV-02
+    - IDENTITY-INV-03
+    - WORKSPACE-INV-04
+  establishes:
+    - WORKSPACE-AC-12
+    - IDENTITY-AC-01

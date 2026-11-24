@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-01
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Every work record (deal, project, task, interaction, note) has
+  exactly one holder, which is an own organization.
+status: active

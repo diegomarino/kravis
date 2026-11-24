@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-AC-01
+model: model:kravis
+ownerDomain: domain:interactions
+classification: acceptance-criterion
+statement: Recording the same email twice for the same holder returns existing
+  the second time, and creating its follow-up twice also returns existing the
+  second time.
+status: active

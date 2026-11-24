@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-04
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: "Every write returns an outcome (created, existing, updated, unchanged or deleted) and the record's compact view. A create that finds a record with the same natural key returns existing; one whose data contradicts that record is a conflict. An update or transition that changes nothing returns unchanged and does not bump the version."
+status: active

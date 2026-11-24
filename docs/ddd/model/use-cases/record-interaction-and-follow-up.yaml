@@ -1,0 +1,36 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:record-interaction-and-follow-up
+model: model:kravis
+name: Record an interaction and its follow-up
+goal: An agent records an email or a meeting with its participants and source
+  references, then creates the follow-up task, and can repeat either step
+  safely.
+preconditions:
+  requires:
+    - IDENTITY-INV-04
+    - IDENTITY-INV-05
+    - WORKSPACE-INV-14
+success:
+  preserves:
+    - WORKSPACE-INV-01
+    - WORKSPACE-INV-02
+    - INTERACTIONS-INV-01
+    - INTERACTIONS-INV-02
+    - INTERACTIONS-INV-03
+    - INTERACTIONS-INV-04
+    - INTERACTIONS-INV-05
+    - INTERACTIONS-INV-06
+    - INTERACTIONS-INV-07
+    - INTERACTIONS-INV-08
+    - INTERACTIONS-INV-09
+    - WORK-INV-05
+    - WORK-INV-06
+  establishes:
+    - INTERACTIONS-AC-01
+    - WORKSPACE-AC-01
+    - WORKSPACE-AC-02
+    - WORKSPACE-AC-03
+    - WORKSPACE-AC-04
+    - WORKSPACE-AC-07
+    - WORKSPACE-AC-08

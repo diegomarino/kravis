@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-AC-02
+model: model:kravis
+ownerDomain: domain:work
+classification: acceptance-criterion
+statement: A task list shows live tasks by default and filters by assignee,
+  assigned agent, related record, overdue and due-before date.
+status: active

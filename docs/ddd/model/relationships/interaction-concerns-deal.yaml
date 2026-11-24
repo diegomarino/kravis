@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:interaction-concerns-deal
+model: model:kravis
+from: concept:interaction
+to: concept:deal
+relationshipType: concerns
+mode: record-reference
+description: "An interaction may concern any number of deals of its holder."
+ownedBy: domain:interactions
+constraints:
+  - "Any number of deals and any number of projects (rel:interaction-concerns-project) at the same time."
+  - "Same holder."

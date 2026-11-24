@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:channel
+model: model:kravis
+ownerDomain: domain:interactions
+name: Channel
+purpose: The means by which an interaction took place, chosen from the
+  workspace's catalog, such as email, meeting, call or message.

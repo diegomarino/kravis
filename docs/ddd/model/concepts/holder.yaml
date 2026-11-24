@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:holder
+model: model:kravis
+ownerDomain: domain:workspace
+name: Holder
+purpose: The own organization in whose name a deal, project, task, interaction
+  or note is kept, and on whose behalf a user works.
+decisions:
+  - ADR-001

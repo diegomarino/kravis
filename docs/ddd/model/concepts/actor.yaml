@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:actor
+model: model:kravis
+ownerDomain: domain:identity
+name: Actor
+purpose: The user who performs a given write.

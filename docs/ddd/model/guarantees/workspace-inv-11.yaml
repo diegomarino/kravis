@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-11
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: A record can be deleted only when no other record refers to it.
+status: active

@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-02
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: A work record takes its holder from its actor when it is created, and
+  that holder matches the holder of every record it is structurally linked to.
+status: active

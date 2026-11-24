@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DEALS-INV-02
+model: model:kravis
+ownerDomain: domain:deals
+classification: invariant
+statement: A deal changes stage only through its stage transition, which may
+  move it to any stage of its pipeline; a general update cannot change the
+  stage.
+status: active

@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:party
+model: model:kravis
+ownerDomain: domain:deals
+name: Party
+purpose: An organization or person that takes part in a deal, in any number of
+  party roles.

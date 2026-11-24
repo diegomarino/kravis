@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:stage
+model: model:kravis
+ownerDomain: domain:deals
+name: Stage
+purpose: A named step of a pipeline. A deal is in exactly one stage at a time.
+  Every stage belongs to a category.

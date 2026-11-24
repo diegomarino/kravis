@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:human-linked-to-person
+model: model:kravis
+from: concept:human
+to: concept:person
+relationshipType: represented-by
+mode: record-reference
+description: "A human user may be linked to the person who represents them in the directory, so they can take part in interactions and deals."
+ownedBy: domain:identity
+constraints:
+  - "Optional, at most one person per human."
+  - "Several users, one per holder, may link the same person."

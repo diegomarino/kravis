@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-13
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: A value outside its catalog (status, party role, purpose, lost reason
+  or channel) is refused with INVALID_VALUE and the list of values allowed for
+  the record's holder.
+status: active

@@ -1,0 +1,31 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:work
+model: model:kravis
+name: Work
+purpose: Track the projects and tasks that holders' humans and agents must get done.
+concepts:
+  [
+    concept:project,
+    concept:task,
+    concept:status,
+    concept:purpose,
+    concept:follow-up,
+    concept:assignee,
+    concept:assigned-agent
+  ]
+interfaces: []
+guarantees:
+  [
+    WORK-INV-01,
+    WORK-INV-02,
+    WORK-INV-03,
+    WORK-INV-04,
+    WORK-INV-05,
+    WORK-INV-06,
+    WORK-INV-07,
+    WORK-INV-08,
+    WORK-INV-09,
+    WORK-AC-01,
+    WORK-AC-02
+  ]

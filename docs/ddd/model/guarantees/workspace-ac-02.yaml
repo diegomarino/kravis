@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-02
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: Every error has a stable code, a message, structured details, a
+  retryable flag and, when the next step is not obvious from the details, a hint
+  naming the next concrete action.
+status: active

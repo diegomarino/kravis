@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-09
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: A source reference to an unknown source is accepted with a warning
+  and identifies an interaction only by exact equality.
+status: active

@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:workspace
+model: model:kravis
+ownerDomain: domain:workspace
+name: Workspace
+purpose: The body of records that Kravis manages, together with its
+  configuration and catalogs.

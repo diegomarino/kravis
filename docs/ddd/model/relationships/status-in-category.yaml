@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:status-in-category
+model: model:kravis
+from: concept:status
+to: concept:category
+relationshipType: belongs-to
+mode: catalog-reference
+description: "Every task status belongs to one fixed category: open, waiting, done or canceled."
+ownedBy: domain:work
+constraints:
+  - "Workspace owns the categories; Work owns which status maps to which."

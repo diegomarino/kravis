@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-08
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task's or project's related records are people, organizations,
+  deals or projects; related deals and projects share its holder. Related
+  records take part in no other rule.
+status: active

@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-03
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: An interaction's initiator, when recorded, is a user of its holder if
+  the interaction is outbound and one of its participants if it is inbound.
+status: active

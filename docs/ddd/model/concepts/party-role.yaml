@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:party-role
+model: model:kravis
+ownerDomain: domain:deals
+name: Party role
+purpose: The part a party plays in a particular deal, such as client or advisor.

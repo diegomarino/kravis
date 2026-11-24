@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-01
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: Every user belongs to exactly one holder, which never changes.
+status: active

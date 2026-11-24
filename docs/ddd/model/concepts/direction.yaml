@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:direction
+model: model:kravis
+ownerDomain: domain:interactions
+name: Direction
+purpose: "Which side started an interaction: ours (outbound) or the other one
+  (inbound)."

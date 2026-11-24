@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-14
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: Only a live user can act.
+status: active
+ownershipHistory:
+  - domain:workspace

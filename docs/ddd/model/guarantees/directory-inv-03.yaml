@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DIRECTORY-INV-03
+model: model:kravis
+ownerDomain: domain:directory
+classification: invariant
+statement: Creating a person from a generic address, such as info@ or noreply@,
+  succeeds with a warning, because such addresses do not belong to people.
+status: active

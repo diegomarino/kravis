@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:organization
+model: model:kravis
+ownerDomain: domain:directory
+name: Organization
+purpose: A company, public body or other group that Kravis keeps track of as one unit.

@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:stage-in-category
+model: model:kravis
+from: concept:stage
+to: concept:category
+relationshipType: belongs-to
+mode: catalog-reference
+description: "Every stage belongs to one fixed category: ongoing, won or lost."
+ownedBy: domain:deals
+constraints:
+  - "Workspace owns the categories; Deals owns which stage maps to which."

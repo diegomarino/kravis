@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:catalog
+model: model:kravis
+ownerDomain: domain:workspace
+name: Catalog
+purpose: A list of names that a workspace configures for itself, such as task
+  statuses, party roles, purposes, lost reasons or channels.

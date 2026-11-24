@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-09
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: A read made with a declared actor states its holder filter in the
+  response, and --all-holders removes it.
+status: active

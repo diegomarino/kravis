@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-04
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task's assigned agent, if any, is an agent whose handler is the
+  task's assignee.
+status: active

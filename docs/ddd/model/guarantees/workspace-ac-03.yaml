@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-03
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: Exit codes are 0 for success (including existing and unchanged), 1
+  for an internal failure, 2 for usage or validation, 3 for not found, 4 for a
+  conflict, 5 for storage unavailable and 6 when check finds issues.
+status: active

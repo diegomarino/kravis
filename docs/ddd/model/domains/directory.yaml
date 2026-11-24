@@ -1,0 +1,17 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:directory
+model: model:kravis
+name: Directory
+purpose: Keep one shared record of the people and organizations Kravis deals
+  with, and of which organizations are its own.
+concepts:
+  [
+    concept:person,
+    concept:organization,
+    concept:own-organization,
+    concept:affiliation,
+    concept:title
+  ]
+interfaces: []
+guarantees: [ DIRECTORY-INV-01, DIRECTORY-INV-02, DIRECTORY-INV-03, DIRECTORY-INV-04 ]

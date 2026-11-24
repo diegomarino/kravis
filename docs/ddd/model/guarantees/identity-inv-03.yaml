@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-03
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: "Every agent has exactly one handler: a live human of the agent's
+  holder. In the MVP the handler never changes."
+status: active

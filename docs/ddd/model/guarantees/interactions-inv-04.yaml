@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-04
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: Adding a person with exactly one affiliation as a participant also
+  adds that organization. With several affiliations nothing is added, and a
+  warning lists them.
+status: active

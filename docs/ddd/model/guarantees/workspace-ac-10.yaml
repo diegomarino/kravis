@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-10
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: Deleting a record that another record refers to fails and lists the
+  records that refer to it.
+status: active

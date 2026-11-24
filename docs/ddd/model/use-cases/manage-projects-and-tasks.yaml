@@ -1,0 +1,25 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:manage-projects-and-tasks
+model: model:kravis
+name: Manage projects and tasks
+goal: A user creates projects and tasks, assigns each task to a human and
+  optionally to one of their agents, moves tasks through their statuses and
+  closes finished projects.
+preconditions:
+  requires:
+    - IDENTITY-INV-04
+    - IDENTITY-INV-05
+    - WORKSPACE-INV-14
+success:
+  preserves:
+    - WORK-INV-01
+    - WORK-INV-02
+    - WORK-INV-03
+    - WORK-INV-04
+    - WORK-INV-07
+    - WORK-INV-08
+    - WORK-INV-09
+  establishes:
+    - WORK-AC-01
+    - WORK-AC-02

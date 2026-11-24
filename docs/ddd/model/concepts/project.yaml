@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:project
+model: model:kravis
+ownerDomain: domain:work
+name: Project
+purpose: A finite or continuing effort that groups a holder's tasks and
+  interactions, optionally tied to a deal.

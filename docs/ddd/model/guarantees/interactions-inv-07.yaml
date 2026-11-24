@@ -1,0 +1,11 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-07
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: A source reference that identifies an interaction identifies at most
+  one interaction per holder. Recording the same item again for the same holder
+  returns the existing interaction; identifying references already split between
+  two interactions of the same holder are a conflict.
+status: active

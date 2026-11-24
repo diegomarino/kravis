@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:note-about-deal
+model: model:kravis
+from: concept:note
+to: concept:deal
+relationshipType: about
+mode: record-reference
+description: "A note may be about deals of its holder."
+ownedBy: domain:interactions
+constraints:
+  - "A note has one or more subjects in any mix of people, organizations, deals and projects (INTERACTIONS-INV-10)."
+  - "Deals among its subjects share the note's holder."

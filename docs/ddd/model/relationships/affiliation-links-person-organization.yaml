@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:affiliation-links-person-organization
+model: model:kravis
+from: concept:person
+to: concept:organization
+relationshipType: affiliated-with
+mode: record-reference
+description: "An affiliation links a person to an organization and describes the person's title there."
+ownedBy: domain:directory
+constraints:
+  - "Any number of affiliations per person, at most one per organization."
+  - "No dates: an affiliation that ends is removed."

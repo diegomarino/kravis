@@ -1,0 +1,14 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:task-in-project
+model: model:kravis
+from: concept:task
+to: concept:project
+relationshipType: belongs-to
+mode: record-reference
+description: "A task may belong to a project of its holder."
+ownedBy: domain:work
+constraints:
+  - "A task has at most one work parent, a project or a deal (WORK-INV-01; sibling: rel:task-in-deal)."
+  - "A task in a project belongs to the project's deal; the deal is not repeated."
+  - "A closed project accepts no new tasks."

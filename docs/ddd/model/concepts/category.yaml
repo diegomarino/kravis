@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:category
+model: model:kravis
+ownerDomain: domain:workspace
+name: Category
+purpose: The fixed kind that a task status or a deal stage belongs to.
+  Categories are the same in every workspace, while status and stage names vary.

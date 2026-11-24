@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-09
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A project is closed and reopened by changing whether it is live. A
+  project with live tasks cannot be closed, and a closed project accepts no new
+  tasks.
+status: active

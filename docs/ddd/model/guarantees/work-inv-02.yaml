@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-02
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A project is tied to at most one deal, and a deal may have any number
+  of projects.
+status: active

@@ -1,0 +1,64 @@
+schemaVersion: "1"
+kind: Model
+id: model:kravis
+name: Kravis
+purpose: >-
+  A CRM with projects and tasks that agents and the people they work for use to
+  record and follow relationships, deals and work, in files they own. It is
+  built for complex deals in which several parties take part in different roles,
+  such as advisory mandates with clients, counterparties, lenders and
+  subcontracted firms.
+domains:
+  [
+    domain:workspace,
+    domain:identity,
+    domain:directory,
+    domain:deals,
+    domain:work,
+    domain:interactions
+  ]
+relationships:
+  - rel:user-works-for-holder
+  - rel:agent-works-under-handler
+  - rel:human-linked-to-person
+  - rel:holder-is-own-organization
+  - rel:affiliation-links-person-organization
+  - rel:deal-held-by-holder
+  - rel:deal-in-stage
+  - rel:stage-in-category
+  - rel:party-plays-party-role
+  - rel:project-tied-to-deal
+  - rel:task-from-interaction
+  - rel:task-assigned-to-assignee
+  - rel:assignee-is-human
+  - rel:assigned-agent-is-agent
+  - rel:status-in-category
+  - rel:interaction-identified-by-source-reference
+  - rel:source-reference-points-into-source
+  - rel:party-is-person
+  - rel:party-is-organization
+  - rel:participant-is-person
+  - rel:participant-is-organization
+  - rel:task-in-project
+  - rel:task-in-deal
+  - rel:interaction-concerns-deal
+  - rel:interaction-concerns-project
+  - rel:note-about-person
+  - rel:note-about-organization
+  - rel:note-about-deal
+  - rel:note-about-project
+  - rel:initiator-is-user
+  - rel:initiator-is-participant
+useCases:
+  [
+    use-case:correct-a-mistake,
+    use-case:keep-a-note,
+    use-case:manage-projects-and-tasks,
+    use-case:measure-outreach,
+    use-case:prepare-a-briefing,
+    use-case:record-interaction-and-follow-up,
+    use-case:run-a-deal,
+    use-case:set-up-a-workspace
+  ]
+decisions:
+  - ADR-001

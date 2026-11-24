@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:status
+model: model:kravis
+ownerDomain: domain:work
+name: Status
+purpose: A named situation that a workspace defines for its tasks. A task has
+  exactly one status at a time. Every status belongs to a category.

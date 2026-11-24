@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:deal
+model: model:kravis
+ownerDomain: domain:deals
+name: Deal
+purpose: A potential or actual transaction that a holder follows through the
+  stages of a pipeline.

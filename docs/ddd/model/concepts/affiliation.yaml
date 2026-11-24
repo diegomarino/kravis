@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:affiliation
+model: model:kravis
+ownerDomain: domain:directory
+name: Affiliation
+purpose: The link between a person and an organization, described by the
+  person's title there.

@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:human
+model: model:kravis
+ownerDomain: domain:identity
+name: Human
+purpose: A user who is a human being, not an agent. A human may be linked to
+  their own person, so that they can take part in interactions and deals.

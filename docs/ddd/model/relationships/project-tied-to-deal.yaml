@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:project-tied-to-deal
+model: model:kravis
+from: concept:project
+to: concept:deal
+relationshipType: tied-to
+mode: record-reference
+description: "A project may be tied to one deal of its holder; a deal may have several projects."
+ownedBy: domain:work
+constraints:
+  - "At most one deal per project."
+  - "Same holder."

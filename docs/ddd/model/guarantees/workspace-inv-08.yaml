@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-08
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Every write increments the record's version and records which actor
+  wrote it and when.
+status: active

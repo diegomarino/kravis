@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-05
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task created from an interaction records that interaction and has a
+  purpose, follow-up by default. There is at most one task per interaction and
+  purpose.
+status: active

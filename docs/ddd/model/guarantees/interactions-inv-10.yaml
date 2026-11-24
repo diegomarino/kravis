@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-10
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: Every note has one or more subjects (people, organizations, deals or
+  projects) and the holder of its actor; deals and projects among its subjects
+  share that holder.
+status: active

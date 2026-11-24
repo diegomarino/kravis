@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DIRECTORY-INV-04
+model: model:kravis
+ownerDomain: domain:directory
+classification: invariant
+statement: A person has any number of affiliations, at most one per
+  organization, each with a free-text title. An affiliation that ends is
+  removed.
+status: active

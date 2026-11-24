@@ -1,0 +1,34 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:interactions
+model: model:kravis
+name: Interactions
+purpose: Record what happened with people and organizations, and what users know
+  about them, linked to its external sources.
+concepts:
+  [
+    concept:interaction,
+    concept:channel,
+    concept:participant,
+    concept:direction,
+    concept:initiator,
+    concept:source,
+    concept:source-reference,
+    concept:note
+  ]
+interfaces: []
+guarantees:
+  [
+    INTERACTIONS-INV-01,
+    INTERACTIONS-INV-02,
+    INTERACTIONS-INV-03,
+    INTERACTIONS-INV-04,
+    INTERACTIONS-INV-05,
+    INTERACTIONS-INV-06,
+    INTERACTIONS-INV-07,
+    INTERACTIONS-INV-08,
+    INTERACTIONS-INV-09,
+    INTERACTIONS-INV-10,
+    INTERACTIONS-AC-01,
+    INTERACTIONS-AC-02
+  ]

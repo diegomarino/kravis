@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-03
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: A record's holder never changes.
+status: active

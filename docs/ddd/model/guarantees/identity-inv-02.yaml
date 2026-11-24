@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-02
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: Every user is either a human or an agent, and that never changes.
+status: active

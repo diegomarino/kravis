@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:follow-up
+model: model:kravis
+ownerDomain: domain:work
+name: Follow-up
+purpose: A task whose purpose is to act on what happened in an interaction.

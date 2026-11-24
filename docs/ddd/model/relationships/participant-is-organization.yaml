@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:participant-is-organization
+model: model:kravis
+from: concept:participant
+to: concept:organization
+relationshipType: refers-to
+mode: record-reference
+description: "A participant may be an organization from the shared directory."
+ownedBy: domain:interactions
+constraints:
+  - "A participant is exactly one person or one organization (INTERACTIONS-INV-01; sibling: rel:participant-is-person)."

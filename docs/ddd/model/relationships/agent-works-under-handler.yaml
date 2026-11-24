@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:agent-works-under-handler
+model: model:kravis
+from: concept:agent
+to: concept:handler
+relationshipType: answers-to
+mode: record-reference
+description: "Each agent works under one human handler of its holder."
+ownedBy: domain:identity
+constraints:
+  - "The handler is a live human of the agent's holder."
+  - "The handler never changes in the MVP."

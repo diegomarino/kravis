@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DIRECTORY-INV-01
+model: model:kravis
+ownerDomain: domain:directory
+classification: invariant
+statement: "People and organizations have no holder: every holder shares the
+  same people and organizations."
+status: active

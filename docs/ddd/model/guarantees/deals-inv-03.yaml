@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DEALS-INV-03
+model: model:kravis
+ownerDomain: domain:deals
+classification: invariant
+statement: Moving a deal to a stage of the lost category requires a lost reason
+  from the catalog. Moving it back to an ongoing stage clears the reason.
+status: active

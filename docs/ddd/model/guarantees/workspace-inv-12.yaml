@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-12
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Reads made with a declared actor are limited to the actor's holder,
+  and the response states that limit.
+status: active

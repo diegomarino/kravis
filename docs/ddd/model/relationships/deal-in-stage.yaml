@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:deal-in-stage
+model: model:kravis
+from: concept:deal
+to: concept:stage
+relationshipType: is-in
+mode: record-reference
+description: "A deal is in exactly one stage of its pipeline at a time."
+ownedBy: domain:deals
+constraints:
+  - "The stage changes only through the stage transition."

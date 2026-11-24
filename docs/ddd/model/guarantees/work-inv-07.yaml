@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-07
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task changes status only through its status transition; a general
+  update cannot change the status.
+status: active

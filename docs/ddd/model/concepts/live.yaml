@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:live
+model: model:kravis
+ownerDomain: domain:workspace
+name: Live
+purpose: "Whether a record is still in use: an ongoing deal, an open or waiting
+  task, a user who can still act. Closed deals and tasks are not live, but they
+  are kept."

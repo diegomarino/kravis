@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:lost-reason
+model: model:kravis
+ownerDomain: domain:deals
+name: Lost reason
+purpose: Why a deal was lost, chosen from the workspace's catalog, such as price
+  or timing.

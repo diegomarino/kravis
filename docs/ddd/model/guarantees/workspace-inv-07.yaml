@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-07
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: A record's ID never changes, and its form is fixed per record type.
+status: active

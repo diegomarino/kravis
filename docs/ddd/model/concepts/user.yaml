@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:user
+model: model:kravis
+ownerDomain: domain:identity
+name: User
+purpose: "Someone who operates Kravis on behalf of one holder: writes records
+  and can receive work. A user is either a human or an agent."

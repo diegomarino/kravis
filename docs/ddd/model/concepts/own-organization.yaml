@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:own-organization
+model: model:kravis
+ownerDomain: domain:directory
+name: Own organization
+purpose: An organization whose work is managed in Kravis and which can therefore
+  be a holder.

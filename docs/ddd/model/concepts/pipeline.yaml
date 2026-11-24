@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:pipeline
+model: model:kravis
+ownerDomain: domain:deals
+name: Pipeline
+purpose: A sequence of stages that a deal moves through.

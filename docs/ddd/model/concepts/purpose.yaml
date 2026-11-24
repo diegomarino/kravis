@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:purpose
+model: model:kravis
+ownerDomain: domain:work
+name: Purpose
+purpose: Why a task exists, chosen from the workspace's catalog of purposes,
+  such as follow-up, ping or expand. A task created from an interaction always
+  has one.

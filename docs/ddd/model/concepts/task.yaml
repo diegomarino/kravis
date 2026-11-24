@@ -1,0 +1,7 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:task
+model: model:kravis
+ownerDomain: domain:work
+name: Task
+purpose: A piece of work with a human assignee and a status.

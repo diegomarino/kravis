@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-08
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: When two updates of the same record race, one applies and the other
+  is reapplied on the new version or fails with VERSION_CONFLICT and exit code
+  4.
+status: active

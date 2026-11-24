@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:initiator-is-user
+model: model:kravis
+from: concept:initiator
+to: concept:user
+relationshipType: is-a
+mode: role
+description: "The initiator of an outbound interaction is a user of its holder."
+ownedBy: domain:interactions
+constraints:
+  - "An initiator is a user when outbound and a participant when inbound (INTERACTIONS-INV-03; sibling: rel:initiator-is-participant)."
+  - "Optional; not inferred from the actor."

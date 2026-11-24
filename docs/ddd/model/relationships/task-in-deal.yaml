@@ -1,0 +1,13 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:task-in-deal
+model: model:kravis
+from: concept:task
+to: concept:deal
+relationshipType: belongs-to
+mode: record-reference
+description: "A task may belong directly to a deal of its holder."
+ownedBy: domain:work
+constraints:
+  - "A task has at most one work parent, a project or a deal (WORK-INV-01; sibling: rel:task-in-project)."
+  - "Closed deals still accept tasks."

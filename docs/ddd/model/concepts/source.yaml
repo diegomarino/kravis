@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:source
+model: model:kravis
+ownerDomain: domain:interactions
+name: Source
+purpose: An external service, such as Gmail, Calendar, Granola, Drive or the
+  web, that Kravis can point into.

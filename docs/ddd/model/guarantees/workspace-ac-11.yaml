@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-11
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: check reports its findings as JSON with a code, the affected record
+  and a message, exits with code 6 when there are findings, and never changes a
+  file.
+status: active

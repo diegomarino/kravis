@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-06
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: Categories are fixed and the same everywhere. Every status and stage
+  belongs to exactly one category, and each record stores its category and its
+  live flag next to its status or stage, consistent with the catalog.
+status: active

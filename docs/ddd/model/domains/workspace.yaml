@@ -1,0 +1,43 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:workspace
+model: model:kravis
+name: Workspace
+purpose: Keep the workspace's records, catalogs and holder partition consistent,
+  and expose them to agents through one contract.
+concepts:
+  [
+    concept:workspace,
+    concept:catalog,
+    concept:category,
+    concept:holder,
+    concept:live
+  ]
+interfaces: []
+guarantees:
+  - WORKSPACE-INV-01
+  - WORKSPACE-INV-02
+  - WORKSPACE-INV-03
+  - WORKSPACE-INV-04
+  - WORKSPACE-INV-05
+  - WORKSPACE-INV-06
+  - WORKSPACE-INV-07
+  - WORKSPACE-INV-08
+  - WORKSPACE-INV-09
+  - WORKSPACE-INV-10
+  - WORKSPACE-INV-11
+  - WORKSPACE-INV-12
+  - WORKSPACE-INV-13
+  - WORKSPACE-AC-01
+  - WORKSPACE-AC-02
+  - WORKSPACE-AC-03
+  - WORKSPACE-AC-04
+  - WORKSPACE-AC-05
+  - WORKSPACE-AC-06
+  - WORKSPACE-AC-07
+  - WORKSPACE-AC-08
+  - WORKSPACE-AC-09
+  - WORKSPACE-AC-10
+  - WORKSPACE-AC-11
+  - WORKSPACE-AC-12
+  - WORKSPACE-AC-13

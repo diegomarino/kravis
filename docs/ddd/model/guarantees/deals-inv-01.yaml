@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: DEALS-INV-01
+model: model:kravis
+ownerDomain: domain:deals
+classification: invariant
+statement: "Every deal is in exactly one pipeline and in exactly one of its stages. The MVP has a single built-in pipeline whose default stages are prospect, engaged and closing (ongoing), won, and lost."
+status: active

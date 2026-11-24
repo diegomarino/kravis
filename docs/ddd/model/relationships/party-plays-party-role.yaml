@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:party-plays-party-role
+model: model:kravis
+from: concept:party
+to: concept:party-role
+relationshipType: plays
+mode: catalog-reference
+description: "A party plays any number of party roles from the catalog, including none."
+ownedBy: domain:deals
+constraints:
+  - "Values come from the catalog that applies to the deal's holder."

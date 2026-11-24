@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-AC-01
+model: model:kravis
+ownerDomain: domain:identity
+classification: acceptance-criterion
+statement: A write without an actor fails with exit code 2 and a hint naming
+  --actor and KRAVIS_ACTOR. kravis whoami shows the resolved actor, where it
+  came from and its holder.
+status: active

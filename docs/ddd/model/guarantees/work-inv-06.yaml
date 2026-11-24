@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-INV-06
+model: model:kravis
+ownerDomain: domain:work
+classification: invariant
+statement: A task created from an interaction without a parent takes the
+  interaction's project or deal when there is exactly one; when there are
+  several, the parent must be chosen.
+status: active

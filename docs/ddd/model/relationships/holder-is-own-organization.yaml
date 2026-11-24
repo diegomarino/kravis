@@ -1,0 +1,15 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:holder-is-own-organization
+model: model:kravis
+from: concept:holder
+to: concept:own-organization
+relationshipType: is-a
+mode: record-reference
+description: "A holder is an organization of the directory that carries the own mark."
+ownedBy: domain:workspace
+constraints:
+  - "Directory owns the organization record; Workspace owns its use as a partition."
+  - "The own mark cannot be removed while the organization is the holder of any record."
+decisions:
+  - ADR-001

@@ -1,0 +1,26 @@
+schemaVersion: "1"
+kind: Domain
+id: domain:identity
+model: model:kravis
+name: Identity
+purpose: Know who acts in Kravis (humans and their agents) and attribute every
+  write to an actor.
+concepts:
+  [
+    concept:user,
+    concept:human,
+    concept:agent,
+    concept:handler,
+    concept:actor
+  ]
+interfaces: []
+guarantees:
+  [
+    IDENTITY-INV-01,
+    IDENTITY-INV-02,
+    IDENTITY-INV-03,
+    IDENTITY-INV-04,
+    IDENTITY-INV-05,
+    WORKSPACE-INV-14,
+    IDENTITY-AC-01
+  ]

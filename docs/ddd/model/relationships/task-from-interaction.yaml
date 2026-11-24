@@ -1,0 +1,14 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:task-from-interaction
+model: model:kravis
+from: concept:task
+to: concept:interaction
+relationshipType: created-from
+mode: provenance
+description: "A task may record the interaction it was created from. This is provenance, not grouping."
+ownedBy: domain:work
+constraints:
+  - "Same holder as the interaction."
+  - "Requires a purpose; one task per interaction and purpose."
+  - "Interactions owns the interaction; Work only refers to it."

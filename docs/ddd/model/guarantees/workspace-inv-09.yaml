@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-INV-09
+model: model:kravis
+ownerDomain: domain:workspace
+classification: invariant
+statement: An update applies only to the version it read and never overwrites a
+  concurrent change.
+status: active

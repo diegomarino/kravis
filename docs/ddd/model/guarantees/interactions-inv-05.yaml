@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: INTERACTIONS-INV-05
+model: model:kravis
+ownerDomain: domain:interactions
+classification: invariant
+statement: An interaction may be linked to any number of deals and projects, all
+  of its holder.
+status: active

@@ -1,0 +1,9 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORK-AC-01
+model: model:kravis
+ownerDomain: domain:work
+classification: acceptance-criterion
+statement: Closing a project with live tasks fails and lists them. Once they are
+  no longer live, the project closes.
+status: active

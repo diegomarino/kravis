@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: WORKSPACE-AC-01
+model: model:kravis
+ownerDomain: domain:workspace
+classification: acceptance-criterion
+statement: "Outside a TTY every command prints exactly one JSON object: data and
+  structured warnings on stdout, errors on stderr. An error is never mixed with
+  data."
+status: active

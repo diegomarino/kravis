@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-05
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: The actor of a write is an existing user.
+status: active

@@ -1,0 +1,12 @@
+schemaVersion: "1"
+kind: Relationship
+id: rel:assignee-is-human
+model: model:kravis
+from: concept:assignee
+to: concept:human
+relationshipType: is-a
+mode: role
+description: "An assignee is a human user acting in that role for a task."
+ownedBy: domain:work
+constraints:
+  - "Identity owns who users are; Work owns their role on tasks."

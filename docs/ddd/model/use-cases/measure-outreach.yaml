@@ -1,0 +1,15 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:measure-outreach
+model: model:kravis
+name: Measure a person's outreach
+goal: A user or agent lists the interactions a person initiated in a month to
+  assess their outreach.
+preconditions:
+  requires: []
+success:
+  preserves:
+    - INTERACTIONS-INV-02
+    - INTERACTIONS-INV-03
+  establishes:
+    - INTERACTIONS-AC-02

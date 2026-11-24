@@ -1,0 +1,8 @@
+schemaVersion: "1"
+kind: Concept
+id: concept:initiator
+model: model:kravis
+ownerDomain: domain:interactions
+name: Initiator
+purpose: The user or participant who started an interaction. It is not
+  necessarily the actor who recorded it.
