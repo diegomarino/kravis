@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestSlug(t *testing.T) {
 	for name, want := range map[string]string{
@@ -29,4 +32,18 @@ func TestSlugOrdersNames(t *testing.T) {
 	if Slug("Álvaro") >= Slug("Bruno") || Slug("bruno") != Slug("Bruno") || Slug("Éva") >= Slug("Fabio") {
 		t.Fatal("slugs do not order names alphabetically")
 	}
+}
+
+func TestSlugIsSafeToCallInParallel(t *testing.T) {
+	var wg sync.WaitGroup
+	for _, name := range []string{"José", "Peña", "Ñandú", "Ærø"} {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 100 {
+				_ = Slug(name)
+			}
+		}()
+	}
+	wg.Wait()
 }

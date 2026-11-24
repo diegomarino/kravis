@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -121,12 +120,13 @@ func (s *Store) Create(rec Record, actor string, pathOf func(id string) string, 
 	}
 
 	created, owner, err := s.addKeys(keys, b.ID)
-	if owner != "" {
-		if found, ferr := s.exists(pathOf(owner)); ferr != nil || found {
-			return owner, found, ferr
-		}
-	}
 	if err != nil {
+		err = errors.Join(err, s.dropKeys(created, b.ID))
+		if owner != "" {
+			if found, ferr := s.exists(pathOf(owner)); ferr != nil || found {
+				return owner, found, ferr
+			}
+		}
 		return "", false, err
 	}
 
@@ -186,9 +186,26 @@ func Update[T any, P interface {
 		before, after := keys(old), keys(cur)
 		added := slices.DeleteFunc(slices.Clone(after), func(k Key) bool { return slices.Contains(before, k) })
 		removed := slices.DeleteFunc(slices.Clone(before), func(k Key) bool { return slices.Contains(after, k) })
+		// release deletes the keys this attempt created, unless the record
+		// on disk holds them now: a concurrent update may have committed them.
+		release := func(created []Key) error {
+			if len(created) == 0 {
+				return nil
+			}
+			data, _, err := s.c.Get(p)
+			if err != nil {
+				return err
+			}
+			disk := P(new(T))
+			if err := Decode(data, disk); err != nil {
+				return fail("decode", p, err)
+			}
+			held := keys(disk)
+			return s.dropKeys(slices.DeleteFunc(created, func(k Key) bool { return slices.Contains(held, k) }), cb.ID)
+		}
 		created, owner, err := s.addKeys(added, cb.ID)
 		if owner != "" {
-			return nil, err
+			return nil, errors.Join(err, release(created))
 		}
 		undo := func() error { return nil }
 		if err == nil {
@@ -200,7 +217,7 @@ func Update[T any, P interface {
 			}
 		}
 		if err != nil {
-			err = errors.Join(err, undo(), s.dropKeys(created, cb.ID))
+			err = errors.Join(err, undo(), release(created))
 			if errors.Is(err, ErrTokenMismatch) || errors.Is(err, ErrExists) {
 				continue // changed in between: reread and reapply
 			}
@@ -253,8 +270,9 @@ func (s *Store) readKey(k Key) (string, Token, error) {
 }
 
 // addKeys creates each key pointing to id. A key that already points to id
-// is kept. A key that points to another record stops it: the keys it
-// created are deleted again, and that record's ID is returned as owner.
+// is kept. A key that points to another record stops it with
+// ErrKeyConflict, and that record's ID is returned as owner. On an error,
+// created lists the keys it created, for the caller to delete again.
 func (s *Store) addKeys(keys []Key, id string) (created []Key, owner string, err error) {
 	for _, k := range keys {
 		var data []byte
@@ -272,7 +290,7 @@ func (s *Store) addKeys(keys []Key, id string) (created []Key, owner string, err
 			}
 		}
 		if err != nil {
-			return nil, owner, errors.Join(err, s.dropKeys(created, id))
+			return created, owner, err
 		}
 		created = append(created, k)
 	}
@@ -298,47 +316,54 @@ func (s *Store) dropKeys(keys []Key, id string) error {
 
 // writeText writes the sidecar of the record at p: nil leaves it alone, an
 // empty text removes it. undo puts the earlier sidecar back, unless someone
-// else changed it since.
+// wrote it since: the sidecar's token is no longer the one of this write.
 func (s *Store) writeText(p string, text *string) (undo func() error, err error) {
 	undo = func() error { return nil }
 	if text == nil {
 		return undo, nil
 	}
-	sp, ours := SidecarPath(p), []byte(*text)
+	sp := SidecarPath(p)
 	old, token, err := s.c.Get(sp)
 	switch {
 	case errors.Is(err, ErrNotFound):
-		if len(ours) == 0 {
+		if *text == "" {
 			return undo, nil
 		}
-		old, err = nil, s.c.Create(sp, ours)
+		old, err = nil, s.c.Create(sp, []byte(*text))
 	case err != nil:
 		return undo, err
-	case bytes.Equal(old, ours):
-		return undo, nil
-	case len(ours) == 0:
+	case *text == "":
 		err = s.c.Delete(sp, token)
 	default:
-		err = s.c.Replace(sp, ours, token)
+		// Written even when unchanged, so its token says this write was last.
+		err = s.c.Replace(sp, []byte(*text), token)
 	}
 	if err != nil {
 		return undo, err
 	}
+	if *text == "" {
+		return func() error { return s.restoreText(sp, "", old) }, nil
+	}
+	_, ours, err := s.c.Get(sp)
+	if err != nil {
+		return undo, nil // nothing known to undo
+	}
 	return func() error { return s.restoreText(sp, ours, old) }, nil
 }
 
-// restoreText puts old back at sp (nil: no sidecar) if sp still holds ours.
-func (s *Store) restoreText(sp string, ours, old []byte) error {
-	cur, token, err := s.c.Get(sp)
+// restoreText puts old back at sp (nil: no sidecar) if sp is still at the
+// token ours, or still absent when ours is "" (this write removed it).
+func (s *Store) restoreText(sp string, ours Token, old []byte) error {
+	_, token, err := s.c.Get(sp)
 	switch {
 	case errors.Is(err, ErrNotFound):
-		if len(ours) != 0 || old == nil {
+		if ours != "" || old == nil {
 			return nil
 		}
 		return s.c.Create(sp, old)
 	case err != nil:
 		return err
-	case !bytes.Equal(cur, ours):
+	case ours == "" || token != ours:
 		return nil // someone else wrote it since
 	case old == nil:
 		return s.c.Delete(sp, token)

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"strings"
 )
 
 // Token is an object's version token, as get returns it. It is opaque: only
@@ -59,10 +60,11 @@ func fail(op, path string, err error) error {
 	return fmt.Errorf("%s %s: %w", op, path, err)
 }
 
-// validPath refuses absolute paths, "..", "." and empty elements, so no path
-// leaves the workspace.
+// validPath refuses absolute paths, "..", "." and empty elements, and the
+// backslash and colon that Windows reads as separators and drives, so no
+// path leaves the workspace on any system.
 func validPath(op, path string) error {
-	if !fs.ValidPath(path) || path == "." {
+	if !fs.ValidPath(path) || path == "." || strings.ContainsAny(path, `\:`) {
 		return fail(op, path, errors.New("invalid path"))
 	}
 	return nil

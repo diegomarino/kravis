@@ -16,14 +16,14 @@ var letters = strings.NewReplacer(
 	"ß", "ss", "æ", "ae", "œ", "oe", "ø", "o", "ł", "l", "đ", "d", "ð", "d", "þ", "th", "ı", "i",
 )
 
-var stripMarks = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-
 // Slug turns a name into lowercase ASCII with hyphens, as IDs and name
 // ordering use it: accents are removed ("Peña" gives "pena"), and every run of
 // anything else becomes one hyphen, never at either end. Letters with no
 // ASCII form, such as Greek or Han, are dropped, so a name in such a script
 // gives "" and the caller needs another source for the slug.
 func Slug(name string) string {
+	// A chain keeps state, so each call builds its own.
+	stripMarks := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	s, _, _ := transform.String(stripMarks, strings.ToLower(name))
 	s = letters.Replace(s)
 	var b strings.Builder

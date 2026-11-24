@@ -4,11 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -18,7 +20,9 @@ import (
 // A conditional write checks the version right before the rename and takes no
 // lock: the window between the check and the rename lasts under a
 // millisecond and is accepted (docs/storage.md, Writes and concurrency).
-// The version token is the SHA-256 of the content.
+// The version token is the SHA-256 of the content and the file's
+// modification time, so every write gives a new token, even of the same
+// bytes.
 type Local struct {
 	root string
 }
@@ -26,14 +30,29 @@ type Local struct {
 // NewLocal returns the connector for the workspace folder root.
 func NewLocal(root string) *Local { return &Local{root: root} }
 
-// tempMark is in every temporary file's name, so List can skip them.
+// tempMark is in every temporary file's name, after a leading dot, so List
+// can skip them. No object's name starts with a dot.
 const tempMark = ".tmp-"
 
 func (l *Local) file(p string) string { return filepath.Join(l.root, filepath.FromSlash(p)) }
 
-func tokenOf(data []byte) Token {
+// read returns the file's content and token, both from one open file.
+func (l *Local) read(p string) ([]byte, Token, error) {
+	f, err := os.Open(l.file(p))
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() { _ = f.Close() }()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, "", err
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, "", err
+	}
 	sum := sha256.Sum256(data)
-	return Token(hex.EncodeToString(sum[:]))
+	return data, Token(hex.EncodeToString(sum[:]) + "-" + strconv.FormatInt(info.ModTime().UnixNano(), 36)), nil
 }
 
 // ioErr maps a filesystem error to the connector's errors.
@@ -49,11 +68,11 @@ func (l *Local) Get(p string) ([]byte, Token, error) {
 	if err := validPath("get", p); err != nil {
 		return nil, "", err
 	}
-	data, err := os.ReadFile(l.file(p))
+	data, token, err := l.read(p)
 	if err != nil {
 		return nil, "", ioErr("get", p, err)
 	}
-	return data, tokenOf(data), nil
+	return data, token, nil
 }
 
 // Create implements Connector: the temporary file is linked into place,
@@ -111,11 +130,11 @@ func (l *Local) Delete(p string, token Token) error {
 
 // check reads the current version and compares it with token.
 func (l *Local) check(op, p string, token Token) error {
-	current, err := os.ReadFile(l.file(p))
+	_, current, err := l.read(p)
 	if err != nil {
 		return ioErr(op, p, err)
 	}
-	if tokenOf(current) != token {
+	if current != token {
 		return fail(op, p, ErrTokenMismatch)
 	}
 	return nil
@@ -167,7 +186,7 @@ func (l *Local) List(prefix string) ([]string, error) {
 			}
 			return err
 		}
-		if d.IsDir() || strings.Contains(d.Name(), tempMark) {
+		if d.IsDir() || (strings.HasPrefix(d.Name(), ".") && strings.Contains(d.Name(), tempMark)) {
 			return nil
 		}
 		rel, err := filepath.Rel(l.root, name)

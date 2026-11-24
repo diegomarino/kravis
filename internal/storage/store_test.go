@@ -648,3 +648,63 @@ func TestWORKSPACE_INV_11_DeleteIsConditionalAndRemovesSidecarAndKeys(t *testing
 		t.Fatalf("a second delete: %v", err)
 	}
 }
+
+// once runs f from the hook the first time op reaches path, outside any
+// nested call that f itself makes.
+func once(m *Memory, op Op, path string, f func()) {
+	done := false
+	m.Hook = func(o Op, p string) error {
+		if o == op && p == path && !done {
+			done = true
+			f()
+		}
+		return nil
+	}
+}
+
+func TestUpdateKeepsAKeyThatAConcurrentUpdateCommitted(t *testing.T) {
+	s, m := newTestStore()
+	createPerson(t, s, "pe_ana", "Ana")
+	p := personPath("pe_ana")
+	addAlt := func(r *testPerson) error { r.Emails = IDs{"ana.alt@example.com"}; return nil }
+	// A created the key; before A's record is written, B adds the same
+	// email, reuses A's key and commits.
+	once(m, OpReplace, p, func() {
+		if _, err := Update(s, p, "us_b", addAlt, personKeys); err != nil {
+			t.Error(err)
+		}
+	})
+	if _, err := Update(s, p, "us_a", addAlt, personKeys); err != nil {
+		t.Fatal(err)
+	}
+	checkKey(t, m, email("ana.alt@example.com"), "pe_ana")
+}
+
+func TestSidecarUndoKeepsAConcurrentWriteOfTheSameText(t *testing.T) {
+	s, m := newTestStore()
+	p := newTask(t, s)
+	if _, err := Update(s, p, "us_a", func(r *testTask) error { r.Text = text("O"); return nil }, nil); err != nil {
+		t.Fatal(err)
+	}
+	// Each time A is about to write its record, B writes the same text and
+	// commits; A gives up after three attempts.
+	inB := false
+	m.Hook = func(op Op, path string) error {
+		if op == OpReplace && path == p && !inB {
+			inB = true
+			defer func() { inB = false }()
+			if _, err := Update(s, p, "us_b", func(r *testTask) error { r.Text = text("X"); return nil }, nil); err != nil {
+				t.Error(err)
+			}
+		}
+		return nil
+	}
+	_, err := Update(s, p, "us_a", func(r *testTask) error { r.Text = text("X"); return nil }, nil)
+	if !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("got %v", err)
+	}
+	m.Hook = nil
+	if got, _ := s.Text(p); got != "X" {
+		t.Fatalf("B's committed text was undone: %q", got)
+	}
+}

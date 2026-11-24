@@ -58,11 +58,13 @@ func TestConnectorContract(t *testing.T) {
 			_ = c.Create("records/people/pe_ben.json", []byte("b"))
 			_ = c.Create("records/organizations/org_x.json", []byte("x"))
 			_ = c.Create("keys/person-email/ab/abc.json", []byte("k"))
+			_ = c.Create("records/users/us_test.tmp-agent.json", []byte("u")) // only a leading dot marks a temporary file
 			for prefix, want := range map[string][]string{
 				"records/people/":     {"records/people/pe_ana.json", "records/people/pe_ben.json"},
 				"records/people/pe_b": {"records/people/pe_ben.json"},
-				"records/":            {"records/organizations/org_x.json", "records/people/pe_ana.json", "records/people/pe_ben.json"},
-				"":                    {"keys/person-email/ab/abc.json", "records/organizations/org_x.json", "records/people/pe_ana.json", "records/people/pe_ben.json"},
+				"records/":            {"records/organizations/org_x.json", "records/people/pe_ana.json", "records/people/pe_ben.json", "records/users/us_test.tmp-agent.json"},
+				"":                    {"keys/person-email/ab/abc.json", "records/organizations/org_x.json", "records/people/pe_ana.json", "records/people/pe_ben.json", "records/users/us_test.tmp-agent.json"},
+				"records/users/":      {"records/users/us_test.tmp-agent.json"},
 				"records/tasks/":      nil,
 				"nowhere/at/all":      nil,
 			} {
@@ -84,7 +86,7 @@ func TestConnectorContract(t *testing.T) {
 
 func TestLocalRefusesPathsOutsideTheWorkspace(t *testing.T) {
 	l := NewLocal(t.TempDir())
-	for _, p := range []string{"", ".", "/etc/passwd", "../x.json", "a/../../x.json", "a//b.json"} {
+	for _, p := range []string{"", ".", "/etc/passwd", "../x.json", "a/../../x.json", "a//b.json", `..\x.json`, `a\..\..\x.json`, "C:x.json", "c:/x.json"} {
 		if _, _, err := l.Get(p); err == nil {
 			t.Errorf("get %q: want an error", p)
 		}
@@ -100,6 +102,19 @@ func TestLocalRefusesPathsOutsideTheWorkspace(t *testing.T) {
 	}
 	if _, err := l.List("../"); err == nil {
 		t.Error("list ../: want an error")
+	}
+}
+
+func TestLocalTokenChangesOnEveryWrite(t *testing.T) {
+	l := NewLocal(t.TempDir())
+	const p = "records/x.json"
+	_ = l.Create(p, []byte("same"))
+	_, before, _ := l.Get(p)
+	if err := l.Replace(p, []byte("same"), before); err != nil {
+		t.Fatal(err)
+	}
+	if _, after, _ := l.Get(p); after == before {
+		t.Fatal("rewriting the same bytes must give a new token")
 	}
 }
 
