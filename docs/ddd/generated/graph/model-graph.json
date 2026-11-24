@@ -1135,7 +1135,7 @@
       "kind": "Guarantee",
       "name": null,
       "ownershipKind": null,
-      "purpose": "A list returns at most 50 records by default, always reports the total, and returns an opaque cursor. Each type has a fixed default order, declared in the schema, with the ID breaking ties. A record changed between two pages may be skipped or repeated.",
+      "purpose": "A list returns at most 50 records by default, always reports the total, and returns an opaque cursor. Each type has a fixed default order, declared in the schema, with the ID breaking ties. A record whose own sort value changed between two pages may be skipped or repeated; records created or deleted meanwhile do not move the others.",
       "model": "model:kravis",
       "ownerDomain": "domain:workspace"
     },
