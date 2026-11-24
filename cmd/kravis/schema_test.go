@@ -71,6 +71,12 @@ func TestWORKSPACE_AC_06_SchemaDescribesATypeWithItsCatalogsDefaultsOrderAndErro
 	if fmt.Sprint(channel["enum"]) != "[email visit]" {
 		t.Errorf("a configured catalog shows up in the schema: %v", channel)
 	}
+	// An empty catalog allows no value.
+	e.setChannels()
+	empty := obj(t, obj(t, schemaOf(t, e, "interaction"), "properties"), "channel")
+	if _, has := empty["enum"]; has || empty["not"] == nil {
+		t.Errorf("an empty catalog must reject every value: %v", empty)
+	}
 	// Without a type, every type; an unknown one lists them.
 	all := schemaOf(t, e)
 	if len(all) != len(schemaTypes) {
@@ -172,6 +178,7 @@ var corpus = map[string][]inputCase{
 		{"with a reference", `{"channel":"email","occurred_at":"2026-11-21T09:00:00Z","subject":"Referenced","participants":["pe_elena-ruiz"],"refs":["email:message:a1@example.com"]}`, true},
 		{"with a summary", `{"channel":"email","occurred_at":"2026-11-20T09:00:00Z","subject":"Summarized","participants":["pe_elena-ruiz"],"summary":"Agreed the next step."}`, true},
 		{"a scoped reference", `{"channel":"email","occurred_at":"2026-11-19T09:00:00Z","subject":"Scoped","participants":["pe_elena-ruiz"],"refs":["gmail:message:18f3a2@ana@example.com"]}`, true},
+		{"a scoped reference with a leading space", `{"channel":"email","occurred_at":"2026-11-18T09:00:00Z","subject":"Spaced","participants":["pe_elena-ruiz"],"refs":[" gmail:message:18f3a3@ana@example.com"]}`, true},
 		{"a reference that is not one", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"],"refs":["nonsense"]}`, false},
 		{"a Gmail reference without its account", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"],"refs":["gmail:message:18f3a2"]}`, false},
 		{"no channel", `{"occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"]}`, false},

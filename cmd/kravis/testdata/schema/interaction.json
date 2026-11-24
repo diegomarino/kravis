@@ -38,7 +38,7 @@
             "pattern": "^\\s*([gG][mM][aA][iI][lL]:[mM][eE][sS][sS][aA][gG][eE]|[gG][mM][aA][iI][lL]:[tT][hH][rR][eE][aA][dD]|[oO][uU][tT][lL][oO][oO][kK]:[mM][eE][sS][sS][aA][gG][eE]):"
           },
           "then": {
-            "pattern": "^[^:]+:[^:]+:[^@]+@\\s*\\S"
+            "pattern": "^\\s*[^:]+:[^:]+:[^@]+@\\s*\\S"
           },
           "type": "string",
           "pattern": "^\\s*[^:\\s][^:]*:[^:\\s][^:]*:.+"

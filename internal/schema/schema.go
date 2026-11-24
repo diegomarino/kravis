@@ -120,7 +120,11 @@ func caseless(s string) string {
 }
 
 func enum(s *jsonschema.Schema, field string, values []string) {
-	if p, ok := s.Properties.Get(field); ok && len(values) > 0 {
+	p, ok := s.Properties.Get(field)
+	if ok && len(values) == 0 {
+		p.Not = &jsonschema.Schema{} // an empty catalog allows no value
+	}
+	if ok {
 		p.Enum = nil
 		for _, v := range values {
 			p.Enum = append(p.Enum, v)
@@ -154,7 +158,7 @@ func refItem() *jsonschema.Schema {
 		Type:    "string",
 		Pattern: `^\s*[^:\s][^:]*:[^:\s][^:]*:.+`,
 		If:      &jsonschema.Schema{Pattern: `^\s*(` + strings.Join(scoped, "|") + `):`},
-		Then:    &jsonschema.Schema{Pattern: `^[^:]+:[^:]+:[^@]+@\s*\S`},
+		Then:    &jsonschema.Schema{Pattern: `^\s*[^:]+:[^:]+:[^@]+@\s*\S`},
 	}
 }
 
