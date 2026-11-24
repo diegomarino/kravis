@@ -1,4 +1,11 @@
-# Acceptance criteria in scope for the current increment, one ID per line.
-# Each ID needs a test whose name contains it (WORKSPACE-AC-04 is covered by
-# TestWORKSPACE_AC_04...) and a guarantee of that ID in docs/ddd/model/guarantees/.
-# Later briefs add their IDs here. The inventory is not proof of behavior.
+# Acceptance criteria and invariants in scope for the current increment, one
+# ID per line: <DOMAIN>-AC-nn or <DOMAIN>-INV-nn. Each ID needs a test whose
+# name contains it (WORKSPACE-AC-04 is covered by TestWORKSPACE_AC_04...,
+# WORKSPACE-INV-07 by TestWORKSPACE_INV_07...) and a guarantee of that ID in
+# docs/ddd/model/guarantees/. Later briefs add their IDs here. The inventory
+# is not proof of behavior.
+WORKSPACE-INV-07
+WORKSPACE-INV-08
+WORKSPACE-INV-09
+WORKSPACE-INV-10
+WORKSPACE-INV-11

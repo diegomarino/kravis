@@ -1,0 +1,18 @@
+{
+  "id": "tk_01jdx7v3k2f9q8w4e6r5t2y1u0",
+  "holder": "org_petalo",
+  "title": "Send the teaser to Elena",
+  "status": "todo",
+  "category": "open",
+  "live": true,
+  "assignee": "us_diego-petalo",
+  "agent": "us_correo-petalo",
+  "from": "it_2026-11-23-documentacion-data-room",
+  "purpose": "follow-up",
+  "due": "2026-11-28",
+  "version": 3,
+  "created_at": "2026-11-23T17:02:11Z",
+  "created_by": "us_correo-petalo",
+  "updated_at": "2026-11-24T09:15:40Z",
+  "updated_by": "us_diego-petalo"
+}
