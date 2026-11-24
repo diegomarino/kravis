@@ -133,7 +133,8 @@ func writeError(w io.Writer, err error) int {
 	}
 	body := errorBody{
 		Code: de.Code, Message: de.Message, Details: de.Details,
-		Retryable: slices.Contains(retryable, de.Code), Hint: de.Hint,
+		Retryable: slices.Contains(retryable, de.Code) && !errors.Is(de, domain.ErrNoWorkspace),
+		Hint:      de.Hint,
 	}
 	if body.Details == nil {
 		body.Details = map[string]any{}

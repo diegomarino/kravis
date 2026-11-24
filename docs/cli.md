@@ -84,7 +84,7 @@ Error (stderr):
 `message` and `hint` are in English. `hint` is present only when `details` does not make the next step obvious.
 
 - A call reports one error. An error never carries `warnings`.
-- `retryable` is `true` only for `VERSION_CONFLICT` and `STORAGE_UNAVAILABLE`.
+- `retryable` is `true` only for `VERSION_CONFLICT` and `STORAGE_UNAVAILABLE`, except that `STORAGE_UNAVAILABLE` is `false` when no workspace is found: waiting never fixes that.
 
 ### Exit codes
 
