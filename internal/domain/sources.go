@@ -48,8 +48,8 @@ var sources = []sourceRow{
 	{source: "email", kind: "message", atInID: true, identifies: true},
 	{source: "ical", kind: "event", atInID: true, identifies: true},
 	{source: "granola", kind: "meeting", identifies: true},
-	{source: "slack", kind: "message", identifies: true},
-	{source: "telegram", kind: "message", identifies: true},
+	{source: "slack", kind: "message", identifies: true, canon: twoPart("channel ID", "ts")},
+	{source: "telegram", kind: "message", identifies: true, canon: twoPart("chat ID", "message ID")},
 	{source: "gmail", kind: "message", scoped: true},
 	{source: "gmail", kind: "thread", scoped: true},
 	{source: "outlook", kind: "message", scoped: true},
@@ -64,6 +64,17 @@ func findSource(source, kind string) *sourceRow {
 		return nil
 	}
 	return &sources[i]
+}
+
+// twoPart checks an ID of the form <first>/<second>, both parts given.
+func twoPart(first, second string) func(string) (string, error) {
+	return func(id string) (string, error) {
+		a, b, ok := strings.Cut(id, "/")
+		if !ok || a == "" || b == "" {
+			return "", fmt.Errorf("%q is not <%s>/<%s>", id, first, second)
+		}
+		return id, nil
+	}
 }
 
 // canonicalURL lowercases the scheme and host and drops the fragment.

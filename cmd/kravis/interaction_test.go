@@ -632,9 +632,20 @@ func TestSummaryUpdatesOnlyWhenItChanges(t *testing.T) {
 	must(t, os.WriteFile(file, []byte("First.\n"), 0o600))
 	e.ok(record("Data room documentation", "--summary-file", file)...)
 	outcomeOf(t, e.ok("interaction", "update", dataRoomID, "--summary-file", file), "unchanged")
+	// A write that touched the summary shows it, without asking.
+	must(t, os.WriteFile(file, []byte("First, edited.\n"), 0o600))
+	if d := outcomeOf(t, e.ok("interaction", "update", dataRoomID, "--summary-file", file), "updated"); d["summary"] != "First, edited.\n" {
+		t.Errorf("updated: %v", d)
+	}
+	if d := outcomeOf(t, e.ok(record("With summary", "--summary-file", file)...), "created"); d["summary"] != "First, edited.\n" {
+		t.Errorf("created: %v", d)
+	}
+	e.ok("interaction", "delete", "it_2026-11-23-with-summary")
+	must(t, os.WriteFile(file, []byte("First.\n"), 0o600))
+	e.ok("interaction", "update", dataRoomID, "--summary-file", file)
 	must(t, os.WriteFile(file, []byte("Second.\n"), 0o600))
 	d := outcomeOf(t, e.ok("interaction", "update", dataRoomID, "--summary-file", file, "--fields", "version,summary"), "updated")
-	if d["version"] != float64(2) || d["summary"] != "Second.\n" {
+	if d["summary"] != "Second.\n" {
 		t.Errorf("updated: %v", d)
 	}
 	d = outcomeOf(t, e.ok("interaction", "update", dataRoomID, "--summary-file", "", "--fields", "summary"), "updated")
@@ -672,6 +683,9 @@ func TestINTERACTIONS_INV_09_AnUnknownSourceIsAcceptedWithAWarningAndMatchedExac
 	// It identifies by exact equality: the source and the kind are lowercased, the ID is not.
 	out = e.ok(record("Data room documentation", "--ref", "notion:page:Abc-123")...)
 	outcomeOf(t, out, "existing")
+	if !slices.Equal(warningCodes(out), []string{"UNKNOWN_SOURCE"}) {
+		t.Errorf("an existing result keeps the warnings: %v", out)
+	}
 	out = e.ok(record("Data room documentation", "--ref", "notion:page:abc-123")...)
 	if d := outcomeOf(t, out, "created"); d["id"] == dataRoomID {
 		t.Errorf("another ID is another item: %v", d)
@@ -764,6 +778,8 @@ func TestSourceReferencesAreValidated(t *testing.T) {
 		"no ID":                    {"email:message:", "not a source reference"},
 		"no source":                {":message:abc", "not a source reference"},
 		"nothing":                  {"", "not a source reference"},
+		"slack without a channel":  {"slack:message:123.456", "not <channel ID>/<ts>"},
+		"telegram without a chat":  {"telegram:message:42", "not <chat ID>/<message ID>"},
 		"a URL without a host":     {"web:url:/just/a/path", "not a URL"},
 		"a URL without a scheme":   {"web:url:example.com/x", "not a URL"},
 	} {

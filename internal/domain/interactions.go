@@ -361,7 +361,7 @@ func (ws *Workspace) CreateInteraction(actorID string, in InteractionInput, opt 
 		if err := sameInteraction(ex, rec, given); err != nil {
 			return nil, err
 		}
-		return ws.finish(opt)(interactions.result(OutcomeExisting, ex, nil, opt))
+		return ws.finish(opt, false)(interactions.result(OutcomeExisting, ex, nil, opt, warnings...))
 	}
 	// The existing record may be another holder's: its ID is not ours to show.
 	if similar != "" {
@@ -369,7 +369,7 @@ func (ws *Workspace) CreateInteraction(actorID string, in InteractionInput, opt 
 			warnings = append(warnings, similarExists("interaction", rec.ID, similar))
 		}
 	}
-	return ws.finish(opt)(interactions.result(OutcomeCreated, rec, touched, opt, warnings...))
+	return ws.finish(opt, in.Summary != "")(interactions.result(OutcomeCreated, rec, touched, opt, warnings...))
 }
 
 // splitRefs is DEDUP_CONFLICT when the identifying references of rec
@@ -540,7 +540,7 @@ func (ws *Workspace) UpdateInteraction(actorID, id string, ch InteractionChange,
 	if err != nil {
 		return nil, err
 	}
-	return ws.finish(opt)(interactions.result(outcome(changed), rec, touched, opt, warnings...))
+	return ws.finish(opt, ch.Summary != nil)(interactions.result(outcome(changed), rec, touched, opt, warnings...))
 }
 
 // DeleteInteraction deletes an interaction of the actor's holder that no
@@ -735,10 +735,11 @@ func (ws *Workspace) addSummary(v View) (View, error) {
 }
 
 // finish adds the summary to a write's result when the options ask for it
-// (--fields summary, --full): finish(opt)(interactions.result(…)).
-func (ws *Workspace) finish(opt ViewOptions) func(*Result, error) (*Result, error) {
+// (--fields summary, --full) or the write touched it:
+// finish(opt, touched)(interactions.result(…)).
+func (ws *Workspace) finish(opt ViewOptions, touched bool) func(*Result, error) (*Result, error) {
 	return func(res *Result, err error) (*Result, error) {
-		if err != nil || !wantsSummary(opt) {
+		if err != nil || (!touched && !wantsSummary(opt)) {
 			return res, err
 		}
 		res.Data, err = ws.addSummary(res.Data)
