@@ -40,8 +40,7 @@ Success:
 {
   "data": { "...": "..." },
   "outcome": "created",
-  "warnings": [{ "code": "SIMILAR_EXISTS", "message": "…", "details": { "id": "pe_elena-ruiz" } }],
-  "filters": { "holder": "org_petalo" }
+  "warnings": [{ "code": "SIMILAR_EXISTS", "message": "…", "details": { "id": "pe_elena-ruiz" } }]
 }
 ```
 
