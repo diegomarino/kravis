@@ -7,7 +7,15 @@ Stack, repository layout, tooling and the definition of done for the MVP.
 - **Go.** Code, commands, field names, error codes and messages are in English, using US spelling.
 - **Library first.** All domain logic (validation, rules, writes) lives in a Go library. The CLI is a thin layer over it, built with cobra in `gh` style, and a future MCP server will be another thin layer over the same library. No surface carries logic of its own.
 - **Schemas.** Annotated Go types are the source of truth. `kravis schema` is generated with `invopop/jsonschema`, and the workspace catalogs are injected at run time. Input is validated in Go with Kravis's own errors (`details`, `hint`). Rules that span records are domain logic.
-- **Few dependencies.** The standard library first. The planned dependencies are cobra and `invopop/jsonschema`; any other needs a reason in its commit. Errors are Kravis's own types built with the standard `errors` package (`%w`, `errors.Is`, `errors.As`), with no third-party error library. Tests use the standard `testing` package.
+- **Few dependencies.** The standard library first: `log/slog` for logs (on stderr, only with `--verbose` or `KRAVIS_LOG=debug`), `text/tabwriter` for TTY tables, `time` with `time/tzdata` embedded so zones work on every OS. The only other dependencies are:
+  - `github.com/spf13/cobra` for the CLI;
+  - `github.com/invopop/jsonschema` for `kravis schema`;
+  - `go.jetify.com/typeid` for TypeIDs;
+  - `golang.org/x/text` for slugs without accents;
+  - `golang.org/x/term` to detect a TTY;
+  - `github.com/google/go-cmp`, in tests only.
+
+  Any other needs a reason in its commit. Errors are Kravis's own types built with the standard `errors` package (`%w`, `errors.Is`, `errors.As`), with no third-party error library. Tests use the standard `testing` package.
 - **Two decoding modes.** Agent input is decoded strictly and refuses unknown fields. Records read from disk are decoded tolerantly, and their unknown fields are kept when the record is rewritten.
 
 ## Repository layout
@@ -57,7 +65,7 @@ The Go module path is `github.com/diegomarino/kravis`.
 
 ## CI and releases
 
-- **`ci.yml`** runs on every push and pull request: format check, lint, tests, build and `ddduck check`, plus the commit subject check on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
+- **`ci.yml`** runs on every push and pull request: format check, lint, tests, build, `govulncheck` and `ddduck check`, plus the commit subject check on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
 - **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS, Linux and Windows and publishes them as GitHub Release assets.
 
 ## Installation
