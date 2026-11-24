@@ -42,8 +42,24 @@ func hasID(prefix, id string) bool {
 
 func quote(s string) string { return `"` + s + `"` }
 
-// missing is NOT_FOUND for a record that a field of the input names.
-func missing(field string, e *Error) *Error { return e.with("field", field) }
+// loadLinked loads the record that a field of the input names; if it does
+// not exist, NOT_FOUND says which field.
+func loadLinked[T any, P interface {
+	*T
+	storage.Record
+}](ws *Workspace, field string, k *kind[T, P], id string) (P, error) {
+	rec, _, err := k.load(ws, id)
+	return rec, notFoundIn(field, err)
+}
+
+// notFoundIn names the input field in a NOT_FOUND; other errors pass.
+func notFoundIn(field string, err error) error {
+	var e *Error
+	if errors.As(err, &e) && e.Code == CodeNotFound {
+		return e.with("field", field)
+	}
+	return err
+}
 
 // UserInput is what user create takes.
 type UserInput struct {
@@ -58,12 +74,8 @@ type UserInput struct {
 // checkHandler refuses a handler that is not a live human of the holder
 // (IDENTITY-INV-03).
 func (ws *Workspace) checkHandler(handler, holder string) error {
-	h, _, err := users.load(ws, handler)
+	h, err := loadLinked(ws, "handler", users, handler)
 	if err != nil {
-		var e *Error
-		if errors.As(err, &e) && e.Code == CodeNotFound {
-			return missing("handler", e)
-		}
 		return err
 	}
 	switch {
@@ -83,13 +95,9 @@ func (ws *Workspace) checkHandler(handler, holder string) error {
 func (ws *Workspace) resolveLinkedPerson(ref string) (string, error) {
 	id, err := ws.ResolvePerson(ref)
 	if err != nil {
-		return "", missing("person", people.notFound(ref))
+		return "", people.notFound(ref).with("field", "person")
 	}
-	if _, _, err := people.load(ws, id); err != nil {
-		var e *Error
-		if errors.As(err, &e) && e.Code == CodeNotFound {
-			return "", missing("person", e)
-		}
+	if _, err := loadLinked(ws, "person", people, id); err != nil {
 		return "", err
 	}
 	return id, nil
@@ -130,12 +138,8 @@ func (ws *Workspace) CreateUser(actor string, in UserInput, opt ViewOptions) (*R
 	if ex, _, err := users.load(ws, rec.ID); err == nil {
 		return ws.sameUser(ex, rec, opt)
 	}
-	org, _, err := organizations.load(ws, in.Holder)
+	org, err := loadLinked(ws, "holder", organizations, in.Holder)
 	if err != nil {
-		var e *Error
-		if errors.As(err, &e) && e.Code == CodeNotFound {
-			return nil, missing("holder", e)
-		}
 		return nil, err
 	}
 	if !org.Own {
@@ -166,16 +170,17 @@ func (ws *Workspace) CreateUser(actor string, in UserInput, opt ViewOptions) (*R
 // sameUser is the result of a create for a user that exists: existing when
 // the data matches, DEDUP_CONFLICT when it contradicts.
 func (ws *Workspace) sameUser(ex, rec *User, opt ViewOptions) (*Result, error) {
+	var clashes []clash
 	for _, d := range []struct{ field, have, want string }{
 		{"holder", ex.Holder, rec.Holder}, {"kind", ex.Kind, rec.Kind},
 		{"handler", ex.Handler, rec.Handler}, {"person", ex.Person, rec.Person},
 	} {
-		if d.have != d.want {
-			return nil, dedupConflict("user", ex.ID, d.field, "%s already exists with %s %q, not %q", ex.ID, d.field, d.have, d.want).with("value", d.want)
-		}
+		clashes = append(clashes, clashing(d.field, d.have != d.want, d.want, "%s already exists with %s %q, not %q", ex.ID, d.field, d.have, d.want))
 	}
-	if rec.Name != "" && ex.Name != rec.Name {
-		return nil, dedupConflict("user", ex.ID, "name", "%s already exists with the name %q, not %q", ex.ID, ex.Name, rec.Name).with("value", rec.Name)
+	clashes = append(clashes, clashing("name", rec.Name != "" && ex.Name != rec.Name, rec.Name,
+		"%s already exists with the name %q, not %q", ex.ID, ex.Name, rec.Name))
+	if err := sameData("user", ex.ID, clashes...); err != nil {
+		return nil, err
 	}
 	return users.result(OutcomeExisting, ex, nil, opt)
 }
@@ -255,7 +260,9 @@ func (ws *Workspace) UpdateUser(actor, id string, ch UserChange, opt ViewOptions
 func (ws *Workspace) GetUser(id string, opt ViewOptions) (View, error) { return users.get(ws, id, opt) }
 
 // ListUsers returns a page of users, by name.
-func (ws *Workspace) ListUsers(opt ListOptions) (*ListResult, error) { return users.list(ws, opt) }
+func (ws *Workspace) ListUsers(opt ListOptions) (*ListResult, error) {
+	return users.list(ws, "", opt, nil, "")
+}
 
 // DeleteUser deletes a user that nothing refers to.
 func (ws *Workspace) DeleteUser(id string, opt ViewOptions) (*Result, error) {
@@ -284,9 +291,14 @@ func usersReferringTo(ws *Workspace, id string) ([]string, error) {
 	return referringUsers(ws, id, func(u *User) bool { return u.Holder == id || u.Handler == id || u.Person == id })
 }
 
-// holdersOf finds the users whose holder is id.
+// holdersOf finds the users and work records whose holder is id.
 func holdersOf(ws *Workspace, id string) ([]string, error) {
-	return referringUsers(ws, id, func(u *User) bool { return u.Holder == id })
+	us, err := referringUsers(ws, id, func(u *User) bool { return u.Holder == id })
+	if err != nil {
+		return nil, err
+	}
+	its, err := interactionsOf(ws, id)
+	return slices.Concat(us, its), err
 }
 
 func referringUsers(ws *Workspace, _ string, refers func(*User) bool) ([]string, error) {
@@ -350,11 +362,7 @@ func (ws *Workspace) AddAffiliation(actor, personRef, org string, title *string,
 	if err != nil {
 		return nil, err
 	}
-	if _, _, err := organizations.load(ws, org); err != nil {
-		var e *Error
-		if errors.As(err, &e) && e.Code == CodeNotFound {
-			return nil, missing("organization", e)
-		}
+	if _, err := loadLinked(ws, "organization", organizations, org); err != nil {
 		return nil, err
 	}
 	var existed bool

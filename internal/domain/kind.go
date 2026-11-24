@@ -30,10 +30,18 @@ type Type struct {
 	Compact []string
 	// Order says how lists are sorted by default; the ID breaks ties.
 	Order string
+	// group, when set, gives the folder inside Dir that an ID belongs to,
+	// computed from the ID alone ("2026-11"); it must cope with any string.
+	group func(id string) string
 }
 
 // Path is where the record with the given ID lives.
-func (t Type) Path(id string) string { return "records/" + t.Dir + "/" + id + ".json" }
+func (t Type) Path(id string) string {
+	if t.group != nil {
+		return "records/" + t.Dir + "/" + t.group(id) + "/" + id + ".json"
+	}
+	return "records/" + t.Dir + "/" + id + ".json"
+}
 
 // compactField is a field of a compact view and the JSON it shows when the
 // record leaves it empty ("" leaves it out).
@@ -52,7 +60,14 @@ type kind[T any, P interface {
 	compact []compactField
 	// sortKey is the record's default sort value; the ID breaks ties.
 	sortKey func(P) string
-	live    func(P) bool
+	// holder, when set, says whose a work record is: reads and writes made
+	// for a holder find only that holder's records (another's is NOT_FOUND).
+	holder func(P) string
+	// desc sorts by sortKey from the largest, newest first.
+	desc bool
+	// form is what an ID looks like after its prefix; nil means a slug.
+	form *regexp.Regexp
+	live func(P) bool
 	// keys are the record's natural keys (nil: none), of the kinds in
 	// keyKinds.
 	keys     func(P) []storage.Key
@@ -60,6 +75,8 @@ type kind[T any, P interface {
 	// rules reports what is wrong with a record's fields, for writes and
 	// check; problems adds its ID.
 	rules func(P) []string
+	// extraFields are names --fields accepts besides the record's own.
+	extraFields []string
 }
 
 // problems reports what is wrong with a record: its ID, then its fields.
@@ -81,6 +98,9 @@ func newKind[T any, P interface {
 	if k.keys == nil {
 		k.keys = func(P) []storage.Key { return nil }
 	}
+	if k.form == nil {
+		k.form = slugID
+	}
 	return &k
 }
 
@@ -89,7 +109,7 @@ var slugID = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func (k *kind[T, P]) validID(id string) bool {
 	rest, ok := strings.CutPrefix(id, k.Prefix)
-	return ok && slugID.MatchString(rest)
+	return ok && k.form.MatchString(rest)
 }
 
 func (k *kind[T, P]) notFound(ref string) *Error {
@@ -108,6 +128,24 @@ func (k *kind[T, P]) load(ws *Workspace, id string) (P, storage.Token, error) {
 		return nil, "", k.notFound(id)
 	}
 	return rec, token, err
+}
+
+// loadIn is load for a holder: another holder's record does not exist for
+// it. An empty holder, or a type without holders, limits nothing.
+func (k *kind[T, P]) loadIn(ws *Workspace, holder, id string) (P, storage.Token, error) {
+	rec, token, err := k.load(ws, id)
+	if err == nil && holder != "" && k.holder != nil && k.holder(rec) != holder {
+		return nil, "", k.notFound(id)
+	}
+	return rec, token, err
+}
+
+// holderFilter is what a read limited to a holder says about itself.
+func holderFilter(holder string) map[string]any {
+	if holder == "" {
+		return nil
+	}
+	return map[string]any{"holder": holder}
 }
 
 // View is a record's view for output: its fields in order.
@@ -139,7 +177,7 @@ type ViewOptions struct {
 
 // checkFields refuses a --fields name that the type does not define.
 func (k *kind[T, P]) checkFields(opt ViewOptions) error {
-	allowed := storage.FieldNames(P(new(T)))
+	allowed := slices.Concat(storage.FieldNames(P(new(T))), k.extraFields)
 	for _, f := range opt.Fields {
 		if !slices.Contains(allowed, f) {
 			return newError(CodeUnknownField, "", "%s has no field %q", k.Name, f).
@@ -213,10 +251,15 @@ func (k *kind[T, P]) result(outcome string, rec P, touched []string, opt ViewOpt
 
 // get returns the view of the record with the given ID.
 func (k *kind[T, P]) get(ws *Workspace, id string, opt ViewOptions) (View, error) {
+	return k.getIn(ws, "", id, opt)
+}
+
+// getIn is get for a holder: another holder's record is NOT_FOUND.
+func (k *kind[T, P]) getIn(ws *Workspace, holder, id string, opt ViewOptions) (View, error) {
 	if err := k.checkFields(opt); err != nil {
 		return nil, err
 	}
-	rec, _, err := k.load(ws, id)
+	rec, _, err := k.loadIn(ws, holder, id)
 	if err != nil {
 		return nil, err
 	}
@@ -282,11 +325,19 @@ func (k *kind[T, P]) freeID(ws *Workspace, base string) (id, similar string, err
 // whether anything changed; a change that leaves the record as it was
 // writes nothing. change runs again on each attempt.
 func (k *kind[T, P]) update(ws *Workspace, actor, id string, change func(P) error) (P, bool, error) {
+	return k.updateIn(ws, "", actor, id, change)
+}
+
+// updateIn is update for a holder: another holder's record is NOT_FOUND.
+func (k *kind[T, P]) updateIn(ws *Workspace, holder, actor, id string, change func(P) error) (P, bool, error) {
 	if !k.validID(id) {
 		return nil, false, k.notFound(id)
 	}
 	seen := 0
 	rec, err := storage.Update(ws.Store, k.Path(id), actor, func(p P) error {
+		if holder != "" && k.holder != nil && k.holder(p) != holder {
+			return k.notFound(id)
+		}
 		seen = p.Meta().Version
 		if err := change(p); err != nil {
 			return err
@@ -308,10 +359,15 @@ func (k *kind[T, P]) update(ws *Workspace, actor, id string, change func(P) erro
 // remove deletes the record with the given ID, unless another record
 // refers to it (REFERENCED), and returns the view of what it was.
 func (k *kind[T, P]) remove(ws *Workspace, id string, opt ViewOptions) (*Result, error) {
+	return k.removeIn(ws, "", id, opt)
+}
+
+// removeIn is remove for a holder: another holder's record is NOT_FOUND.
+func (k *kind[T, P]) removeIn(ws *Workspace, holder, id string, opt ViewOptions) (*Result, error) {
 	if err := k.checkFields(opt); err != nil {
 		return nil, err
 	}
-	rec, token, err := k.load(ws, id)
+	rec, token, err := k.loadIn(ws, holder, id)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +384,7 @@ func (k *kind[T, P]) remove(ws *Workspace, id string, opt ViewOptions) (*Result,
 // referenceScans find the records that refer to an ID. Each record type
 // that refers to others adds its scan here; delete refuses while any finds
 // a referrer.
-var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo, peopleAffiliatedTo}
+var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo, peopleAffiliatedTo, interactionsReferringTo}
 
 // referrers lists the records that refer to id, sorted.
 func (ws *Workspace) referrers(id string) ([]string, error) {
@@ -370,7 +426,9 @@ const DefaultLimit = 50
 
 // ListResult is one page of a list.
 type ListResult struct {
-	Data []View
+	// Filters is what Kravis applied by itself, such as the holder limit.
+	Filters map[string]any
+	Data    []View
 	// Total counts every record the filters let through, on all pages.
 	Total int
 	// NextCursor continues the list; nil on the last page.
@@ -390,8 +448,8 @@ func badCursor(why string) *Error {
 		"the cursor %s", why).with("field", "cursor")
 }
 
-func (k *kind[T, P]) fingerprint(opt ListOptions) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|all=%t", k.Name, k.Order, opt.All)))
+func (k *kind[T, P]) fingerprint(opt ListOptions, filters string) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|all=%t|%s", k.Name, k.Order, opt.All, filters)))
 	return hex.EncodeToString(sum[:6])
 }
 
@@ -400,11 +458,23 @@ type row[P any] struct {
 	rec     P
 }
 
-func (r row[P]) after(key, id string) bool { return r.key > key || (r.key == key && r.id > id) }
+// cmp orders two rows: by sort key (reversed when the type sorts newest
+// first), then by ID.
+func (k *kind[T, P]) cmp(a, b row[P]) int {
+	c := strings.Compare(a.key, b.key)
+	if k.desc {
+		c = -c
+	}
+	if c != 0 {
+		return c
+	}
+	return strings.Compare(a.id, b.id)
+}
 
 // list returns one page of the type's records in its default order: live
-// ones only, unless All.
-func (k *kind[T, P]) list(ws *Workspace, opt ListOptions) (*ListResult, error) {
+// ones only, unless All, and for a holder only its records. keep, when not nil, drops the records it refuses;
+// filters says what keep does, so a cursor only continues the same list.
+func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep func(P) bool, filters string) (*ListResult, error) {
 	switch {
 	case opt.Limit < 0:
 		return nil, InvalidFlag("limit", nil, "--limit must be 0 or more, not %d", opt.Limit)
@@ -415,7 +485,7 @@ func (k *kind[T, P]) list(ws *Workspace, opt ListOptions) (*ListResult, error) {
 	if err := k.checkFields(opt.View); err != nil {
 		return nil, err
 	}
-	fp := k.fingerprint(opt)
+	fp := k.fingerprint(opt, "holder="+holder+"|"+filters)
 	var from *cursor
 	if opt.Cursor != "" {
 		raw, err := base64.RawURLEncoding.DecodeString(opt.Cursor)
@@ -431,18 +501,15 @@ func (k *kind[T, P]) list(ws *Workspace, opt ListOptions) (*ListResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows = slices.DeleteFunc(rows, func(r row[P]) bool { return !opt.All && !k.live(r.rec) })
-	slices.SortFunc(rows, func(a, b row[P]) int {
-		if c := strings.Compare(a.key, b.key); c != 0 {
-			return c
-		}
-		return strings.Compare(a.id, b.id)
+	rows = slices.DeleteFunc(rows, func(r row[P]) bool {
+		return (!opt.All && !k.live(r.rec)) || (holder != "" && k.holder != nil && k.holder(r.rec) != holder) || (keep != nil && !keep(r.rec))
 	})
-	res := &ListResult{Data: []View{}, Total: len(rows)}
+	slices.SortFunc(rows, k.cmp)
+	res := &ListResult{Data: []View{}, Total: len(rows), Filters: holderFilter(holder)}
 	start := 0
 	if from != nil {
 		start = len(rows)
-		if i := slices.IndexFunc(rows, func(r row[P]) bool { return r.after(from.Key, from.ID) }); i >= 0 {
+		if i := slices.IndexFunc(rows, func(r row[P]) bool { return k.cmp(r, row[P]{key: from.Key, id: from.ID}) > 0 }); i >= 0 {
 			start = i
 		}
 	}

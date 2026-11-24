@@ -1,11 +1,25 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.com/diegomarino/kravis/internal/domain"
 )
+
+// groupUsage is the RunE of a command that only groups others: called
+// alone it is a usage error, not help text, so agents get JSON.
+func groupUsage(cmd *cobra.Command, _ []string) error {
+	var names []string
+	for _, c := range cmd.Commands() {
+		if !c.Hidden {
+			names = append(names, c.Name())
+		}
+	}
+	return domain.UsageError(cmd.CommandPath()+" needs a subcommand: "+strings.Join(names, ", "), "run "+cmd.CommandPath()+" --help")
+}
 
 // viewFlags adds --fields and --full to a command that shows records.
 func viewFlags(f *pflag.FlagSet, opt *domain.ViewOptions) {
@@ -48,18 +62,48 @@ func (a *app) write(cmd *cobra.Command, do func(ws *domain.Workspace, actor stri
 
 // read opens the workspace and runs a read.
 func (a *app) read(cmd *cobra.Command, do func(ws *domain.Workspace) (any, error)) error {
+	return a.readLimited(cmd, true, func(ws *domain.Workspace, _ string) (any, error) { return do(ws) })
+}
+
+// readLimited opens the workspace and runs a read of work records. With a
+// declared actor, and unless allHolders, the read is limited to the actor's
+// holder, which do receives ("" is no limit). A read without an actor is
+// never limited.
+func (a *app) readLimited(cmd *cobra.Command, allHolders bool, do func(ws *domain.Workspace, holder string) (any, error)) error {
 	ws, err := a.open()
 	if err != nil {
 		return err
 	}
-	data, err := do(ws)
+	holder := ""
+	if !allHolders {
+		act, err := a.actor(ws, false)
+		if err != nil {
+			return err
+		}
+		if act != nil {
+			holder = act.User.Holder
+		}
+	}
+	data, err := do(ws, holder)
 	if err != nil {
 		return err
 	}
-	if l, ok := data.(*domain.ListResult); ok {
-		return a.emit(cmd, reply{Data: l.Data, List: true, Total: l.Total, NextCursor: l.NextCursor})
+	switch d := data.(type) {
+	case *domain.ListResult:
+		return a.emit(cmd, reply{Data: d.Data, Filters: nilIfEmpty(d.Filters), List: true, Total: d.Total, NextCursor: d.NextCursor})
+	case *domain.GetResult:
+		return a.emit(cmd, reply{Data: d.Data, Filters: nilIfEmpty(d.Filters)})
 	}
 	return a.emit(cmd, reply{Data: data})
+}
+
+// nilIfEmpty keeps an empty map out of the envelope: filters appears only
+// when Kravis applied one.
+func nilIfEmpty(m map[string]any) any {
+	if len(m) == 0 {
+		return nil
+	}
+	return m
 }
 
 // verbs builds the list, get and delete commands every type shares.
@@ -104,6 +148,7 @@ func (a *app) organizationCommand() *cobra.Command {
 		Long: "Organizations are shared by every holder: they are not tenants. An own organization (--own) is one " +
 			"whose work is managed in Kravis, so it can be a holder. Domains deduplicate: a create with a known domain returns that organization.",
 		Args: cobra.NoArgs,
+		RunE: groupUsage,
 	}
 
 	var in domain.OrganizationInput
@@ -159,6 +204,7 @@ func (a *app) personCommand() *cobra.Command {
 		Long: "People are shared by every holder. A person has a name, an email or both; every email deduplicates " +
 			"and works as an alias of the person wherever a person ID is accepted.",
 		Args: cobra.NoArgs,
+		RunE: groupUsage,
 	}
 
 	var in domain.PersonInput
@@ -209,6 +255,7 @@ func (a *app) affiliationCommand() *cobra.Command {
 		Long: "A person has any number of affiliations, at most one per organization, each with a free-text title. " +
 			"An affiliation that ends is removed.",
 		Args: cobra.NoArgs,
+		RunE: groupUsage,
 	}
 
 	var title string

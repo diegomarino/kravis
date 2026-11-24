@@ -14,47 +14,6 @@ import (
 	"github.com/diegomarino/kravis/internal/storage"
 )
 
-// ok runs a command that must succeed and returns its JSON.
-func (e *env) ok(args ...string) map[string]any {
-	e.t.Helper()
-	r := e.run(args...)
-	if r.Code != 0 || r.Stderr != "" {
-		e.t.Fatalf("%v: code %d, stderr %q", args, r.Code, r.Stderr)
-	}
-	return r.JSON(e.t)
-}
-
-// refused runs a command that must fail with code and exit, and checks that
-// it changed no file.
-func (e *env) refused(code string, exit int, args ...string) map[string]any {
-	e.t.Helper()
-	before := e.Files()
-	eo := wantError(e.t, e.run(args...), code, exit)
-	if !maps.Equal(before, e.Files()) {
-		e.t.Errorf("%v: a refusal changed a file", args)
-	}
-	return eo
-}
-
-func data(t *testing.T, out map[string]any) map[string]any { t.Helper(); return obj(t, out, "data") }
-
-func outcomeOf(t *testing.T, out map[string]any, want string) map[string]any {
-	t.Helper()
-	if out["outcome"] != want {
-		t.Errorf("outcome %v, want %s (%v)", out["outcome"], want, out)
-	}
-	return data(t, out)
-}
-
-func warningCodes(out map[string]any) []string {
-	var codes []string
-	ws, _ := out["warnings"].([]any)
-	for _, w := range ws {
-		codes = append(codes, w.(map[string]any)["code"].(string))
-	}
-	return codes
-}
-
 func readRecord(t *testing.T, path string) map[string]any {
 	t.Helper()
 	raw, err := os.ReadFile(path)

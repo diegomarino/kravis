@@ -14,6 +14,7 @@ func (a *app) userCommand() *cobra.Command {
 			"An agent has a handler: a live human of the same holder, which never changes. " +
 			"A user is deactivated with update --live=false, not deleted.",
 		Args: cobra.NoArgs,
+		RunE: groupUsage,
 	}
 
 	var in domain.UserInput

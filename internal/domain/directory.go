@@ -163,6 +163,36 @@ func dedupConflict(name, id, field, format string, args ...any) *Error {
 		format, args...).with("id", id).with("field", field)
 }
 
+// clash is one way in which the data of a create can contradict the record
+// it found: field says where, when says whether it does, value is what was
+// given.
+type clash struct {
+	field  string
+	when   bool
+	value  any
+	format string
+	args   []any
+}
+
+func clashing(field string, when bool, value any, format string, args ...any) clash {
+	return clash{field, when, value, format, args}
+}
+
+// sameData is nil when the data a create sent does not contradict the
+// record id it found, and otherwise DEDUP_CONFLICT for the first clash.
+func sameData(name, id string, clashes ...clash) error {
+	for _, c := range clashes {
+		if c.when {
+			e := dedupConflict(name, id, c.field, c.format, c.args...)
+			if c.value != nil {
+				_ = e.with("value", c.value)
+			}
+			return e
+		}
+	}
+	return nil
+}
+
 // PersonInput is what person create takes.
 type PersonInput struct {
 	Name   string
@@ -197,15 +227,14 @@ func (ws *Workspace) CreatePerson(actor string, in PersonInput, opt ViewOptions)
 		return nil, err
 	}
 	if ex != nil {
-		if name != "" && !sameName(ex.Name, name) {
-			return nil, dedupConflict("person", ex.ID, "name",
-				"an email given belongs to %s, whose name is %q, not %q", ex.ID, ex.Name, name).with("value", name)
-		}
+		clashes := []clash{clashing("name", name != "" && !sameName(ex.Name, name), name,
+			"an email given belongs to %s, whose name is %q, not %q", ex.ID, ex.Name, name)}
 		for _, e := range emails {
-			if !slices.Contains(ex.Emails, e) {
-				return nil, dedupConflict("person", ex.ID, "email",
-					"an email given belongs to %s, which does not have %q", ex.ID, e).with("value", e)
-			}
+			clashes = append(clashes, clashing("email", !slices.Contains(ex.Emails, e), e,
+				"an email given belongs to %s, which does not have %q", ex.ID, e))
+		}
+		if err := sameData("person", ex.ID, clashes...); err != nil {
+			return nil, err
 		}
 		return people.result(OutcomeExisting, ex, nil, opt)
 	}
@@ -319,7 +348,9 @@ func (ws *Workspace) GetPerson(ref string, opt ViewOptions) (View, error) {
 }
 
 // ListPeople returns a page of people, by name.
-func (ws *Workspace) ListPeople(opt ListOptions) (*ListResult, error) { return people.list(ws, opt) }
+func (ws *Workspace) ListPeople(opt ListOptions) (*ListResult, error) {
+	return people.list(ws, "", opt, nil, "")
+}
 
 // DeletePerson deletes a person, by ID or email, with their email keys.
 func (ws *Workspace) DeletePerson(ref string, opt ViewOptions) (*Result, error) {
@@ -360,18 +391,16 @@ func (ws *Workspace) CreateOrganization(actor string, in OrganizationInput, opt 
 		return nil, err
 	}
 	if ex != nil {
-		if !sameName(ex.Name, name) {
-			return nil, dedupConflict("organization", ex.ID, "name",
-				"a domain given belongs to %s, whose name is %q, not %q", ex.ID, ex.Name, name).with("value", name)
-		}
-		if in.Own && !ex.Own {
-			return nil, dedupConflict("organization", ex.ID, "own", "a domain given belongs to %s, which is not an own organization", ex.ID)
+		clashes := []clash{
+			clashing("name", !sameName(ex.Name, name), name, "a domain given belongs to %s, whose name is %q, not %q", ex.ID, ex.Name, name),
+			clashing("own", in.Own && !ex.Own, nil, "a domain given belongs to %s, which is not an own organization", ex.ID),
 		}
 		for _, d := range domains {
-			if !slices.Contains(ex.Domains, d) {
-				return nil, dedupConflict("organization", ex.ID, "domain",
-					"a domain given belongs to %s, which does not have %q", ex.ID, d).with("value", d)
-			}
+			clashes = append(clashes, clashing("domain", !slices.Contains(ex.Domains, d), d,
+				"a domain given belongs to %s, which does not have %q", ex.ID, d))
+		}
+		if err := sameData("organization", ex.ID, clashes...); err != nil {
+			return nil, err
 		}
 		return organizations.result(OutcomeExisting, ex, nil, opt)
 	}
@@ -450,7 +479,7 @@ func (ws *Workspace) GetOrganization(id string, opt ViewOptions) (View, error) {
 
 // ListOrganizations returns a page of organizations, by name.
 func (ws *Workspace) ListOrganizations(opt ListOptions) (*ListResult, error) {
-	return organizations.list(ws, opt)
+	return organizations.list(ws, "", opt, nil, "")
 }
 
 // DeleteOrganization deletes an organization that nothing refers to.

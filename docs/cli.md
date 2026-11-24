@@ -123,6 +123,8 @@ Error (stderr):
 | `KEY_WITHOUT_VALUE` | check finding | A deduplication key points to a record that does not exist or no longer has the value |
 | `VALUE_WITHOUT_KEY` | check finding | A record has an email or domain whose deduplication key is missing or points to another record |
 | `BROKEN_REFERENCE` | check finding | A user or an affiliation refers to a record that does not exist: a holder, a handler, a linked person or an organization |
+| `DANGLING_REFERENCE` | check finding | A work record refers to a record that does not exist: an interaction's holder, participant or initiator |
+| `VALUE_NOT_IN_CATALOG` | check finding | A catalog-valued field holds a value that the catalog for its holder no longer has, such as an interaction's channel; the next update of the record must replace it |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |
