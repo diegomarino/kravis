@@ -153,7 +153,11 @@ type Workspace struct {
 	Marker Marker
 	Config Config
 	Store  *storage.Store
+	now    func() time.Time
 }
+
+// clock is the time of the call, for what depends on today's date.
+func (ws *Workspace) clock() time.Time { return ws.now() }
 
 // ErrNoWorkspace is the cause of NoWorkspace: waiting never fixes it, so the
 // CLI reports it as not retryable.
@@ -171,7 +175,10 @@ func NoWorkspace() *Error {
 // Open reads kravis.json and config.json of the workspace on c. now gives
 // the time of each write; nil means time.Now.
 func Open(c storage.Connector, now func() time.Time) (*Workspace, error) {
-	ws := &Workspace{Store: storage.NewStore(c, now)}
+	if now == nil {
+		now = time.Now
+	}
+	ws := &Workspace{Store: storage.NewStore(c, now), now: now}
 	if err := readFile(c, MarkerPath, &ws.Marker); err != nil {
 		return nil, openError(err)
 	}

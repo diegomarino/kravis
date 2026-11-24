@@ -87,6 +87,8 @@ type env struct {
 	Connector storage.Connector
 	// TTY makes the run believe its stdout is a terminal.
 	TTY bool
+	// Now, when set, is the clock of every run.
+	Now time.Time
 }
 
 type result struct {
@@ -147,7 +149,11 @@ func (e *env) deps() deps {
 	if e.Connector != nil {
 		d.connect = func(string) storage.Connector { return e.Connector }
 	}
-	d.now = func() time.Time { return time.Date(2026, 11, 24, 9, 30, 0, 0, time.UTC) }
+	now := time.Date(2026, 11, 24, 9, 30, 0, 0, time.UTC)
+	if !e.Now.IsZero() {
+		now = e.Now
+	}
+	d.now = func() time.Time { return now }
 	d.isTTY = func(io.Writer) bool { return e.TTY }
 	return d
 }

@@ -57,7 +57,9 @@ var users = newKind(kind[User, *User]{
 })
 
 // Types lists every record type that has a declared view and order.
-func Types() []Type { return []Type{users.Type, organizations.Type, people.Type, interactions.Type} }
+func Types() []Type {
+	return []Type{users.Type, organizations.Type, people.Type, interactions.Type, tasks.Type}
+}
 
 func firstOf(s ...string) string {
 	for _, v := range s {

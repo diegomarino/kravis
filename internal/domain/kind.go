@@ -384,7 +384,7 @@ func (k *kind[T, P]) removeIn(ws *Workspace, holder, id string, opt ViewOptions)
 // referenceScans find the records that refer to an ID. Each record type
 // that refers to others adds its scan here; delete refuses while any finds
 // a referrer.
-var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo, peopleAffiliatedTo, interactionsReferringTo}
+var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersReferringTo, peopleAffiliatedTo, interactionsReferringTo, tasksReferringTo}
 
 // referrers lists the records that refer to id, sorted.
 func (ws *Workspace) referrers(id string) ([]string, error) {

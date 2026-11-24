@@ -153,7 +153,7 @@ func (a *app) root() *cobra.Command {
 		}
 		return domain.UsageError("a command is required", "run kravis --help")
 	}
-	root.AddCommand(a.initCommand(), a.whoamiCommand(), a.checkCommand(), a.organizationCommand(), a.personCommand(), a.userCommand(), a.interactionCommand())
+	root.AddCommand(a.initCommand(), a.whoamiCommand(), a.checkCommand(), a.organizationCommand(), a.personCommand(), a.userCommand(), a.interactionCommand(), a.taskCommand())
 	return root
 }
 
