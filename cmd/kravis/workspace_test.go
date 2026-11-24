@@ -48,7 +48,9 @@ func localConfigRel() string {
 	return ".config/kravis/config.json"
 }
 
-func (e *env) localConfig() string { return filepath.Join(e.Home, filepath.FromSlash(localConfigRel())) }
+func (e *env) localConfig() string {
+	return filepath.Join(e.Home, filepath.FromSlash(localConfigRel()))
+}
 
 func obj(t *testing.T, v any, key string) map[string]any {
 	t.Helper()
