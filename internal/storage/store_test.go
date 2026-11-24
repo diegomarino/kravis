@@ -69,7 +69,7 @@ func survive(t *testing.T, f func()) {
 func createPerson(t *testing.T, s *Store, id, name string, emails ...string) {
 	t.Helper()
 	p := &testPerson{Base: Base{ID: id}, Name: name, Emails: emails}
-	got, existing, err := s.Create(p, "us_a", personPath, personKeys(p))
+	got, existing, err := Create(s, p, "us_a", personPath, personKeys)
 	if err != nil || existing || got != id {
 		t.Fatalf("create %s: %q, %v, %v", id, got, existing, err)
 	}
@@ -186,7 +186,7 @@ func otherWriter(t *testing.T, m *Memory, p string, title string) {
 func newTask(t *testing.T, s *Store) string {
 	t.Helper()
 	rec := &testTask{Base: Base{ID: "tk_1"}, Holder: "org_petalo", Title: "Send the teaser", Status: "todo", Live: true}
-	if _, _, err := s.Create(rec, "us_a", taskPath, nil); err != nil {
+	if _, _, err := Create(s, rec, "us_a", taskPath, nil); err != nil {
 		t.Fatal(err)
 	}
 	return taskPath("tk_1")
@@ -299,7 +299,7 @@ func TestWORKSPACE_INV_10_CreatingAnExistingNaturalKeyReturnsTheExistingRecord(t
 	before := m.Snapshot()
 
 	again := &testPerson{Base: Base{ID: "pe_ana-2"}, Name: "Ana M.", Emails: IDs{"ana@example.com"}}
-	id, existing, err := s.Create(again, "us_b", personPath, personKeys(again))
+	id, existing, err := Create(s, again, "us_b", personPath, personKeys)
 	if err != nil || !existing || id != "pe_ana" {
 		t.Fatalf("got %q, existing %v, %v", id, existing, err)
 	}
@@ -312,12 +312,12 @@ func TestCreateCompletesARecordThatCrashedAfterItsKey(t *testing.T) {
 	s, m := newTestStore()
 	first := &testPerson{Base: Base{ID: "pe_ana"}, Name: "Ana", Emails: IDs{"ana@example.com"}}
 	crashOn(m, OpCreate, personPath("pe_ana"))
-	survive(t, func() { _, _, _ = s.Create(first, "us_a", personPath, personKeys(first)) })
+	survive(t, func() { _, _, _ = Create(s, first, "us_a", personPath, personKeys) })
 	m.Hook = nil
 	checkKey(t, m, email("ana@example.com"), "pe_ana") // step 2 done, step 3 not
 
 	retry := &testPerson{Base: Base{ID: "pe_ana-2"}, Name: "Ana", Emails: IDs{"ana@example.com"}}
-	id, existing, err := s.Create(retry, "us_a", personPath, personKeys(retry))
+	id, existing, err := Create(s, retry, "us_a", personPath, personKeys)
 	if err != nil || existing || id != "pe_ana" {
 		t.Fatalf("got %q, existing %v, %v", id, existing, err)
 	}
@@ -334,11 +334,11 @@ func TestCreateWithSeveralKeysCompletedByARetry(t *testing.T) {
 	keys := IDs{"ana@example.com", "ana.mora@example.org"}
 	first := &testPerson{Base: Base{ID: "pe_ana"}, Name: "Ana", Emails: keys}
 	crashOn(m, OpCreate, email("ana.mora@example.org").Path()) // after the first key
-	survive(t, func() { _, _, _ = s.Create(first, "us_a", personPath, personKeys(first)) })
+	survive(t, func() { _, _, _ = Create(s, first, "us_a", personPath, personKeys) })
 	m.Hook = nil
 
 	retry := &testPerson{Base: Base{ID: "pe_ana-2"}, Name: "Ana", Emails: keys}
-	id, existing, err := s.Create(retry, "us_a", personPath, personKeys(retry))
+	id, existing, err := Create(s, retry, "us_a", personPath, personKeys)
 	if err != nil || existing || id != "pe_ana" {
 		t.Fatalf("got %q, existing %v, %v", id, existing, err)
 	}
@@ -356,7 +356,7 @@ func TestCreateWithSeveralKeysWhereALaterOneBelongsToAnotherRecord(t *testing.T)
 	before := m.Snapshot()
 
 	cy := &testPerson{Base: Base{ID: "pe_cy"}, Name: "Cy", Emails: IDs{"cy@example.com", "cy2@example.com", "ben@example.com"}}
-	id, existing, err := s.Create(cy, "us_a", personPath, personKeys(cy))
+	id, existing, err := Create(s, cy, "us_a", personPath, personKeys)
 	if err != nil || !existing || id != "pe_ben" {
 		t.Fatalf("got %q, existing %v, %v", id, existing, err)
 	}
@@ -380,7 +380,7 @@ func TestCreateWithSeveralKeysWhereALaterOneBelongsToAnotherRecord(t *testing.T)
 	before = m2.Snapshot()
 	before[ben.Path()] = string(benKey)
 	cy.ID, cy.Text = "pe_cy", text("Met at the fair")
-	id, existing, err = s2.Create(cy, "us_a", personPath, personKeys(cy))
+	id, existing, err = Create(s2, cy, "us_a", personPath, personKeys)
 	if err != nil || !existing || id != "pe_ben" {
 		t.Fatalf("racing: got %q, existing %v, %v", id, existing, err)
 	}
@@ -393,19 +393,19 @@ func TestCreateErrors(t *testing.T) {
 	s, m := newTestStore()
 	createPerson(t, s, "pe_ana", "Ana")
 	again := &testPerson{Base: Base{ID: "pe_ana"}, Name: "Ana"}
-	if _, _, err := s.Create(again, "us_a", personPath, nil); !errors.Is(err, ErrExists) {
+	if _, _, err := Create(s, again, "us_a", personPath, nil); !errors.Is(err, ErrExists) {
 		t.Errorf("a taken path: %v", err)
 	}
 	// Two keys left by two crashed attempts with different IDs.
 	m.Set(email("x@example.com").Path(), []byte(`{"key":"x@example.com","record":"pe_x"}`))
 	m.Set(email("y@example.com").Path(), []byte(`{"key":"y@example.com","record":"pe_y"}`))
 	xy := &testPerson{Base: Base{ID: "pe_z"}, Name: "Z", Emails: IDs{"x@example.com", "y@example.com"}}
-	if _, _, err := s.Create(xy, "us_a", personPath, personKeys(xy)); !errors.Is(err, ErrKeyConflict) {
+	if _, _, err := Create(s, xy, "us_a", personPath, personKeys); !errors.Is(err, ErrKeyConflict) {
 		t.Errorf("split keys: %v", err)
 	}
 	m.Set(email("bad@example.com").Path(), []byte(`not json`))
 	bad := &testPerson{Base: Base{ID: "pe_bad"}, Name: "Bad", Emails: IDs{"bad@example.com"}}
-	if _, _, err := s.Create(bad, "us_a", personPath, personKeys(bad)); err == nil {
+	if _, _, err := Create(s, bad, "us_a", personPath, personKeys); err == nil {
 		t.Error("a broken key file must stop the create")
 	}
 	// An outage while writing the record rolls back its keys and sidecar.
@@ -417,7 +417,7 @@ func TestCreateErrors(t *testing.T) {
 		return nil
 	}
 	nw := &testPerson{Base: Base{ID: "pe_new", Text: text("notes")}, Name: "New", Emails: IDs{"new@example.com"}}
-	if _, _, err := s.Create(nw, "us_a", personPath, personKeys(nw)); !errors.Is(err, ErrUnavailable) {
+	if _, _, err := Create(s, nw, "us_a", personPath, personKeys); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("outage: %v", err)
 	}
 	if !maps.Equal(before, m.Snapshot()) {
@@ -524,7 +524,7 @@ func TestSidecars(t *testing.T) {
 	}
 	rec := &testTask{Base: Base{ID: "tk_1", Text: text("# Teaser\n\nSend it.\n")}, Holder: "org_petalo", Title: "Send", Live: true}
 	p := taskPath("tk_1")
-	if _, _, err := s.Create(rec, "us_a", taskPath, nil); err != nil {
+	if _, _, err := Create(s, rec, "us_a", taskPath, nil); err != nil {
 		t.Fatal(err)
 	}
 	if want := []string{"create " + SidecarPath(p), "create " + p}; !slices.Equal(ops, want) {
@@ -559,7 +559,7 @@ func TestSidecars(t *testing.T) {
 	// A sidecar left by a crash before its JSON is overwritten by the retry.
 	m.Set(SidecarPath(taskPath("tk_2")), []byte("stale"))
 	rec2 := &testTask{Base: Base{ID: "tk_2", Text: text("fresh")}, Holder: "org_petalo", Title: "B", Live: true}
-	if _, _, err := s.Create(rec2, "us_a", taskPath, nil); err != nil {
+	if _, _, err := Create(s, rec2, "us_a", taskPath, nil); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.Text(taskPath("tk_2")); got != "fresh" {
@@ -594,7 +594,7 @@ func TestSidecarUndoKeepsSomeoneElsesText(t *testing.T) {
 func TestWORKSPACE_INV_11_DeleteIsConditionalAndRemovesSidecarAndKeys(t *testing.T) {
 	s, m := newTestStore()
 	ana := &testPerson{Base: Base{ID: "pe_ana", Text: text("notes")}, Name: "Ana", Emails: IDs{"ana@example.com", "shared@example.com"}}
-	if _, _, err := s.Create(ana, "us_a", personPath, personKeys(ana)); err != nil {
+	if _, _, err := Create(s, ana, "us_a", personPath, personKeys); err != nil {
 		t.Fatal(err)
 	}
 	p := personPath("pe_ana")
@@ -716,11 +716,11 @@ func TestALosingCreateKeepsTheKeysOfTheWinner(t *testing.T) {
 	// person, takes the ID from A's key and writes the record first.
 	once(m, OpCreate, personPath("pe_ana"), func() {
 		b := &testPerson{Base: Base{ID: "pe_ana-2", Text: text("B's notes")}, Name: "Ana", Emails: IDs{"ana@example.com"}}
-		if id, existing, err := s.Create(b, "us_b", personPath, personKeys(b)); err != nil || existing || id != "pe_ana" {
+		if id, existing, err := Create(s, b, "us_b", personPath, personKeys); err != nil || existing || id != "pe_ana" {
 			t.Errorf("B: %q, %v, %v", id, existing, err)
 		}
 	})
-	id, existing, err := s.Create(a, "us_a", personPath, personKeys(a))
+	id, existing, err := Create(s, a, "us_a", personPath, personKeys)
 	if err != nil || !existing || id != "pe_ana" {
 		t.Fatalf("A: %q, %v, %v", id, existing, err)
 	}
@@ -730,5 +730,34 @@ func TestALosingCreateKeepsTheKeysOfTheWinner(t *testing.T) {
 	}
 	if got, _ := s.Text(personPath("pe_ana")); got != "B's notes" {
 		t.Fatalf("text = %q", got)
+	}
+}
+
+func TestCreateCollisionsThatAreNotTheSamePerson(t *testing.T) {
+	ana := func() *testPerson {
+		return &testPerson{Base: Base{ID: "pe_ana", Text: text("notes")}, Name: "Ana", Emails: IDs{"ana@example.com"}}
+	}
+	// Another writer creates the sidecar while A writes its own: no record
+	// exists, so this is no existing record.
+	s, m := newTestStore()
+	once(m, OpCreate, SidecarPath(personPath("pe_ana")), func() { m.Set(SidecarPath(personPath("pe_ana")), []byte("theirs")) })
+	if id, existing, err := Create(s, ana(), "us_a", personPath, personKeys); !errors.Is(err, ErrExists) || existing {
+		t.Fatalf("sidecar collision: %q, %v, %v", id, existing, err)
+	}
+	checkKey(t, m, email("ana@example.com"), "")
+
+	// Another Ana without that email takes the path first: her record does
+	// not hold A's key, so A fails and its key goes.
+	s, m = newTestStore()
+	once(m, OpCreate, personPath("pe_ana"), func() {
+		other, _ := Encode(&testPerson{Base: Base{ID: "pe_ana", Version: 1}, Name: "Ana"})
+		m.Set(personPath("pe_ana"), other)
+	})
+	if id, existing, err := Create(s, ana(), "us_a", personPath, personKeys); !errors.Is(err, ErrExists) || existing {
+		t.Fatalf("record collision: %q, %v, %v", id, existing, err)
+	}
+	checkKey(t, m, email("ana@example.com"), "")
+	if _, ok := m.Snapshot()[SidecarPath(personPath("pe_ana"))]; ok {
+		t.Fatal("A's sidecar was left behind")
 	}
 }

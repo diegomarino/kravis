@@ -91,9 +91,18 @@ func (s *Store) List(prefix string) ([]string, error) { return s.c.List(prefix) 
 // whether the data sent contradicts it. When a key's record is missing,
 // because an earlier attempt crashed before writing it, Create takes the ID
 // stored in the key and completes that record instead of duplicating it.
-// A record already at the path is ErrExists. The record's metadata is set
+// keyFn gives a record's natural keys (nil: none). If a concurrent create
+// writes the record first and it holds these keys, Create returns it as
+// existing; a record already at the path otherwise is ErrExists. The record's metadata is set
 // here: version 1, created and updated by actor, now.
-func (s *Store) Create(rec Record, actor string, pathOf func(id string) string, keys []Key) (id string, existing bool, err error) {
+func Create[T any, P interface {
+	*T
+	Record
+}](s *Store, rec P, actor string, pathOf func(id string) string, keyFn func(P) []Key) (id string, existing bool, err error) {
+	if keyFn == nil {
+		keyFn = func(P) []Key { return nil }
+	}
+	keys := keyFn(rec)
 	b := rec.base()
 	adopted := false
 	for _, k := range keys {
@@ -139,11 +148,15 @@ func (s *Store) Create(rec Record, actor string, pathOf func(id string) string, 
 	}
 	if err == nil {
 		_, err = s.c.Create(p, data)
-	}
-	if errors.Is(err, ErrExists) && len(keys) > 0 {
-		// A concurrent create took the ID from these keys and wrote the
-		// record first: the keys are its keys now.
-		return b.ID, true, undo()
+		if errors.Is(err, ErrExists) && len(keys) > 0 {
+			// A concurrent create wrote the record first. If it holds these
+			// keys, it took its ID from them: they are its keys now, and
+			// it is the existing record.
+			held, herr := heldKeys(s, p, keyFn)
+			if herr == nil && slices.ContainsFunc(keys, func(k Key) bool { return slices.Contains(held, k) }) {
+				return b.ID, true, errors.Join(undo(), s.dropKeys(notIn(created, held), b.ID))
+			}
+		}
 	}
 	if err != nil {
 		return "", false, errors.Join(err, undo(), s.dropKeys(created, b.ID))
@@ -197,16 +210,11 @@ func Update[T any, P interface {
 			if len(created) == 0 {
 				return nil
 			}
-			data, _, err := s.c.Get(p)
+			held, err := heldKeys(s, p, keys)
 			if err != nil {
 				return err
 			}
-			disk := P(new(T))
-			if err := Decode(data, disk); err != nil {
-				return fail("decode", p, err)
-			}
-			held := keys(disk)
-			return s.dropKeys(slices.DeleteFunc(created, func(k Key) bool { return slices.Contains(held, k) }), cb.ID)
+			return s.dropKeys(notIn(created, held), cb.ID)
 		}
 		created, owner, err := s.addKeys(added, cb.ID)
 		if owner != "" {
@@ -231,6 +239,27 @@ func Update[T any, P interface {
 		return cur, s.dropKeys(removed, cb.ID)
 	}
 	return nil, fail("update", p, ErrVersionConflict)
+}
+
+// heldKeys returns the keys of the record now at p.
+func heldKeys[T any, P interface {
+	*T
+	Record
+}](s *Store, p string, keys func(P) []Key) ([]Key, error) {
+	data, _, err := s.c.Get(p)
+	if err != nil {
+		return nil, err
+	}
+	disk := P(new(T))
+	if err := Decode(data, disk); err != nil {
+		return nil, fail("decode", p, err)
+	}
+	return keys(disk), nil
+}
+
+// notIn returns the keys of ks that are not in held.
+func notIn(ks, held []Key) []Key {
+	return slices.DeleteFunc(slices.Clone(ks), func(k Key) bool { return slices.Contains(held, k) })
 }
 
 // Remove deletes the record at p, conditional on the token Load returned,
