@@ -13,6 +13,11 @@ kravis init | whoami | schema [type] | check
 - A transition that has rules gets its own verb next to its type, and `update` cannot bypass it. In increment 1 that is `task status`; increment 2 adds `deal stage`, `deal party add/remove` and `project close/reopen`.
 - There are no composite operations. Recording an interaction and its follow-up takes two calls, and each one is safe to repeat.
 
+## Workspace
+
+- Kravis works on the workspace given by `KRAVIS_WORKSPACE`, or else on the nearest folder holding `kravis.json`, from the current folder upwards. Outside any workspace, every command except `init` fails with `STORAGE_UNAVAILABLE` and a hint.
+- `init` creates the workspace in the current folder, or in `KRAVIS_WORKSPACE` when it is set.
+
 ## Identity and holder
 
 - Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS) and `%AppData%\kravis\config.json` on Windows. It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options. Reads need no actor.
@@ -23,7 +28,7 @@ kravis init | whoami | schema [type] | check
 
 ## Output
 
-- Outside a TTY, every command prints exactly one JSON object. On a TTY it prints tables meant for people.
+- Outside a TTY, every command prints exactly one JSON object, including `--version` and usage errors such as an unknown command or flag (`UNKNOWN_FIELD` or `INVALID_VALUE`, exit code 2, nothing on stdout). Only `--help` prints text for people. On a TTY it prints tables meant for people.
 - Data goes to stdout and errors to stderr, so an error is never mixed with data in a pipe.
 
 Success:
