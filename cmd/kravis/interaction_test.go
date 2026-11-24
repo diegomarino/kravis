@@ -779,6 +779,8 @@ func TestSourceReferencesAreValidated(t *testing.T) {
 		"no source":                {":message:abc", "not a source reference"},
 		"nothing":                  {"", "not a source reference"},
 		"slack without a channel":  {"slack:message:123.456", "not <channel ID>/<ts>"},
+		"slack with a third part":  {"slack:message:C123/123.456/extra", "not <channel ID>/<ts>"},
+		"telegram doubled slash":   {"telegram:message:-100123//42", "not <chat ID>/<message ID>"},
 		"telegram without a chat":  {"telegram:message:42", "not <chat ID>/<message ID>"},
 		"a URL without a host":     {"web:url:/just/a/path", "not a URL"},
 		"a URL without a scheme":   {"web:url:example.com/x", "not a URL"},

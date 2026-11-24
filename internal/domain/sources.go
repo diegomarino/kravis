@@ -70,7 +70,7 @@ func findSource(source, kind string) *sourceRow {
 func twoPart(first, second string) func(string) (string, error) {
 	return func(id string) (string, error) {
 		a, b, ok := strings.Cut(id, "/")
-		if !ok || a == "" || b == "" {
+		if !ok || a == "" || b == "" || strings.Contains(b, "/") {
 			return "", fmt.Errorf("%q is not <%s>/<%s>", id, first, second)
 		}
 		return id, nil
