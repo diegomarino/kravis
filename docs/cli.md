@@ -15,11 +15,11 @@ kravis init | whoami | schema [type] | check
 
 ## Identity and holder
 
-- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options. Reads need no actor.
+- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `~/.config/kravis/config.json` (or under `$XDG_CONFIG_HOME`), which maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options. Reads need no actor.
 - The actor must exist and be live. In the MVP the actor is declared rather than authenticated: it serves attribution and auditing, and it is not a security control.
 - A work record (interaction, task, and later deal, project and note) takes its holder from the actor, so there is no `--holder` flag on writes.
 - A read made with a declared actor is limited to the actor's holder, and the response states that filter. `--all-holders` removes it.
-- `kravis whoami` prints the resolved actor, where it came from (flag, environment or configuration) and its holder.
+- `kravis whoami` prints the resolved actor, where it came from (flag, environment or configuration) and its holder. `kravis whoami --set <user>` stores a live user as this workspace's default actor in the local configuration.
 
 ## Output
 
@@ -124,8 +124,8 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 
 | Command | Notes |
 |---|---|
-| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` completes it |
-| `kravis whoami` | The resolved actor, its source and its holder |
+| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` completes it |
+| `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; `--set` stores the default actor |
 | `kravis schema [type]` | See Discovery |
 | `kravis check` | Reports findings as JSON (`code`, record, `message`) and exits 6 if there are any. It never writes |
 | `kravis user list\|get\|create\|update\|delete` | `create --human\|--agent --holder <org> [--handler <user>] [--person <id>]`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP |
