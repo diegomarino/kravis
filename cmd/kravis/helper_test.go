@@ -2,12 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/diegomarino/kravis/internal/storage"
 )
@@ -77,6 +84,8 @@ type env struct {
 	// Connector, when set, is the storage every run uses instead of the
 	// workspace folder: a storage.Memory lets a test force conflicts.
 	Connector storage.Connector
+	// TTY makes the run believe its stdout is a terminal.
+	TTY bool
 }
 
 type result struct {
@@ -117,12 +126,56 @@ func (e *env) run(args ...string) result {
 func (e *env) runWithStdin(stdin string, args ...string) result {
 	e.t.Helper()
 	var stdout, stderr bytes.Buffer
+	d := e.deps()
+	code := runWith(d, args, strings.NewReader(stdin), &stdout, &stderr)
+	return result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}
+}
+
+// runRoot runs a command tree the test built, to add commands the CLI does
+// not have yet.
+func (e *env) runRoot(a *app, root *cobra.Command, args ...string) result {
+	e.t.Helper()
+	var stdout, stderr bytes.Buffer
+	code := a.execute(root, args, strings.NewReader(""), &stdout, &stderr)
+	return result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}
+}
+
+// deps returns the dependencies run uses.
+func (e *env) deps() deps {
 	d := defaultDeps()
 	if e.Connector != nil {
 		d.connect = func(string) storage.Connector { return e.Connector }
 	}
-	code := runWith(d, args, strings.NewReader(stdin), &stdout, &stderr)
-	return result{Stdout: stdout.String(), Stderr: stderr.String(), Code: code}
+	d.now = func() time.Time { return time.Date(2026, 11, 24, 9, 30, 0, 0, time.UTC) }
+	d.isTTY = func(io.Writer) bool { return e.TTY }
+	return d
+}
+
+// Files lists every file of the workspace and of the local configuration
+// with its SHA-256, to prove what a command did not touch.
+func (e *env) Files() map[string]string {
+	e.t.Helper()
+	out := map[string]string{}
+	for label, root := range map[string]string{"ws": e.Workspace, "home": e.Home} {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			rel, _ := filepath.Rel(root, p)
+			data, err := os.ReadFile(p)
+			if err != nil { // a file the test made unreadable
+				out[label+":"+filepath.ToSlash(rel)] = "unreadable"
+				return nil
+			}
+			sum := sha256.Sum256(data)
+			out[label+":"+filepath.ToSlash(rel)] = hex.EncodeToString(sum[:])
+			return nil
+		})
+		if err != nil {
+			e.t.Fatal(err)
+		}
+	}
+	return out
 }
 
 // JSON decodes stdout, which must hold exactly one JSON object.
