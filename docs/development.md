@@ -50,7 +50,8 @@ The Go module path is `github.com/diegomarino/kravis`.
 ### Tests that guard the contract
 
 - **Schema matches validation.** For each type, values accepted by the generated JSON Schema are accepted by the Go validation, and values it rejects are rejected.
-- **Acceptance criteria.** Every acceptance criterion in the ddduck model that is in scope for the increment has an end-to-end test. The test runs the built binary against a temporary workspace and checks the JSON output and the exit code.
+- **Acceptance criteria.** Every acceptance criterion in the ddduck model that is in scope for the increment has an end-to-end test whose name cites its ID, for example `TestWORKSPACE_AC_04`. A test reads the in-scope criteria from the model and fails if any of them has no test. The tests call the CLI in process, through `run(args, stdin, stdout, stderr) int`, against a temporary workspace, and check the JSON output and the exit code, so they count towards coverage. One smoke test runs the built binary.
+- **Minimums.** `just test` runs every test with the race detector and fails below 80% coverage of all the code. `just lint` reports no findings.
 - **The skill does not drift.** A test extracts every command the skill cites, meaning every code block or inline code that starts with `kravis`. It takes the words up to the first argument that starts with `-` or `<` or is quoted, and compares them, with their flags, against the command tree that a hidden command of the binary prints. A command or flag that the binary lacks fails the build.
 - **The skill installs.** CI installs the skill from the checkout into a temporary folder with `npx skills add` and checks that it is found with valid frontmatter.
 
