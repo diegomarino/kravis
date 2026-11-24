@@ -216,6 +216,13 @@ func writeTable(w io.Writer, r reply) error {
 			_, _ = fmt.Fprintln(tw, strings.Join(cells, "\t"))
 		}
 	}
+	if r.List {
+		next := "none: this is the last page"
+		if r.NextCursor != nil {
+			next = "--cursor " + *r.NextCursor
+		}
+		_, _ = fmt.Fprintf(tw, "\ntotal\t%d\nnext page\t%s\n", r.Total, next)
+	}
 	for _, wn := range r.Warnings {
 		_, _ = fmt.Fprintf(tw, "warning\t%s: %s\n", wn.Code, wn.Message)
 	}

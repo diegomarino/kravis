@@ -655,9 +655,13 @@ func TestListsOnATerminalAndSkippedFiles(t *testing.T) {
 	// A row without a name does not hide the name column.
 	e.ok("person", "create", "--email", "a@example.com")
 	e.TTY = true
-	r := e.run("person", "list")
-	if r.Code != 0 || !strings.Contains(r.Stdout, "Elena Ruiz") || !strings.Contains(r.Stdout, "NAME") || strings.HasPrefix(r.Stdout, "{") {
+	r := e.run("person", "list", "--limit", "1")
+	if r.Code != 0 || !strings.Contains(r.Stdout, "NAME") || !strings.Contains(r.Stdout, "total") ||
+		!strings.Contains(r.Stdout, "--cursor ") || strings.HasPrefix(r.Stdout, "{") {
 		t.Errorf("table: %q", r.Stdout)
+	}
+	if r := e.run("person", "list"); !strings.Contains(r.Stdout, "Elena Ruiz") || !strings.Contains(r.Stdout, "last page") {
+		t.Errorf("last page: %q", r.Stdout)
 	}
 	e.TTY = false
 	// The largest limit is a valid limit.
