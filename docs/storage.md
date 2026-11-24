@@ -36,8 +36,8 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 
 - A record's path is computed from its ID alone, with no lookup.
 - Nothing is ever moved: closing or reopening a record only changes fields.
-- Interactions are grouped by the month in which they occurred, which never changes. Tasks and notes are grouped by the month in which they were created, taken from the TypeID timestamp. A month folder gives a cheap scope for recent records.
-- Civil dates used in IDs and folders are computed in the workspace timezone (`config.json`, an IANA zone such as `Europe/Madrid`), never in the machine's local zone. Instants are stored in UTC (RFC 3339). Changing the timezone only affects new records.
+- Interactions are grouped by the month in which they occurred, which never changes. Tasks and notes are grouped by the month in which they were created, taken from the TypeID timestamp in UTC, so the folder never depends on the workspace timezone. A month folder gives a cheap scope for recent records.
+- Civil dates used in IDs and in interaction folders are computed in the workspace timezone (`config.json`, an IANA zone such as `Europe/Madrid`), never in the machine's local zone. Instants are stored in UTC (RFC 3339). Changing the timezone only affects new records.
 
 ## Identifiers
 
@@ -55,6 +55,8 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 - Kravis generates every ID, except a user's key, which is given at creation (`kravis user create <key>`, `init --user <key>`). An ID never changes afterwards: the name can be edited, but the ID cannot.
 - Each type has exactly one ID form.
 - A person can also be addressed by any of their emails wherever a person ID is accepted.
+- Emails are compared trimmed and lowercased as a whole; domains lowercased, without a leading `www.`. Nothing else is rewritten (no removal of dots or `+tags`).
+- Generic addresses and domains are a list in code: local parts such as `info`, `hello`, `contact`, `noreply`, `no-reply`, `support`, `sales`, `admin`, `team`, `office`; email providers such as `gmail.com`, `googlemail.com`, `outlook.com`, `hotmail.com`, `live.com`, `yahoo.com`, `icloud.com`, `me.com`, `proton.me`, `protonmail.com`, `gmx.com`. A generic address gives `GENERIC_ADDRESS`; a provider domain is never an organization's domain.
 - Catalog values (statuses, party roles, purposes, lost reasons, channels, stages) are slugs: they are configuration, not records.
 
 ## Record format
