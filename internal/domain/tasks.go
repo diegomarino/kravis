@@ -434,9 +434,14 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 	touched := touchedIf("title", ch.Title != nil, "assignee", ch.Assignee != nil, "agent", ch.Agent != nil,
 		"due", ch.Due != nil, "description", ch.Description != nil)
 	rec, changed, err := tasks.updateIn(ws, actor.Holder, actorID, id, func(r *Task) error {
-		if _, err := ws.checkStatus(r.Holder, r.Status, true); err != nil {
+		cat, err := ws.checkStatus(r.Holder, r.Status, true)
+		if err != nil {
 			return err
 		}
+		// Category and live are computed on every write, so a catalog that
+		// moved the status shows up in the record at the next edit.
+		wasLive := r.Live
+		r.Category, r.Live = cat, isLive(cat)
 		prevAssignee, prevAgent := r.Assignee, r.Agent
 		if ch.Title != nil {
 			r.Title = strings.TrimSpace(*ch.Title)
@@ -450,7 +455,8 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 		if ch.Due != nil {
 			r.Due = due
 		}
-		if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, r.Assignee != prevAssignee, r.Agent != prevAgent); err != nil {
+		reopened := r.Live && !wasLive
+		if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, reopened || r.Assignee != prevAssignee, reopened && r.Agent != "" || r.Agent != prevAgent); err != nil {
 			return err
 		}
 		if ch.Description != nil {

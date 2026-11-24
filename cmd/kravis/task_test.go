@@ -977,3 +977,29 @@ func TestINTERACTIONS_AC_01_RepeatingAFollowUpIsSafeAfterTheWorldMovedOn(t *test
 	// A repeat that contradicts it is still a conflict.
 	e.refused("DEDUP_CONFLICT", 4, "task", "create", "--title", "Other", "--assignee", evaID, "--interaction", dataRoomID)
 }
+
+func TestWORKSPACE_INV_06_AnUpdateRecomputesCategoryAndLiveFromTheCatalog(t *testing.T) {
+	e := taskWorld(t)
+	id := idOf(t, e.ok(mkTask("Catalog will move")...))
+	// The catalog now puts todo in done: the next edit stores the new category and live flag.
+	e.setStatuses(`[{"name":"todo","category":"done"},{"name":"in-progress","category":"open"}]`)
+	d := outcomeOf(t, e.ok("task", "update", id, "--title", "Moved"), "updated")
+	if d["category"] != "done" || d["live"] != false {
+		t.Errorf("updated %v", d)
+	}
+	if l := e.ok("task", "list"); l["total"] != float64(0) {
+		t.Errorf("live list %v", l["total"])
+	}
+	if got := e.findings(); len(got) != 0 {
+		t.Errorf("findings %v", got)
+	}
+	// And the other way round: becoming live again needs a live assignee.
+	e.setStatuses(`[{"name":"todo","category":"open"}]`)
+	e.ok("user", "create", "zed-acme", "--human", "--holder", orgID)
+	id2 := idOf(t, e.ok("task", "create", "--title", "Zed's", "--assignee", "us_zed-acme"))
+	e.setStatuses(`[{"name":"todo","category":"done"}]`)
+	e.ok("task", "update", id2, "--title", "Zed's, done")
+	e.ok("user", "update", "us_zed-acme", "--live=false")
+	e.setStatuses(`[{"name":"todo","category":"open"}]`)
+	e.refused("INVALID_VALUE", 2, "task", "update", id2, "--title", "Zed's again")
+}
