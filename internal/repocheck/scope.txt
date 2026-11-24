@@ -1,0 +1,4 @@
+# Acceptance criteria in scope for the current increment, one ID per line.
+# Each ID needs a test whose name contains it (WORKSPACE-AC-04 is covered by
+# TestWORKSPACE_AC_04...) and a guarantee of that ID in docs/ddd/model/guarantees/.
+# Later briefs add their IDs here. The inventory is not proof of behavior.

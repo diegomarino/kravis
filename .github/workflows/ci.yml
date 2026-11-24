@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+    # labeled and unlabeled rerun the spec gate when spec-approved changes
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: extractions/setup-just@v2
+      - name: Format
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+      - name: Test
+        run: just test
+      - name: Build
+        run: just build
+      - name: Vulnerabilities
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+      - name: Model
+        run: npm install --global ddduck && ddduck check --root docs/ddd
+
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Conventional Commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pattern='^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([a-z0-9-]+\))?!?: [^ ].{0,71}$'
+          status=0
+          while IFS= read -r subject; do
+            case "$subject" in
+              Merge\ *|Revert\ *|fixup!\ *|squash!\ *) continue ;;
+            esac
+            if [ "${#subject}" -gt 72 ] || ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+              echo "::error::not a Conventional Commit subject: $subject"
+              status=1
+            fi
+          done < <(git log --format=%s "$BASE..$HEAD")
+          exit $status
+
+  spec-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global ddduck
+      - name: Spec gate
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'spec-approved') }}
+        run: |
+          flag=""
+          if [ "$APPROVED" = "true" ]; then flag="--approved"; fi
+          go run ./cmd/specgate --base "$BASE" $flag
