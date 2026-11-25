@@ -225,7 +225,7 @@ Stop other agents from writing to the workspace first. Both procedures were run 
 An interrupted update can leave a key file that points to a record that no longer has the value (see Deduplication keys). Until it is released, creating the rightful owner of that value fails with `DEDUP_CONFLICT`.
 
 1. `kravis check` names the key file in `record` and the value in `message`, for example `person-email "b@example.com" points to pe_ana-test, which does not have it`.
-2. Check ownership. Open the key file: `record` is the record the interrupted update was changing. `kravis person get <that record> --fields emails` must not list the value, and no other record may hold it (`grep -rl "<value>" records`). If some record does hold it, the key is not stale: do not remove it, and `check` reports `VALUE_WITHOUT_KEY` or a conflict on that record instead.
+2. Check ownership. Open the key file: `record` is the record the interrupted update was changing. `kravis person get <that record> --fields emails` must not list the value, and no other record may hold it (`grep -rlF '"<value>"' records`, which matches the whole JSON string, not a mention in a note or summary). If some record does hold it, the key is not stale: do not remove it, and `check` reports `VALUE_WITHOUT_KEY` or a conflict on that record instead.
 3. Decide what the interrupted update meant. To finish it, repeat it: `kravis person update <record> --email <value>` (an organization's domain works the same). To abandon it, release the key: move the key file out of `keys/` (`mv <key file> <backup folder>`), never edit it by hand.
 4. `kravis check` returns `[]` with exit code 0, and creating the rightful record works.
 
