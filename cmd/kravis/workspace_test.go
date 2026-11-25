@@ -998,3 +998,22 @@ func TestNoWorkspaceIsNotRetryable(t *testing.T) {
 		t.Errorf("incomplete workspace: retryable = %v, want true", eo["retryable"])
 	}
 }
+
+func TestInitSaysTheWorkspaceExistsWhenTheLocalConfigIsBroken(t *testing.T) {
+	e := newEnv(t)
+	cfg := e.localConfig()
+	must(t, os.MkdirAll(filepath.Dir(cfg), 0o700))
+	must(t, os.WriteFile(cfg, []byte("{nope"), 0o600))
+	eo := wantError(t, e.init(), "STORAGE_UNAVAILABLE", 5)
+	msg, hint := fmt.Sprint(eo["message"]), fmt.Sprint(eo["hint"])
+	if !strings.Contains(msg, "workspace exists") || !strings.Contains(msg, "default actor") ||
+		!strings.Contains(hint, cfg) || !strings.Contains(hint, "repeat init with the same arguments") {
+		t.Errorf("error %v", eo)
+	}
+	// Repairing the local file and repeating the same init succeeds as existing.
+	must(t, os.Remove(cfg))
+	outcomeOf(t, e.init().JSON(t), "existing")
+	if out := e.ok("whoami"); data(t, out)["actor"] != userID {
+		t.Errorf("whoami %v", out)
+	}
+}
