@@ -34,9 +34,11 @@ Or download one for macOS or Linux from [Releases](https://github.com/diegomarin
 
 The skill, so your agent knows the commands, the flags and what to do on an error:
 
+<!-- x-release-please-start-version -->
 ```sh
-npx skills add diegomarino/kravis --skill kravis
+npx skills add https://github.com/diegomarino/kravis/tree/v0.2.0/skills/kravis
 ```
+<!-- x-release-please-end -->
 
 Then ask it in plain words: "log my call with Ben and remind me to send the proposal on Monday".
 
