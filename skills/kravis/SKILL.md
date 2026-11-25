@@ -11,6 +11,7 @@ Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per
 
 - The workspace is `KRAVIS_WORKSPACE`, or the nearest folder with `kravis.json` above the current one. Outside any workspace every command fails with `STORAGE_UNAVAILABLE`. In a new folder run `kravis init --timezone <zone> --organization <name> --user <key>`.
 - A write needs an actor, a live user: `--actor <user>`, then `KRAVIS_ACTOR`, then the default stored on this machine. `kravis whoami` shows who you are and for which holder. `kravis whoami --set <user>` stores the default.
+- `init` creates the first human. Add another human with `kravis user create <key> --human --holder <organization>` and an agent with `kravis user create <key> --agent --holder <organization> --handler <human>`: an agent needs a live human of the same holder as its handler. The ID is `us_<key>`.
 - A work record (deal, project, task, interaction, note) belongs to the holder of the actor, and you read and write only your holder's. People, organizations and users are shared.
 
 ## Ask Kravis, do not copy it
@@ -21,10 +22,10 @@ Query `kravis schema <type>` for a type's fields, the catalogs that apply to you
 
 ## Record an interaction and its follow-up
 
-Two calls, each safe to repeat when the interaction carries its Message-ID.
+Three calls, each safe to repeat when the interaction carries its Message-ID.
 
-1. Find or create the people: `kravis person create --name <name> --email <email>`. An email that exists returns that person.
-2. Record the interaction: `kravis interaction create --channel <channel> --occurred-at <time> --subject <subject> --participant <person> --ref <reference>`. Add `--summary-file -` and pipe the summary in. `--direction inbound --initiated-by <participant>` says the other side started it; never guess the initiator.
+1. Find or create the people: `kravis person create --name <name> --email <email>`. An email that exists returns that person. To say a person works at an organization, use `kravis person affiliation add <person> <organization> --title <text>`; never add the organization as a participant for that.
+2. Record the interaction: `kravis interaction create --channel <channel> --occurred-at <time> --subject <subject> --participant <person> --ref <reference>`. Add `--summary-file -` and pipe the summary in. `--direction inbound --initiated-by <participant>` says the other side started it; never guess the initiator. An outbound one, which is the default, is `--direction outbound --initiated-by <user>`, the user who started it.
 3. Create the follow-up from it: `kravis task create --title <title> --assignee <user> --interaction <interaction> --due <date>`. It has the purpose `follow-up` and there is one per interaction and purpose, so creating it again returns the same task.
 
 ### References
@@ -42,6 +43,7 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 
 - `kravis deal create --party <person or organization> --holder-role <party role> [--role <party role>] [--name <name>]` opens a deal at the first stage. A deal has no natural key: list with `kravis deal list --party <id>` before you create it again.
 - `kravis deal stage <deal> <stage>` is the only way to move it, and a lost stage needs `--reason <lost reason>`. `kravis deal party add <deal> <party> --role <party role>` adds a party.
+- Add the client's contact person as a party too, `kravis deal party add <deal> <person> --role client`, so that the person's briefing finds the deal.
 - Link work to it: `--deal <deal>` on `kravis interaction create` and `kravis task create`.
 
 ## Projects
@@ -63,7 +65,7 @@ For "everything about Ben Carter": resolve him with `kravis person get <email or
 3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him.
 4. `kravis deal list --party <person> --limit 0`: his deals.
 
-For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. Dates are in the workspace timezone.
+For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. `--due-before` excludes its date, so for "the next N days" pass the day after the last one you want. Dates are in the workspace timezone.
 
 ## Measure outreach
 
@@ -75,7 +77,7 @@ For "what outreach did Ana do in November": the outbound interactions she starte
 
 ## Correct a mistake
 
-A record created under the wrong actor is removed and created again, with no trace left: `kravis interaction delete <interaction>`, `kravis task delete <task>` or `kravis note delete <note>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
+A record created under the wrong actor is removed and created again, with no trace left: `kravis interaction delete <interaction>`, `kravis task delete <task>` or `kravis note delete <note>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. A delete of an interaction that has a follow-up is refused with `REFERENCED`: delete the task, delete the interaction, then create both again. The new task takes the interaction's single deal or project as its parent. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
 
 ## Words
 

@@ -61,6 +61,9 @@ func (e *env) setChannels(channels ...string) {
 	raw, err := os.ReadFile("config.json")
 	must(e.t, err)
 	must(e.t, json.Unmarshal(raw, &cfg))
+	if channels == nil {
+		channels = []string{} // an empty catalog is [], not null: null means the key is lacking
+	}
 	cfg["catalogs"].(map[string]any)["channels"] = channels
 	raw, err = json.MarshalIndent(cfg, "", "  ")
 	must(e.t, err)
