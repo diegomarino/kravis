@@ -18,7 +18,10 @@ env:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -28,17 +31,23 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # A separate job, so "Re-run failed jobs" retries a failed build or upload
+  # without running release-please again (it only reports a release once).
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
       - uses: actions/checkout@v4
-        if: ${{ steps.release.outputs.release_created }}
         with:
-          ref: ${{ steps.release.outputs.tag_name }}
+          ref: ${{ needs.release-please.outputs.tag_name }}
           fetch-depth: 0
       - uses: actions/setup-go@v5
-        if: ${{ steps.release.outputs.release_created }}
         with:
           go-version-file: go.mod
       - uses: goreleaser/goreleaser-action@v6
-        if: ${{ steps.release.outputs.release_created }}
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
