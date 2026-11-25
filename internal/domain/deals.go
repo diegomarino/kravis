@@ -55,9 +55,6 @@ var deals = newKind(kind[Deal, *Deal]{
 	rules:       dealRules,
 })
 
-// DealPath is where the deal with the given ID lives.
-func DealPath(id string) string { return deals.Path(id) }
-
 // dealRules reports what is wrong inside a deal record, whatever else
 // exists (DEALS-INV-01, -03..05, WORKSPACE-INV-06).
 func dealRules(d *Deal) []string {
