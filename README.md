@@ -14,7 +14,7 @@ Today it covers people, organizations, users, interactions (emails, meetings, ca
 
 - **Local.** Records are plain JSON files in a folder you own: read them, `grep` them, review them in a pull request, keep them in git. There is no database and no service to run.
 - **Agents first.** Off a terminal, every command prints one JSON object, and an error carries a hint for what to try next. A skill teaches your agent the commands. Each agent has its own identity and works under a human who answers for it.
-- **No absurd CRM restrictions.** A deal has any number of parties, people or organizations, each with any number of party roles, and the holder records its own role. An interaction links to several deals and projects. A note can be about several records. A person can belong to several organizations.
+- **No absurd CRM restrictions.** A deal has any number of parties, people or organizations, each with any number of party roles, and the holder records its own party role. An interaction links to several deals and projects. A note can be about several records. A person can belong to several organizations.
 
 ![The records Kravis keeps: a holder with its users and agents; deals with their parties, projects and tasks; interactions with their participants and follow-ups; notes](docs/assets/entities.svg)
 
@@ -53,13 +53,13 @@ Every type has `create`, `list`, `get`, `update` and `delete`; the table lists w
 
 | Record | What it is | Try |
 |---|---|---|
-| People | An individual you keep a relationship with, found by email | `kravis person create --name <name> --email <email>`, `kravis person affiliation add` |
+| People | An individual you keep a relationship with, found by email | `kravis person create --name <name> --email <email>`, `kravis person affiliation add <person> <organization>` |
 | Organizations | A company or other group, found by domain | `kravis organization create --name <name> --domain <domain>` |
 | Users and agents | Who writes records: humans, and agents that work under a human | `kravis user create <key> --agent --holder <org> --handler <user>`, `kravis whoami` |
-| Interactions | An email, meeting or call, with its participants and deals | `kravis interaction create --channel <channel> --participant <person> --deal <deal>` |
-| Deals | A transaction with its parties, their roles and a stage | `kravis deal create --party <party> --role <role> --holder-role <role>`, `kravis deal party add`, `kravis deal stage` |
-| Projects | Work that groups tasks, optionally tied to a deal | `kravis project create --name <name> --deal <deal>`, `kravis project close` |
-| Tasks | A piece of work with a human assignee, often a follow-up | `kravis task create --title <title> --assignee <user> --due <date>`, `kravis task status`, `kravis task list --overdue` |
+| Interactions | An email, meeting or call, with its participants and deals | `kravis interaction create --channel <channel> --occurred-at <time> --subject <text> --participant <person> --deal <deal>` |
+| Deals | A transaction with its parties, their party roles and a stage | `kravis deal create --party <party> --role <role> --holder-role <role>`, `kravis deal party add <deal> <party>`, `kravis deal stage <deal> <stage>` |
+| Projects | Work that groups tasks, optionally tied to a deal | `kravis project create --name <name> --deal <deal>`, `kravis project close <project>` |
+| Tasks | A piece of work with a human assignee, often a follow-up | `kravis task create --title <title> --assignee <user> --due <date>`, `kravis task status <task> <status>`, `kravis task list --overdue` |
 | Notes | Free text about people, organizations, deals or projects | `kravis note create --subject <id> --text-file <file>` |
 
 `kravis check` validates a workspace. The full contract is in [`docs/cli.md`](docs/cli.md).

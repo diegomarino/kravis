@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" width="100%" role="img" aria-labelledby="t d">
   <title id="t">The records Kravis keeps and how they relate</title>
-  <desc id="d">A holder, an own organization, has users who are humans, and agents that work under a human handler. The holder keeps deals, projects, tasks, interactions and notes. A deal has any number of parties, people or organizations, each with any number of party roles. A project may be tied to a deal and groups tasks; a task sits in a project or a deal. An interaction has participants, links to several deals and projects, and leads to follow-up tasks. A note is about people, organizations, deals or projects.</desc>
+  <desc id="d">A holder, an own organization, has users, humans and agents; an agent works under a human handler. The holder keeps deals, projects, tasks, interactions and notes. A deal has any number of parties, people or organizations, each with any number of party roles. A project may be tied to a deal and groups tasks; a task may sit in a project or a deal. An interaction has participants, links to several deals and projects, and may lead to follow-up tasks. A note is about people, organizations, deals or projects.</desc>
   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#38bdf8"/></marker></defs>
   <rect width="1200" height="590" rx="20" fill="#0f172a"/>
   <g stroke="#38bdf8" stroke-width="3" fill="none" marker-end="url(#a)">
@@ -15,29 +15,30 @@
     <text x="450" y="88" font-size="18" fill="#94a3b8">own organization</text>
     <text x="450" y="110" font-size="18" fill="#94a3b8">keeps all the work</text>
     <rect x="650" y="24" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-    <text x="760" y="56" font-size="26" font-weight="700" fill="#f8fafc">Users</text>
-    <text x="760" y="88" font-size="18" fill="#94a3b8">humans</text>
+    <text x="760" y="56" font-size="26" font-weight="700" fill="#f8fafc">Humans</text>
+    <text x="760" y="88" font-size="18" fill="#94a3b8">a kind of user</text>
     <text x="760" y="110" font-size="18" fill="#94a3b8">work for the holder</text>
     <rect x="960" y="24" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="1070" y="56" font-size="26" font-weight="700" fill="#f8fafc">Agents</text>
-    <text x="1070" y="88" font-size="18" fill="#94a3b8">work under a handler</text>
-    <text x="1070" y="110" font-size="18" fill="#94a3b8">can carry out tasks</text>
+    <text x="1070" y="88" font-size="18" fill="#94a3b8">a kind of user</text>
+    <text x="1070" y="110" font-size="18" fill="#94a3b8">work under a handler</text>
     <rect x="30" y="214" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="140" y="246" font-size="26" font-weight="700" fill="#f8fafc">People and</text>
     <text x="140" y="274" font-size="26" font-weight="700" fill="#f8fafc">organizations</text>
     <text x="140" y="302" font-size="18" fill="#94a3b8">parties, participants</text>
     <rect x="340" y="214" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="450" y="246" font-size="26" font-weight="700" fill="#f8fafc">Deal</text>
-    <text x="450" y="278" font-size="18" fill="#94a3b8">any number of parties</text>
-    <text x="450" y="300" font-size="18" fill="#94a3b8">any number of roles</text>
+    <text x="450" y="278" font-size="18" fill="#94a3b8">any number of parties,</text>
+    <text x="450" y="300" font-size="18" fill="#94a3b8">each with party roles</text>
     <rect x="650" y="214" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="760" y="246" font-size="26" font-weight="700" fill="#f8fafc">Project</text>
     <text x="760" y="278" font-size="18" fill="#94a3b8">may be tied to a deal</text>
     <text x="760" y="300" font-size="18" fill="#94a3b8">groups tasks</text>
     <rect x="960" y="214" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="1070" y="246" font-size="26" font-weight="700" fill="#f8fafc">Task</text>
-    <text x="1070" y="278" font-size="18" fill="#94a3b8">in a project or a deal</text>
-    <text x="1070" y="300" font-size="18" fill="#94a3b8">from an interaction</text>
+    <text x="1070" y="278" font-size="18" fill="#94a3b8">may sit in a project</text>
+    <text x="1070" y="300" font-size="18" fill="#94a3b8">or a deal, may come</text>
+    <text x="1070" y="322" font-size="18" fill="#94a3b8">from an interaction</text>
     <rect x="340" y="404" width="220" height="120" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
     <text x="450" y="436" font-size="26" font-weight="700" fill="#f8fafc">Interaction</text>
     <text x="450" y="468" font-size="18" fill="#94a3b8">email, meeting, call</text>
