@@ -473,3 +473,29 @@ func anyStrings(v any) []string {
 	}
 	return out
 }
+
+// A config.json written before a catalog existed has no key for it: the
+// schema still shows the catalog's defaults, never an empty enumeration.
+func TestWORKSPACE_AC_06_SchemaShowsEveryCatalogOfAConfigThatLacksThem(t *testing.T) {
+	e := taskWorld(t)
+	var cfg map[string]any
+	raw, err := os.ReadFile("config.json")
+	must(t, err)
+	must(t, json.Unmarshal(raw, &cfg))
+	for _, k := range []string{"purposes", "channels", "task_statuses", "party_roles", "lost_reasons", "pipelines"} {
+		delete(cfg["catalogs"].(map[string]any), k)
+	}
+	raw, err = json.Marshal(cfg)
+	must(t, err)
+	must(t, os.WriteFile("config.json", raw, 0o600))
+
+	for typ, field := range map[string]string{"task": "purpose", "interaction": "channel", "deal": "holder_role"} {
+		p := obj(t, obj(t, schemaOf(t, e, typ), "properties"), field)
+		if en, _ := p["enum"].([]any); len(en) == 0 || p["not"] != nil {
+			t.Errorf("%s %s: %v", typ, field, p)
+		}
+	}
+	if st, _ := obj(t, schemaOf(t, e, "task"), "x-kravis")["statuses"].([]any); len(st) == 0 {
+		t.Error("task statuses are empty")
+	}
+}

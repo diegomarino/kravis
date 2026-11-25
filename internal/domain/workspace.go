@@ -57,8 +57,8 @@ type Config struct {
 	Catalogs Catalogs `json:"catalogs"`
 }
 
-// UnmarshalJSON reads config.json and fills the deal catalogs that a
-// workspace made before deals existed does not have with their defaults.
+// UnmarshalJSON reads config.json and fills the catalogs that a
+// config.json lacks (a missing or null key) with their defaults; an empty list stays empty.
 func (c *Config) UnmarshalJSON(data []byte) error {
 	type plain Config
 	var p plain
@@ -66,6 +66,15 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	d := DefaultCatalogs()
+	if p.Catalogs.TaskStatuses == nil {
+		p.Catalogs.TaskStatuses = d.TaskStatuses
+	}
+	if p.Catalogs.Purposes == nil {
+		p.Catalogs.Purposes = d.Purposes
+	}
+	if p.Catalogs.Channels == nil {
+		p.Catalogs.Channels = d.Channels
+	}
 	if p.Catalogs.Pipelines == nil {
 		p.Catalogs.Pipelines = d.Pipelines
 	}
