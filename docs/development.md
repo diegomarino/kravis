@@ -75,13 +75,14 @@ The Go module path is `github.com/diegomarino/kravis`.
 ## CI and releases
 
 - **`ci.yml`** runs on pushes to `main` and on pull requests: format check, lint, tests, build, `govulncheck` and `ddduck check`, on Linux and macOS, plus the commit subject check and the spec gate on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
-- **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS and Linux and publishes them as GitHub Release assets.
+- **`release.yml`** runs on pushes to `main`. release-please keeps one release PR open with the next version and its changelog, built from the Conventional Commit subjects since the last release (`release-please-config.json`, `.release-please-manifest.json`; while the version is below 1.0 a `feat` bumps the minor and a `fix` the patch). Merging that PR creates the tag and the GitHub release, and the same workflow then runs goreleaser, which builds binaries for macOS and Linux and adds them and `checksums.txt` to that release. goreleaser writes no changelog: the notes are release-please's. The build is in this workflow, not a tag-triggered one, because a tag created with `GITHUB_TOKEN` starts no other workflow. For the same reason the release PR runs no checks unless the repository secret `RELEASE_PLEASE_TOKEN` (a PAT or app token) is set; without it, `GITHUB_TOKEN` is used and the PR needs its checks run another way.
+- **To release**, merge the release PR; that merge is the person's yes. Each increment is released by merging it at the end of the increment. Pull request titles start with the Conventional Commit type (no ticket prefix): release-please reads the squash commit, which takes the title.
 
 ## Autonomy
 
 Agents implement on their own within the spec. Only decisions that change what was already agreed wait for the person.
 
-- **Changes to `main`** arrive only through pull requests with CI green; there are no direct pushes. Tags `v*` are created only by the person.
+- **Changes to `main`** arrive only through pull requests with CI green; there are no direct pushes. Tags `v*` come only from merging the release PR, which is the person's call.
 - **The spec gate** is a CI job that classifies each pull request:
   - **Additive** (merges on its own once CI and the review pass): `ddduck diff` against the base shows only added records, or changes to concepts and use cases that add text without removing any; `GLOSSARY.md`, `docs/cli.md` and `docs/storage.md` gain lines without losing any; no commit carries `!`.
   - **Needs the person** (the job fails until the person adds the `spec-approved` label): `ddduck diff` shows a removed or relocated record, or a changed guarantee or relationship; any file under `docs/ddd/decisions/` is added or changed; `GLOSSARY.md`, `docs/cli.md` or `docs/storage.md` lose or change a line; a contract fixture changes (the output of `kravis schema`, golden record files); or a commit carries `!`.

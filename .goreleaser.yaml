@@ -22,26 +22,10 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# The release notes come from release-please, which creates the release;
+# goreleaser only adds the archives and checksums to it.
 changelog:
-  sort: asc
-  use: git
-  groups:
-    - title: Features
-      regexp: '^.*?feat(\([[:word:]-]+\))??!?:.+$'
-      order: 0
-    - title: Fixes
-      regexp: '^.*?fix(\([[:word:]-]+\))??!?:.+$'
-      order: 1
-    - title: Performance
-      regexp: '^.*?perf(\([[:word:]-]+\))??!?:.+$'
-      order: 2
-    - title: Documentation
-      regexp: '^.*?docs(\([[:word:]-]+\))??!?:.+$'
-      order: 3
-    - title: Other
-      order: 999
-  filters:
-    exclude:
-      - '^.*?test(\([[:word:]-]+\))??!?:'
-      - '^.*?ci(\([[:word:]-]+\))??!?:'
-      - '^.*?chore(\([[:word:]-]+\))??!?:'
+  disable: true
+
+release:
+  mode: keep-existing
