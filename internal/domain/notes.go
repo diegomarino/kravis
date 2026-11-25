@@ -146,7 +146,7 @@ func (ws *Workspace) CreateNote(actorID string, in NoteInput, opt ViewOptions) (
 	if _, _, err := storage.Create(ws.Store, rec, actorID, notes.Path, notes.keys); err != nil {
 		return nil, err
 	}
-	return ws.finishNote(opt, false)(notes.result(OutcomeCreated, rec, nil, opt))
+	return ws.finishNote(opt, true)(notes.result(OutcomeCreated, rec, []string{"text"}, opt))
 }
 
 // NoteChange is what note update takes; nil leaves the text as it is.

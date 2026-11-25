@@ -116,7 +116,7 @@ func TestWORKSPACE_AC_04_NoteWritesReturnTheirOutcome(t *testing.T) {
 	if v := readRecord(t, noteFile(t, id))["version"]; v != float64(1) {
 		t.Errorf("version %v", v)
 	}
-	if strings.Join(keysOf(d), ",") != "created_at,excerpt,holder,id,live,subjects" {
+	if strings.Join(keysOf(d), ",") != "created_at,excerpt,holder,id,live,subjects,text" {
 		t.Errorf("compact %v", keysOf(d))
 	}
 	outcomeOf(t, e.runOK("New text\n", "note", "update", id, "--text-file", "-"), "updated")
