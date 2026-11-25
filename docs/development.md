@@ -2,6 +2,16 @@
 
 Stack, repository layout, tooling and the definition of done for the MVP.
 
+## Start here
+
+1. **Checkout:** `git clone https://github.com/diegomarino/kravis && cd kravis`.
+2. **Platforms:** macOS and Linux (the two CI runs and the release builds). Windows is not supported.
+3. **Tools:** Go, Node.js, `just`, `golangci-lint` and `ddduck`. Their pins are the source of truth, so read them there and install those versions with your usual package manager (`brew`, `apt`, `mise`, ...):
+   - Go: the `go` line of [`go.mod`](../go.mod).
+   - Node.js, `just`, `golangci-lint` and `ddduck`: [`ci.yml`](../.github/workflows/ci.yml) (`node-version`, `just-version`, `GOLANGCI_LINT_VERSION`, `DDDUCK_VERSION`). `ddduck` is an npm package: `npm install --global ddduck@<version>`.
+4. **Verify:** `go version`, `node --version`, `just --version`, `golangci-lint --version` and `ddduck --version` each print the pinned version.
+5. **First run:** `just hooks`, then `just build`, `just test`, `just lint` and `just check`. All four must pass before a change is ready.
+
 ## Stack
 
 - **Go.** Code, commands, field names, error codes and messages are in English, using US spelling.

@@ -216,6 +216,28 @@ A reference is written `<source>:<kind>:<id>[@<scope>]`. The source and the kind
 - An unknown source is accepted with the `UNKNOWN_SOURCE` warning. It identifies an interaction only by exact equality of the reference, and its shape is not validated.
 - Kravis stores references and summaries, never a copy of the original content.
 
+## Recovery
+
+Stop other agents from writing to the workspace first. Both procedures were run in a scratch workspace.
+
+### A stale deduplication key (`KEY_WITHOUT_VALUE`)
+
+An interrupted update can leave a key file that points to a record that no longer has the value (see Deduplication keys). Until it is released, creating the rightful owner of that value fails with `DEDUP_CONFLICT`.
+
+1. `kravis check` names the key file in `record` and the value in `message`, for example `person-email "b@example.com" points to pe_ana-test, which does not have it`.
+2. Check ownership. Open the key file: `record` is the record the interrupted update was changing. `kravis person get <that record> --fields emails` must not list the value, and no other record may hold it (`grep -rl "<value>" records`). If some record does hold it, the key is not stale: do not remove it, and `check` reports `VALUE_WITHOUT_KEY` or a conflict on that record instead.
+3. Decide what the interrupted update meant. To finish it, repeat it: `kravis person update <record> --email <value>` (an organization's domain works the same). To abandon it, release the key: move the key file out of `keys/` (`mv <key file> <backup folder>`), never edit it by hand.
+4. `kravis check` returns `[]` with exit code 0, and creating the rightful record works.
+
+### A missing `config.json` in an initialized workspace
+
+`kravis.json` is there but `config.json` is not: every command fails with `STORAGE_UNAVAILABLE`, `kravis check` reports `WORKSPACE_FILE_MISSING` for `config.json`, and `kravis init` refuses with `WORKSPACE_EXISTS`. `init` cannot rebuild the file, and the timezone and catalogs are not recorded anywhere else, so do not run it again.
+
+1. Restore the file you had: from a backup, or from git if the workspace is a repository (`git checkout -- config.json`, or `git show <commit>:config.json > config.json`).
+2. `kravis check` returns `[]` with exit code 0, and ordinary reads work again.
+
+Without a copy, write `config.json` by hand in the format of Configuration above, with the original timezone: civil dates in IDs depend on it.
+
 ## Ready for later
 
 - **Tigris:** an S3 connector implementing the same five calls with conditional writes and deletes. tigrisfs does not preserve conditional writes, and each machine may see a cached version for seconds, so a workspace on tigrisfs supports a single writer; several writing machines need this connector. A bucket with writers in several regions must be Single-region or Multi-region.

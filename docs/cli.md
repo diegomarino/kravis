@@ -139,7 +139,8 @@ A check finding is data on `kravis check`, with exit code 6, not an error.
 
 - Agent input is strict: unknown flags and fields are refused (`UNKNOWN_FIELD`). Records read from disk are tolerant instead: Kravis keeps their unknown fields.
 - Long text is passed with `--summary-file`, `--description-file` or `--text-file`, or as `-` to read it from stdin.
-- Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`, `--party`, `--role`, `--related`, `--subject`, `--deal`, `--project` on interactions) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`, except `--party` and `--role`, which change through `deal party`. No flag replaces a whole list.
+- Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`, `--role`, `--related`, `--subject`, `--deal`, `--project` on interactions) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`, except `--role`, which changes through `deal party`. No flag replaces a whole list.
+- `deal create` takes one `--party`, the deal's first party; repeating it keeps only the last. `--role` repeats for that party. The other parties come with `deal party add` (see [Deals](#deals)): `kravis deal create --party pe_ben-carter --holder-role advisor`, then `kravis deal party add dl_ben-carter pe_mira-vale --role client`.
 - An empty value clears an optional field: `--agent ""`, `--due ""`.
 
 ### Compact views
