@@ -139,7 +139,7 @@ func (a *app) interactionCommand() *cobra.Command {
 	f.StringVar(&lf.InitiatedBy, "initiated-by", "", "only those started by this user, person or organization")
 	f.BoolVar(&lf.WithAgents, "with-agents", false, "with --initiated-by <human>: also those started by the human's agents")
 	f.StringVar(&lf.Channel, "channel", "", "only those through this channel")
-	f.StringVar(&lf.Deal, "deal", "", "only those linked to this deal")
+	f.StringVar(&lf.Deal, "deal", "", "only those linked to this deal or to a project tied to it")
 	f.StringVar(&lf.Project, "project", "", "only those linked to this project")
 	f.StringVar(&lf.From, "from", "", "only from this date (in the workspace timezone) or instant")
 	f.StringVar(&lf.To, "to", "", "only up to this date (included, in the workspace timezone) or instant")

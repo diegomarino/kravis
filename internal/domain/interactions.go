@@ -641,7 +641,7 @@ type InteractionFilter struct {
 	WithAgents  bool   // with a human user: also what their agents initiated
 	Channel     string
 	From, To    string // a date in the workspace timezone, or an instant
-	Deal        string // only those linked to this deal
+	Deal        string // only those linked to this deal or to a project tied to it
 	Project     string // only those linked to this project
 }
 
@@ -714,12 +714,20 @@ func (ws *Workspace) ListInteractions(f InteractionFilter, opt ListOptions) (*Li
 			return nil, err
 		}
 	}
+	// --deal also matches interactions linked only to a project tied to the
+	// deal, as task list --deal does.
+	var dealProjects []string
+	if f.Deal != "" {
+		if dealProjects, err = scanProjects(ws, func(p *Project) bool { return p.Deal == f.Deal }); err != nil {
+			return nil, err
+		}
+	}
 	keep := func(r *Interaction) bool {
 		return (participant == "" || slices.Contains(r.Participants, participant)) &&
 			(f.Direction == "" || r.Direction == f.Direction) &&
 			(initiator == "" || slices.Contains(initiators, r.InitiatedBy)) &&
 			(f.Channel == "" || r.Channel == f.Channel) &&
-			(f.Deal == "" || slices.Contains(r.Deals, f.Deal)) &&
+			(f.Deal == "" || slices.Contains(r.Deals, f.Deal) || slices.ContainsFunc(r.Projects, func(p string) bool { return slices.Contains(dealProjects, p) })) &&
 			(f.Project == "" || slices.Contains(r.Projects, f.Project)) &&
 			(from == "" || r.OccurredAt >= from) &&
 			(to == "" || r.OccurredAt <= to)
