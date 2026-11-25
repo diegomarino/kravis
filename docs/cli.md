@@ -127,7 +127,7 @@ Error (stderr):
 | `VALUE_WITHOUT_KEY` | check finding | A record has an email or domain whose deduplication key is missing or points to another record |
 | `BROKEN_REFERENCE` | check finding | A user, an affiliation or a deal refers to a record that does not exist: a holder, a handler, a linked person or an organization; a deal's party |
 | `DANGLING_REFERENCE` | check finding | A work record refers to a record that does not exist: an interaction's holder, participant, initiator, deal or project; a task's project, deal or related record; a project's deal or related record; a note's subject |
-| `VALUE_NOT_IN_CATALOG` | check finding | A catalog-valued field holds a value that the catalog for its holder no longer has, such as an interaction's channel, a deal's stage, party role, holder role or lost reason, or a task's status; the next update of the record must replace it |
+| `VALUE_NOT_IN_CATALOG` | check finding | A catalog-valued field holds a value that the catalog for its holder no longer has, such as an interaction's channel, a deal's stage, party role, holder role or lost reason, or a task's status; the next update of the record must replace it. A task's purpose is the exception: it never changes, so a purpose in use is grandfathered. Removing it from the catalog only stops new tasks from taking it; the tasks that have it keep it, `update` does not require replacing it, and `check` does not report it |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |

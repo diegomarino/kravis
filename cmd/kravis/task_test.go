@@ -357,13 +357,17 @@ func TestWORKSPACE_INV_05_AStatusOrPurposeRemovedFromTheCatalogStaysAndMustBeRep
 	if got := e.findings(); len(got) != 0 {
 		t.Errorf("clean again: %v", got)
 	}
-	// A purpose that left the catalog is reported too. It is part of the
-	// task's origin, so it cannot be replaced: the task stays editable.
+	// A purpose in use is grandfathered: it never changes, so removing it
+	// from the catalog only stops new tasks from taking it. Check does not
+	// report it and the task stays editable.
 	e.setPurposes("ping", "expand")
-	if r := strings.Join(e.findings()["VALUE_NOT_IN_CATALOG"], "\n"); !strings.Contains(r, `"follow-up"`) {
-		t.Errorf("purpose findings %v", r)
+	if r := strings.Join(e.findings()["VALUE_NOT_IN_CATALOG"], "\n"); strings.Contains(r, "purpose") {
+		t.Errorf("a grandfathered purpose is reported: %v", r)
 	}
 	outcomeOf(t, e.ok("task", "update", id, "--title", "Chase even harder"), "updated")
+	if d := data(t, e.ok("task", "get", id, "--fields", "purpose")); d["purpose"] != "follow-up" {
+		t.Errorf("the task keeps its purpose: %v", d)
+	}
 	e.refused("INVALID_VALUE", 2, mkTask("New", "--purpose", "follow-up")...)
 }
 
