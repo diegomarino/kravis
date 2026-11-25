@@ -88,7 +88,10 @@ func (c Config) forHolder(string) Config { return c }
 // goes through it.
 func (ws *Workspace) ConfigFor(holder string) Config { return ws.Config.forHolder(holder) }
 
-var statusCategories = []string{"open", "waiting", "done", "canceled"}
+// statusCanceled is the category of the statuses that end a task unfinished.
+const statusCanceled = "canceled"
+
+var statusCategories = []string{"open", "waiting", "done", statusCanceled}
 
 // DefaultCatalogs are the catalogs init writes.
 func DefaultCatalogs() Catalogs {

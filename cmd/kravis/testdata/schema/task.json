@@ -43,6 +43,26 @@
         "description": "the origin: one task per interaction and purpose",
         "x-cli": "--interaction"
       },
+      "project": {
+        "type": "string",
+        "pattern": "^pr_.+",
+        "description": "the parent project of your holder: not with deal",
+        "x-cli": "--project"
+      },
+      "deal": {
+        "type": "string",
+        "pattern": "^dl_.+",
+        "description": "the parent deal of your holder: not with project",
+        "x-cli": "--deal"
+      },
+      "related": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "description": "people and organizations and deals and projects: deals and projects of your holder",
+        "x-cli": "--related (repeatable)"
+      },
       "description": {
         "type": "string",
         "x-cli": "--description-file"
@@ -88,7 +108,9 @@
           "category",
           "assignee",
           "agent",
-          "due"
+          "due",
+          "project",
+          "deal"
         ],
         "default_limit": 50,
         "order": "due, soonest first, tasks without a due date last; then the ID"

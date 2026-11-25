@@ -45,6 +45,12 @@ type Task struct {
 	Purpose string `json:"purpose,omitempty"`
 	// Due is a date in the workspace timezone.
 	Due string `json:"due,omitempty"`
+	// Project or Deal is the task's work parent, never both. A task in a
+	// project stores no deal: it takes it from the project (WORK-INV-01).
+	Project string `json:"project,omitempty"`
+	Deal    string `json:"deal,omitempty"`
+	// Related are people, organizations, deals and projects (WORK-INV-08).
+	Related storage.IDs `json:"related,omitempty"`
 }
 
 const dateLayout = "2006-01-02"
@@ -73,7 +79,7 @@ var tasks = newKind(kind[Task, *Task]{
 		Order: "due, soonest first, tasks without a due date last; then the ID",
 		group: taskMonth},
 	compact: []compactField{{"id", ""}, {"title", ""}, {"live", "false"}, {"holder", ""},
-		{"status", ""}, {"category", ""}, {"assignee", ""}, {"agent", ""}, {"due", ""}},
+		{"status", ""}, {"category", ""}, {"assignee", ""}, {"agent", ""}, {"due", ""}, {"project", ""}, {"deal", ""}},
 	// Tasks without a due date sort after every date.
 	sortKey:     func(t *Task) string { return firstOf(t.Due, "9999-99-99") },
 	holder:      func(t *Task) string { return t.Holder },
@@ -140,7 +146,15 @@ func taskRules(t *Task) []string {
 	if t.Due != "" && !validDate(t.Due) {
 		out = append(out, "the due date "+quote(t.Due)+" is not a date such as 2026-11-28")
 	}
-	return out
+	switch {
+	case t.Project != "" && t.Deal != "":
+		out = append(out, "a task has at most one parent, and this one has the project "+t.Project+" and the deal "+t.Deal)
+	case t.Project != "" && !hasID("pr_", t.Project):
+		out = append(out, "the project "+quote(t.Project)+" is not a project ID (pr_<slug>)")
+	case t.Deal != "" && !hasID("dl_", t.Deal):
+		out = append(out, "the deal "+quote(t.Deal)+" is not a deal ID (dl_<slug>)")
+	}
+	return append(out, relatedRules(t.Related)...)
 }
 
 // parseDate reads a date such as 2026-11-28; "" is no date.
@@ -249,13 +263,16 @@ func (ws *Workspace) checkAssignment(holder, assignee, agent string, newAssignee
 
 // TaskInput is what task create takes.
 type TaskInput struct {
-	Title       string `json:"title" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--title"`
-	Assignee    string `json:"assignee" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=a live human of your holder" jsonschema_extras:"x-cli=--assignee"`
-	Agent       string `json:"agent,omitempty" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=an agent that the assignee handles" jsonschema_extras:"x-cli=--agent"`
-	Due         string `json:"due,omitempty" jsonschema:"format=date,description=a date in the workspace timezone" jsonschema_extras:"x-cli=--due"`
-	Purpose     string `json:"purpose,omitempty" jsonschema:"description=a purpose of the catalog: follow-up when an interaction is given and none otherwise" jsonschema_extras:"x-cli=--purpose"`
-	Interaction string `json:"interaction,omitempty" jsonschema:"pattern=^it_.+,description=the origin: one task per interaction and purpose" jsonschema_extras:"x-cli=--interaction"` // the origin; the purpose is follow-up unless given
-	Description string `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
+	Title       string   `json:"title" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--title"`
+	Assignee    string   `json:"assignee" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=a live human of your holder" jsonschema_extras:"x-cli=--assignee"`
+	Agent       string   `json:"agent,omitempty" jsonschema:"pattern=^us_[a-z0-9]+(-[a-z0-9]+)*$,description=an agent that the assignee handles" jsonschema_extras:"x-cli=--agent"`
+	Due         string   `json:"due,omitempty" jsonschema:"format=date,description=a date in the workspace timezone" jsonschema_extras:"x-cli=--due"`
+	Purpose     string   `json:"purpose,omitempty" jsonschema:"description=a purpose of the catalog: follow-up when an interaction is given and none otherwise" jsonschema_extras:"x-cli=--purpose"`
+	Interaction string   `json:"interaction,omitempty" jsonschema:"pattern=^it_.+,description=the origin: one task per interaction and purpose" jsonschema_extras:"x-cli=--interaction"` // the origin; the purpose is follow-up unless given
+	Project     string   `json:"project,omitempty" jsonschema:"pattern=^pr_.+,description=the parent project of your holder: not with deal" jsonschema_extras:"x-cli=--project"`
+	Deal        string   `json:"deal,omitempty" jsonschema:"pattern=^dl_.+,description=the parent deal of your holder: not with project" jsonschema_extras:"x-cli=--deal"`
+	Related     []string `json:"related,omitempty" jsonschema:"description=people and organizations and deals and projects: deals and projects of your holder" jsonschema_extras:"x-cli=--related (repeatable)"`
+	Description string   `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
 }
 
 // CreateTask creates a task of the actor's holder in todo, or returns the
@@ -283,7 +300,20 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 		return nil, err
 	}
 	rec := &Task{Holder: holder, Title: title, Assignee: assignee, Agent: agent, Due: due,
-		Purpose: strings.TrimSpace(in.Purpose)}
+		Purpose: strings.TrimSpace(in.Purpose), Project: strings.TrimSpace(in.Project), Deal: strings.TrimSpace(in.Deal)}
+	givenProject, givenDeal := rec.Project, rec.Deal
+	var givenRelated []string
+	for _, ref := range in.Related {
+		id, err := ws.relatedID("related", ref)
+		if err != nil {
+			return nil, err
+		}
+		givenRelated = append(givenRelated, id)
+	}
+	if rec.Project != "" && rec.Deal != "" {
+		return nil, invalidValue("project", "a task has one parent: give --project or --deal, not both",
+			"a task has at most one parent, a project or a deal")
+	}
 	if ref := strings.TrimSpace(in.Interaction); ref != "" {
 		it, err := loadLinked(ws, "interaction", interactions, ref)
 		if err != nil {
@@ -302,11 +332,17 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 			return nil, err
 		}
 		if ex != nil {
-			if err := sameTask(ex, rec); err != nil {
+			if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 				return nil, err
 			}
 			return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
 		}
+	}
+	if err := ws.resolveParent(rec, strings.TrimSpace(in.Interaction)); err != nil {
+		return nil, err
+	}
+	if rec.Related, err = ws.checkRelated(holder, in.Related); err != nil {
+		return nil, err
 	}
 	if rec.Category, err = ws.checkStatus(holder, initialStatus, false); err != nil {
 		return nil, err
@@ -344,13 +380,62 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 		if err != nil {
 			return nil, err
 		}
-		if err := sameTask(ex, rec); err != nil {
+		if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 			return nil, err
 		}
 		return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
 	}
-	touched := touchedIf("from", rec.From != "", "purpose", rec.Purpose != "", "description", in.Description != "")
+	touched := touchedIf("from", rec.From != "", "purpose", rec.Purpose != "", "description", in.Description != "",
+		"project", rec.Project != "", "deal", rec.Deal != "", "related", len(rec.Related) > 0)
 	return ws.finishTask(opt, in.Description != "")(tasks.result(OutcomeCreated, rec, touched, opt))
+}
+
+// resolveParent checks the parent a new task was given: a live project or a
+// deal of its holder. Without one, a task from an interaction takes the
+// interaction's only project or deal, and with several the parent must be
+// chosen (WORK-INV-06). interaction is the origin given, or "".
+func (ws *Workspace) resolveParent(rec *Task, interaction string) error {
+	if rec.Project == "" && rec.Deal == "" && interaction != "" {
+		it, _, err := interactions.load(ws, interaction)
+		if err != nil {
+			return err
+		}
+		switch candidates := slices.Concat(it.Projects, it.Deals); len(candidates) {
+		case 0:
+		case 1:
+			if strings.HasPrefix(candidates[0], "pr_") {
+				rec.Project = candidates[0]
+			} else {
+				rec.Deal = candidates[0]
+			}
+		default:
+			return invalidValue("project", "choose one with --project or --deal",
+				"the interaction %s is linked to %d deals and projects, so the task's parent must be chosen", interaction, len(candidates)).
+				with("allowed", candidates)
+		}
+	}
+	switch {
+	case rec.Project != "":
+		p, err := ws.holderProject(rec.Holder, "project", rec.Project)
+		if err != nil {
+			return err
+		}
+		return projectAccepts(p)
+	case rec.Deal != "":
+		_, err := ws.holderDeal(rec.Holder, "deal", rec.Deal)
+		return err
+	}
+	return nil
+}
+
+// projectAccepts refuses a closed project: it takes no live tasks
+// (WORK-INV-09).
+func projectAccepts(p *Project) error {
+	if p.Live {
+		return nil
+	}
+	return invalidValue("project", "reopen the project first: kravis project reopen "+p.ID,
+		"the project %s is closed and accepts no new live tasks", p.ID).with("value", p.ID)
 }
 
 // taskWithOrigin returns the task that holds the origin of rec, or nil when
@@ -389,12 +474,18 @@ func (ws *Workspace) originConflict(rec *Task, cause error) error {
 // sameTask is DEDUP_CONFLICT when the data a create sent contradicts the task
 // it found: another title or assignee, or an agent or due date it gave that
 // differs. A create never changes a record.
-func sameTask(ex, rec *Task) error {
-	return sameData("task", ex.ID,
+func sameTask(ex, rec *Task, project, deal string, related []string) error {
+	clashes := []clash{}
+	for _, r := range related {
+		clashes = append(clashes, clashing("related", !slices.Contains(ex.Related, r), r, "%s is not related to %s", ex.ID, r))
+	}
+	return sameData("task", ex.ID, append(clashes,
+		clashing("project", project != "" && ex.Project != project, project, "%s is in the project %q, not %q", ex.ID, ex.Project, project),
+		clashing("deal", deal != "" && ex.Deal != deal, deal, "%s is in the deal %q, not %q", ex.ID, ex.Deal, deal),
 		clashing("title", ex.Title != rec.Title, rec.Title, "%s already exists with the title %q, not %q", ex.ID, ex.Title, rec.Title),
 		clashing("assignee", ex.Assignee != rec.Assignee, rec.Assignee, "%s is assigned to %s, not to %s", ex.ID, ex.Assignee, rec.Assignee),
 		clashing("agent", rec.Agent != "" && ex.Agent != rec.Agent, rec.Agent, "%s has the agent %q, not %q", ex.ID, ex.Agent, rec.Agent),
-		clashing("due", rec.Due != "" && ex.Due != rec.Due, rec.Due, "%s is due %q, not %q", ex.ID, ex.Due, rec.Due))
+		clashing("due", rec.Due != "" && ex.Due != rec.Due, rec.Due, "%s is due %q, not %q", ex.ID, ex.Due, rec.Due))...)
 }
 
 // TaskChange is what task update takes; nil leaves a field as it is. The
@@ -406,7 +497,9 @@ type TaskChange struct {
 	Due         *string // "" clears it
 	Description *string // "" clears it
 	// Status exists only to be refused: a status changes with its transition.
-	Status *string
+	Status        *string
+	Related       []string
+	RemoveRelated []string
 }
 
 // UpdateTask changes a task of the actor's holder; another holder's is
@@ -434,8 +527,16 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 			return nil, err
 		}
 	}
+	addRelated, err := ws.checkRelated(actor.Holder, ch.Related)
+	if err != nil {
+		return nil, err
+	}
+	dropRelated, err := ws.relatedToDrop(ch.RemoveRelated)
+	if err != nil {
+		return nil, err
+	}
 	touched := touchedIf("title", ch.Title != nil, "assignee", ch.Assignee != nil, "agent", ch.Agent != nil,
-		"due", ch.Due != nil, "description", ch.Description != nil)
+		"due", ch.Due != nil, "description", ch.Description != nil, "related", len(addRelated)+len(dropRelated) > 0)
 	rec, changed, err := tasks.updateIn(ws, actor.Holder, actorID, id, func(r *Task) error {
 		cat, err := ws.checkStatus(r.Holder, r.Status, true)
 		if err != nil {
@@ -458,7 +559,17 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 		if ch.Due != nil {
 			r.Due = due
 		}
+		r.Related = slices.DeleteFunc(sortedIDs(slices.Concat(r.Related, addRelated)), func(x string) bool { return slices.Contains(dropRelated, x) })
 		reopened := r.Live && !wasLive
+		if reopened && r.Project != "" {
+			p, err := loadLinked(ws, "project", projects, r.Project)
+			if err != nil {
+				return err
+			}
+			if err := projectAccepts(p); err != nil {
+				return err
+			}
+		}
 		if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, reopened || r.Assignee != prevAssignee, reopened && r.Agent != "" || r.Agent != prevAgent); err != nil {
 			return err
 		}
@@ -501,6 +612,15 @@ func (ws *Workspace) SetTaskStatus(actorID, id, status string, opt ViewOptions) 
 	rec, changed, err := tasks.updateIn(ws, actor.Holder, actorID, id, func(r *Task) error {
 		// A task that becomes live again needs a live assignee and agent, as
 		// a new one does (WORK-INV-03, WORK-INV-04).
+		if isLive(cat) && r.Project != "" {
+			p, err := loadLinked(ws, "project", projects, r.Project)
+			if err != nil {
+				return err
+			}
+			if err := projectAccepts(p); err != nil {
+				return err
+			}
+		}
 		if isLive(cat) && !r.Live {
 			if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, true, r.Agent != ""); err != nil {
 				return err
@@ -536,7 +656,8 @@ func (ws *Workspace) DeleteTask(actorID, id string, opt ViewOptions) (*Result, e
 		return nil, err
 	}
 	res.Data = withField(res.Data, "description", text)
-	return res, nil
+	res.Data, err = ws.withTaskDeal(res.Data, map[string]string{})
+	return res, err
 }
 
 // TaskFilter is what task list narrows by.
@@ -548,6 +669,8 @@ type TaskFilter struct {
 	Category  string
 	Overdue   bool   // live, with a due date before today in the workspace timezone
 	DueBefore string // a date: only tasks due before it
+	Project   string // only tasks in this project
+	Deal      string // only tasks of this deal, or in its projects
 }
 
 // ListTasks returns a page of tasks by due date. Live tasks only, unless
@@ -571,18 +694,33 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 		}
 		today = ws.clock().In(loc).Format(dateLayout)
 	}
+	var dealProjects []string
+	if f.Deal != "" {
+		var err error
+		if dealProjects, err = scanProjects(ws, func(p *Project) bool { return p.Deal == f.Deal }); err != nil {
+			return nil, err
+		}
+	}
 	keep := func(t *Task) bool {
-		return (f.Assignee == "" || t.Assignee == f.Assignee) &&
+		return (f.Project == "" || t.Project == f.Project) &&
+			(f.Deal == "" || t.Deal == f.Deal || slices.Contains(dealProjects, t.Project)) &&
+			(f.Assignee == "" || t.Assignee == f.Assignee) &&
 			(f.Agent == "" || t.Agent == f.Agent) &&
 			(f.Category == "" || t.Category == f.Category) &&
 			(!f.Overdue || (t.Live && t.Due != "" && t.Due < today)) &&
 			(before == "" || (t.Due != "" && t.Due < before))
 	}
-	print := fmt.Sprintf("holder=%s|assignee=%s|agent=%s|category=%s|overdue=%t|before=%s",
-		f.Holder, f.Assignee, f.Agent, f.Category, f.Overdue, before)
+	print := fmt.Sprintf("holder=%s|assignee=%s|agent=%s|category=%s|overdue=%t|before=%s|project=%s|deal=%s",
+		f.Holder, f.Assignee, f.Agent, f.Category, f.Overdue, before, f.Project, f.Deal)
 	res, err := tasks.list(ws, f.Holder, opt, keep, print)
 	if err != nil {
 		return nil, err
+	}
+	cache := map[string]string{}
+	for n, v := range res.Data {
+		if res.Data[n], err = ws.withTaskDeal(v, cache); err != nil {
+			return nil, err
+		}
 	}
 	if wantsText(opt.View, "description") {
 		for n, v := range res.Data {
@@ -598,6 +736,9 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 // that holder's tasks.
 func (ws *Workspace) GetTask(holder, id string, opt ViewOptions) (*GetResult, error) {
 	v, err := tasks.getIn(ws, holder, id, opt)
+	if err == nil {
+		v, err = ws.withTaskDeal(v, map[string]string{})
+	}
 	if err == nil && wantsText(opt, "description") {
 		v, err = ws.addText(v, "description")
 	}
@@ -634,6 +775,8 @@ func (ws *Workspace) addText(v View, field string) (View, error) {
 			switch {
 			case deals.validID(id):
 				path = deals.Path(id)
+			case projects.validID(id):
+				path = projects.Path(id)
 			case !tasks.validID(id):
 				return v, nil
 			}
@@ -648,7 +791,10 @@ func (ws *Workspace) addText(v View, field string) (View, error) {
 // for it or the write touched it.
 func (ws *Workspace) finishTask(opt ViewOptions, touched bool) func(*Result, error) (*Result, error) {
 	return func(res *Result, err error) (*Result, error) {
-		if err != nil || (!touched && !wantsText(opt, "description")) {
+		if err != nil {
+			return res, err
+		}
+		if res.Data, err = ws.withTaskDeal(res.Data, map[string]string{}); err != nil || (!touched && !wantsText(opt, "description")) {
 			return res, err
 		}
 		res.Data, err = ws.addText(res.Data, "description")
@@ -656,11 +802,51 @@ func (ws *Workspace) finishTask(opt ViewOptions, touched bool) func(*Result, err
 	}
 }
 
+// withTaskDeal shows the deal of a task in a project, which it takes from
+// the project and does not store, right after the project. dealOf caches
+// the deal of each project already read.
+func (ws *Workspace) withTaskDeal(v View, dealOf map[string]string) (View, error) {
+	var id, project string
+	for _, f := range v {
+		switch f.Name {
+		case "id":
+			_ = json.Unmarshal(f.Value, &id)
+		case "project":
+			_ = json.Unmarshal(f.Value, &project)
+		case "deal":
+			return v, nil
+		}
+	}
+	if project == "" || !tasks.validID(id) {
+		return v, nil
+	}
+	deal, ok := dealOf[project]
+	if !ok {
+		p, _, err := projects.load(ws, project)
+		var e *Error
+		if errors.As(err, &e) && e.Code == CodeNotFound {
+			return v, nil // a dangling project: check reports it
+		}
+		if err != nil {
+			return nil, err
+		}
+		deal = p.Deal
+		dealOf[project] = deal
+	}
+	if deal == "" {
+		return v, nil
+	}
+	raw, _ := json.Marshal(deal)
+	i := slices.IndexFunc(v, func(f storage.Field) bool { return f.Name == "project" })
+	return slices.Insert(slices.Clone(v), i+1, storage.Field{Name: "deal", Value: raw}), nil
+}
+
 // tasksReferringTo finds the tasks that have id as their holder, assignee,
-// agent or origin.
+// agent, origin, parent or a related record.
 func tasksReferringTo(ws *Workspace, id string) ([]string, error) {
 	return scanTasks(ws, func(t *Task) bool {
-		return t.Holder == id || t.Assignee == id || t.Agent == id || t.From == id
+		return t.Holder == id || t.Assignee == id || t.Agent == id || t.From == id ||
+			t.Project == id || t.Deal == id || slices.Contains(t.Related, id)
 	})
 }
 
@@ -725,6 +911,18 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 	if err != nil {
 		return err
 	}
+	pe, err := loadForCheck(st, people)
+	if err != nil {
+		return err
+	}
+	ds, err := loadForCheck(st, deals)
+	if err != nil {
+		return err
+	}
+	ps, err := loadForCheck(st, projects)
+	if err != nil {
+		return err
+	}
 	cfg := configForCheck(st)
 	for _, id := range slices.Sorted(maps.Keys(ts)) {
 		t := ts[id]
@@ -770,6 +968,16 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 				add(FindingInvalidRecord, t.path, "the origin %s belongs to %s, not to the holder %s", t.rec.From, it.rec.Holder, t.rec.Holder)
 			}
 		}
+		if hasID("pr_", t.rec.Project) {
+			auditHolderLink(add, t.path, "project", t.rec.Project, t.rec.Holder, ps)
+			if p, ok := ps[t.rec.Project]; ok && t.rec.Live && !p.rec.Live {
+				add(FindingInvalidRecord, t.path, "the task is live, but its project %s is closed", t.rec.Project)
+			}
+		}
+		if hasID("dl_", t.rec.Deal) {
+			auditHolderLink(add, t.path, "deal", t.rec.Deal, t.rec.Holder, ds)
+		}
+		auditRelated(add, t.path, t.rec.Holder, t.rec.Related, orgs, pe, ds, ps)
 		if cfg == nil {
 			continue
 		}

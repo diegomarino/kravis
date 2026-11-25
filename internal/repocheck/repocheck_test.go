@@ -233,8 +233,9 @@ func TestModelIDsAreReadable(t *testing.T) {
 
 // expectedScope is the scope so far: increment 1's 16 acceptance criteria
 // and 35 invariants, then increment 2's deals, DEALS-AC-01 and
-// DEALS-INV-01..05. Excluded on purpose: INTERACTIONS-AC-02, WORK-AC-01,
-// INTERACTIONS-INV-05 and -10, WORK-INV-01, -02, -06, -08 and -09.
+// DEALS-INV-01..05, then increment 3's projects and parents: WORK-AC-01,
+// WORK-INV-01, -02, -06, -08, -09 and INTERACTIONS-INV-05. Excluded on
+// purpose: INTERACTIONS-AC-02 and INTERACTIONS-INV-10.
 func expectedScope() []string {
 	var ids []string
 	add := func(prefix string, from, to int, skip ...int) {
@@ -247,13 +248,12 @@ func expectedScope() []string {
 	add("WORKSPACE-AC", 1, 13)
 	add("IDENTITY-AC", 1, 1)
 	add("INTERACTIONS-AC", 1, 1)
-	add("WORK-AC", 2, 2)
+	add("WORK-AC", 1, 2)
 	add("WORKSPACE-INV", 1, 14)
 	add("IDENTITY-INV", 1, 5)
 	add("DIRECTORY-INV", 1, 4)
-	add("INTERACTIONS-INV", 1, 9, 5)
-	add("WORK-INV", 3, 5)
-	add("WORK-INV", 7, 7)
+	add("INTERACTIONS-INV", 1, 9)
+	add("WORK-INV", 1, 9)
 	add("DEALS-AC", 1, 1)
 	add("DEALS-INV", 1, 5)
 	return ids
@@ -266,8 +266,8 @@ func TestScopeIsExactlyTheIncrement(t *testing.T) {
 	}
 	got := readScope(string(data))
 	want := expectedScope()
-	if len(want) != 57 {
-		t.Fatalf("the expected scope has %d IDs, want 17 criteria and 40 invariants", len(want))
+	if len(want) != 64 {
+		t.Fatalf("the expected scope has %d IDs, want 18 criteria and 46 invariants", len(want))
 	}
 	slices.Sort(got)
 	slices.Sort(want)
