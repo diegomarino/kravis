@@ -11,3 +11,5 @@ ownedBy: domain:interactions
 constraints:
   - "An initiator is a user when outbound and a participant when inbound (INTERACTIONS-INV-03; sibling: rel:initiator-is-participant)."
   - "Optional; not inferred from the actor."
+guarantees:
+  - INTERACTIONS-INV-03

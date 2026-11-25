@@ -11,3 +11,5 @@ ownedBy: domain:work
 constraints:
   - "A task has at most one work parent, a project or a deal (WORK-INV-01; sibling: rel:task-in-project)."
   - "Closed deals still accept tasks."
+guarantees:
+  - WORK-INV-01

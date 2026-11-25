@@ -11,3 +11,5 @@ ownedBy: domain:interactions
 constraints:
   - "A note has one or more subjects in any mix of people, organizations, deals and projects (INTERACTIONS-INV-10)."
   - "Deals among its subjects share the note's holder."
+guarantees:
+  - INTERACTIONS-INV-10
