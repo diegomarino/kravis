@@ -314,17 +314,17 @@ func TestWORKSPACE_AC_04_DealWritesReturnTheirOutcome(t *testing.T) {
 	}
 	// The description lives in the sidecar; "" clears the name, which the view then omits.
 	d := outcomeOf(t, e.runOK("Notes on the deal\n", "deal", "update", sierraDeal, "--description-file", "-", "--name", ""), "updated")
-	if _, has := d["name"]; has || d["description"] != "Notes on the deal\n" {
+	if _, has := d["name"]; has || d["description"] != "Notes on the deal" {
 		t.Errorf("update %v", d)
 	}
-	if d := data(t, e.ok("deal", "get", sierraDeal, "--full")); d["description"] != "Notes on the deal\n" || d["pipeline"] != "default" {
+	if d := data(t, e.ok("deal", "get", sierraDeal, "--full")); d["description"] != "Notes on the deal" || d["pipeline"] != "default" {
 		t.Errorf("full %v", d)
 	}
 	if d := data(t, e.ok("deal", "get", sierraDeal)); strings.Join(keysOf(d), ",") != "category,holder,holder_role,id,live,stage" {
 		t.Errorf("compact %v", keysOf(d))
 	}
 	d = outcomeOf(t, e.ok("deal", "delete", sierraDeal, "--full"), "deleted")
-	if d["description"] != "Notes on the deal\n" || exists(sierraFile) || exists("records/deals/dl_grupo-sierra.md") {
+	if d["description"] != "Notes on the deal" || exists(sierraFile) || exists("records/deals/dl_grupo-sierra.md") {
 		t.Errorf("deleted %v", d)
 	}
 	e.refused("NOT_FOUND", 3, "deal", "get", sierraDeal)
@@ -533,10 +533,10 @@ func TestDealPartyWritesFollowTheCatalogAndShowTheDescription(t *testing.T) {
 	e.setCatalog("pipelines", map[string]any{"default": map[string]any{"stages": []any{
 		map[string]any{"name": "prospect", "category": "won"}, map[string]any{"name": "lost", "category": "lost"}}}})
 	d := data(t, e.ok("deal", "party", "add", sierraDeal, elenaID, "--full"))
-	if d["category"] != "won" || d["live"] != false || d["description"] != "Notes\n" {
+	if d["category"] != "won" || d["live"] != false || d["description"] != "Notes" {
 		t.Errorf("add %v", d)
 	}
-	if d := data(t, e.ok("deal", "party", "remove", sierraDeal, elenaID, "--fields", "description")); d["description"] != "Notes\n" {
+	if d := data(t, e.ok("deal", "party", "remove", sierraDeal, elenaID, "--fields", "description")); d["description"] != "Notes" {
 		t.Errorf("remove %v", d)
 	}
 	if got := e.findings(); len(got) != 0 {

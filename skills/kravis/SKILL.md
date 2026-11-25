@@ -5,14 +5,14 @@ description: Use Kravis, a CRM for agents, to record interactions with people an
 
 # Kravis
 
-Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per record. Force JSON with `--output json` (or `KRAVIS_OUTPUT=json`) on every call: on a TTY, including a PTY-backed terminal, the default is a table. Then a success is one JSON object on stdout, and an error is one on stderr with a `code` and `details`, and usually a `hint`: it may be absent. `--help` is always text. Read the `hint` and `details.allowed` before you retry. The full contract is in [docs/cli.md](../../docs/cli.md#output).
+Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per record. Force JSON with `--output json` (or `KRAVIS_OUTPUT=json`) on every call: on a TTY, including a PTY-backed terminal, the default is a table. Then a success is one JSON object on stdout, and an error is one on stderr with a `code` and `details`, and usually a `hint`: it may be absent. `--help` is always text. Read the `hint` and `details.allowed` before you retry. `kravis task create --help`, and the same for any command, gives its flags and `kravis schema <type>` the fields.
 
 ## Find the workspace and the actor
 
 - The workspace is `KRAVIS_WORKSPACE`, or the nearest folder with `kravis.json` above the current one. Outside any workspace every command fails with `STORAGE_UNAVAILABLE`. In a new folder run `kravis init --timezone <zone> --organization <name> --user <key>`.
-- A write needs an actor, a live user: `--actor <user>`, then `KRAVIS_ACTOR`, then the default stored on this machine. `kravis whoami` shows who you are and for which holder. `kravis whoami --set <user>` stores the default.
-- `init` creates the first human. Add another human with `kravis user create <key> --human --holder <organization>` and an agent with `kravis user create <key> --agent --holder <organization> --handler <human>`: an agent needs a live human of the same holder as its handler. The ID is `us_<key>`.
-- A work record (deal, project, task, interaction, note) belongs to the holder of the actor. A write is always limited to your holder's. A read is limited to it only when an actor is declared (`--actor`, `KRAVIS_ACTOR` or the stored default): with none, `list` returns every holder's records. Run `kravis whoami` before any holder-specific read (it fails with `MISSING_ACTOR` when there is no actor), then check `filters.holder` in the read's own response: when it is absent, nothing was limited. To read one holder's records, pass its user: `kravis task list --actor <user>`. `--all-holders` lifts the limit. People, organizations and users are shared. See [docs/cli.md](../../docs/cli.md#identity-and-holder).
+- Write as yourself: an agent's actor is its own user, never its handler. A write needs an actor, a live user: `--actor <user>`, then `KRAVIS_ACTOR`, then the default stored on this machine. `kravis whoami` shows who you are and for which holder. `kravis whoami --set <user>` stores the default.
+- `init` creates the first human. Add another human with `kravis user create <key> --human --holder <organization>` and an agent with `kravis user create <key> --agent --holder <organization> --handler <human>`: an agent needs a live human of the same holder as its handler. The ID is `us_<key>`. To link a human to a person: `kravis user update <user> --person <person>`.
+- A work record (deal, project, task, interaction, note) belongs to the holder of the actor. A write is always limited to your holder's. A read is limited to it only when an actor is declared (`--actor`, `KRAVIS_ACTOR` or the stored default): with none, `list` returns every holder's records. Run `kravis whoami` before any holder-specific read (it fails with `MISSING_ACTOR` when there is no actor), then check `filters.holder` in the read's own response: when it is absent, nothing was limited. To read one holder's records, pass its user: `kravis task list --actor <user>`. `--all-holders` lifts the limit. People, organizations and users are shared.
 
 ## Ask Kravis, do not copy it
 
@@ -24,7 +24,7 @@ Query `kravis schema <type>` for a type's fields, the catalogs that apply to you
 
 Three calls, each safe to repeat when the interaction carries its Message-ID.
 
-1. Find or create the people: `kravis person create --name <name> --email <email>`. An email that exists returns that person. To say a person works at an organization, use `kravis person affiliation add <person> <organization> --title <text>`; never add the organization as a participant for that.
+1. Find or create the people: `kravis person create --name <name> --email <email>`. An email that exists returns that person. An organization without a domain has no natural key: on `SIMILAR_EXISTS` (its `details.id` names the existing one), check whether it is the same organization and use the existing one instead of keeping the `-2`. To say a person works at an organization, use `kravis person affiliation add <person> <organization> --title <text>`; never add the organization as a participant for that. A person with a single affiliation brings that organization into the participants by itself.
 2. Record the interaction: `kravis interaction create --channel <channel> --occurred-at <time> --subject <subject> --participant <person> --ref <reference>`. Add `--summary-file -` and pipe the summary in. `--direction inbound --initiated-by <participant>` says the other side started it; never guess the initiator. An outbound one, which is the default, is `--direction outbound --initiated-by <user>`, the user who started it.
 3. Create the follow-up from it: `kravis task create --title <title> --assignee <user> --interaction <interaction> --due <date>`. It has the purpose `follow-up` and there is one per interaction and purpose, so creating it again returns the same task.
 
@@ -65,19 +65,23 @@ For "everything about Ben Carter": resolve him with `kravis person get <email or
 3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him, including those that came from an interaction with him.
 4. `kravis deal list --party <person> --limit 0`: his deals.
 
-For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. `--due-before` excludes its date, so for "the next N days" pass the day after the last one you want. Dates are in the workspace timezone.
+For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "this week": `--due-before` the day after the week's last day, in the workspace timezone. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. `--due-before` excludes its date, so for "the next N days" pass the day after the last one you want. Dates are in the workspace timezone.
 
 ## Measure outreach
 
 For "what outreach did Ana do in November": the outbound interactions she started, in the month.
 
-`kravis interaction list --direction outbound --initiated-by <user> --from 2026-11-01 --to 2026-11-30 --limit 0`
+`kravis interaction list --channel <channel> --direction outbound --initiated-by <user> --from 2026-11-01 --to 2026-11-30 --limit 0`
 
-`total` counts interactions, not people: for "how many people", collect the person IDs in `participants` and count the distinct ones. `--to` includes its whole day. Add `--participant <person>` for one person and `--with-agents` to count what her agents started too. Inbound ones are never outreach, and an interaction without an initiator matches no `--initiated-by`.
+`total` counts interactions, not people: for "how many people", collect the person IDs in `participants` and count the distinct ones. `--to` includes its whole day. `--channel` narrows to one channel: drop it for all. Add `--participant <person>` for one person and `--with-agents` to count what her agents started too. Inbound ones are never outreach, and an interaction without an initiator matches no `--initiated-by`.
 
 ## Correct a mistake
 
-A record created under the wrong actor is removed and created again, with no trace left: `kravis interaction delete <interaction>`, `kravis task delete <task>` or `kravis note delete <note>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. A delete of an interaction that has a follow-up is refused with `REFERENCED`: delete the task, delete the interaction, then create both again. The new task takes the interaction's single deal or project as its parent. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
+A wrong initiator, subject, deal or project of an interaction is an `update`: `kravis interaction update <interaction> --initiated-by <participant>`, `--subject`, `--deal` with `--remove-deal`, `--project` with `--remove-project`. A wrong actor cannot be updated: the record is removed and created again, with no trace left: `kravis interaction delete <interaction>`, `kravis task delete <task>` or `kravis note delete <note>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. A delete of an interaction that has a follow-up is refused with `REFERENCED`: delete the task, delete the interaction, then create both again. The new task takes the interaction's single deal or project as its parent. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
+
+## Catalogs
+
+Party roles, lost reasons, purposes, channels and the other catalogs live in the workspace's `config.json`, under `catalogs`. When a value you need is missing from `details.allowed`, add it there.
 
 ## Words
 

@@ -295,7 +295,7 @@ func TestWORKSPACE_AC_04_ProjectWritesReturnTheirOutcome(t *testing.T) {
 		t.Errorf("version %v", v)
 	}
 	outcomeOf(t, e.runOK("About it\n", "project", "update", "pr_data-room", "--description-file", "-"), "updated")
-	if g := data(t, e.ok("project", "get", "pr_data-room", "--full")); g["description"] != "About it\n" {
+	if g := data(t, e.ok("project", "get", "pr_data-room", "--full")); g["description"] != "About it" {
 		t.Errorf("full %v", g)
 	}
 	if g := data(t, e.ok("project", "get", "pr_data-room")); strings.Join(keysOf(g), ",") != "holder,id,live,name" {
