@@ -671,7 +671,7 @@ type TaskFilter struct {
 	DueBefore string // a date: only tasks due before it
 	Project   string // only tasks in this project
 	Deal      string // only tasks of this deal, or in its projects
-	RelatedTo string // a person, organization, deal or project: related to it, or its parent's
+	RelatedTo string // a person, organization, deal or project: related to it, its parent, or a participant of the source interaction
 }
 
 // ListTasks returns a page of tasks by due date. Live tasks only, unless

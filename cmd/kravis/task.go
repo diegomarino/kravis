@@ -130,7 +130,7 @@ func (a *app) taskCommand() *cobra.Command {
 	f.StringVar(&lf.DueBefore, "due-before", "", "only tasks due before this date")
 	f.StringVar(&lf.Project, "project", "", "only tasks in this project")
 	f.StringVar(&lf.Deal, "deal", "", "only tasks of this deal and of its projects")
-	f.StringVar(&lf.RelatedTo, "related-to", "", "only tasks related to this person, organization, deal or project, or whose parent it is")
+	f.StringVar(&lf.RelatedTo, "related-to", "", "only tasks related to this person, organization, deal or project, or whose parent it is, or whose source interaction has it as a participant")
 	f.BoolVar(&listAll, "all-holders", false, "do not limit the list to the actor's holder")
 	listFlags(f, &lo)
 

@@ -5,14 +5,14 @@ description: Use Kravis, a CRM for agents, to record interactions with people an
 
 # Kravis
 
-Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per record. Every command prints one JSON object on stdout, and an error prints one on stderr with a `code`, `details` and a `hint`. Read the `hint` and `details.allowed` before you retry.
+Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per record. Force JSON with `--output json` (or `KRAVIS_OUTPUT=json`) on every call: on a TTY, including a PTY-backed terminal, the default is a table. Then a success is one JSON object on stdout, and an error is one on stderr with a `code` and `details`, and usually a `hint`: it may be absent. `--help` is always text. Read the `hint` and `details.allowed` before you retry. The full contract is in [docs/cli.md](../../docs/cli.md#output).
 
 ## Find the workspace and the actor
 
 - The workspace is `KRAVIS_WORKSPACE`, or the nearest folder with `kravis.json` above the current one. Outside any workspace every command fails with `STORAGE_UNAVAILABLE`. In a new folder run `kravis init --timezone <zone> --organization <name> --user <key>`.
 - A write needs an actor, a live user: `--actor <user>`, then `KRAVIS_ACTOR`, then the default stored on this machine. `kravis whoami` shows who you are and for which holder. `kravis whoami --set <user>` stores the default.
 - `init` creates the first human. Add another human with `kravis user create <key> --human --holder <organization>` and an agent with `kravis user create <key> --agent --holder <organization> --handler <human>`: an agent needs a live human of the same holder as its handler. The ID is `us_<key>`.
-- A work record (deal, project, task, interaction, note) belongs to the holder of the actor, and you read and write only your holder's. People, organizations and users are shared.
+- A work record (deal, project, task, interaction, note) belongs to the holder of the actor. A write is always limited to your holder's. A read is limited to it only when an actor is declared (`--actor`, `KRAVIS_ACTOR` or the stored default): with none, `list` returns every holder's records. Run `kravis whoami` before any holder-specific read (it fails with `MISSING_ACTOR` when there is no actor), then check `filters.holder` in the read's own response: when it is absent, nothing was limited. To read one holder's records, pass its user: `kravis task list --actor <user>`. `--all-holders` lifts the limit. People, organizations and users are shared. See [docs/cli.md](../../docs/cli.md#identity-and-holder).
 
 ## Ask Kravis, do not copy it
 
