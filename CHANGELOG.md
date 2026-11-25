@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/diegomarino/kravis/compare/v0.3.0...v0.3.1) (2026-11-25)
+
+
+### Fixes
+
+* skill and CLI edges found by the second end-to-end run ([#85](https://github.com/diegomarino/kravis/issues/85)) ([a387444](https://github.com/diegomarino/kravis/commit/a387444328116e57956ff581456a6e150400c3d0))
+
+
+### Documentation
+
+* the MVP and the license in the changelog ([#79](https://github.com/diegomarino/kravis/issues/79)) ([024ba8e](https://github.com/diegomarino/kravis/commit/024ba8e6b94fe586568bf581c5e7ff8e6d9b1230))
+
 ## [0.3.0](https://github.com/diegomarino/kravis/compare/v0.2.0...v0.3.0) (2026-11-25)
 
 
