@@ -271,7 +271,7 @@ func (ws *Workspace) GetUser(id string, opt ViewOptions) (View, error) { return 
 
 // ListUsers returns a page of users, by name.
 func (ws *Workspace) ListUsers(opt ListOptions) (*ListResult, error) {
-	return users.list(ws, "", opt, nil, "")
+	return users.list(ws, "", opt, nil, nil)
 }
 
 // DeleteUser deletes a user that nothing refers to.

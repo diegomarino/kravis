@@ -724,9 +724,8 @@ func (ws *Workspace) ListInteractions(f InteractionFilter, opt ListOptions) (*Li
 			(from == "" || r.OccurredAt >= from) &&
 			(to == "" || r.OccurredAt <= to)
 	}
-	print := fmt.Sprintf("holder=%s|participant=%s|direction=%s|initiated=%s|agents=%t|channel=%s|from=%s|to=%s|deal=%s|project=%s",
-		f.Holder, participant, f.Direction, initiator, f.WithAgents, f.Channel, from, to, f.Deal, f.Project)
-	res, err := interactions.list(ws, f.Holder, opt, keep, print)
+	res, err := interactions.list(ws, f.Holder, opt, keep, applied("participant", participant, "direction", f.Direction,
+		"initiated_by", initiator, "with_agents", f.WithAgents, "channel", f.Channel, "from", from, "to", to, "deal", f.Deal, "project", f.Project))
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -138,6 +139,28 @@ func (k *kind[T, P]) loadIn(ws *Workspace, holder, id string) (P, storage.Token,
 		return nil, "", k.notFound(id)
 	}
 	return rec, token, err
+}
+
+// applied is the filters a list echoes: each name with its value, leaving out
+// the ones not given (an empty string, false or nil).
+func applied(pairs ...any) map[string]any {
+	out := map[string]any{}
+	for i := 0; i+1 < len(pairs); i += 2 {
+		switch v := pairs[i+1].(type) {
+		case nil:
+			continue
+		case string:
+			if v == "" {
+				continue
+			}
+		case bool:
+			if !v {
+				continue
+			}
+		}
+		out[pairs[i].(string)] = pairs[i+1]
+	}
+	return out
 }
 
 // holderFilter is what a read limited to a holder says about itself.
@@ -426,7 +449,8 @@ const DefaultLimit = 50
 
 // ListResult is one page of a list.
 type ListResult struct {
-	// Filters is what Kravis applied by itself, such as the holder limit.
+	// Filters is every filter the list applied: the holder limit, the
+	// live-only default and the ones the caller gave.
 	Filters map[string]any
 	Data    []View
 	// Total counts every record the filters let through, on all pages.
@@ -473,8 +497,8 @@ func (k *kind[T, P]) cmp(a, b row[P]) int {
 
 // list returns one page of the type's records in its default order: live
 // ones only, unless All, and for a holder only its records. keep, when not nil, drops the records it refuses;
-// filters says what keep does, so a cursor only continues the same list.
-func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep func(P) bool, filters string) (*ListResult, error) {
+// filters names what keep does (see applied): the list echoes them, and a cursor only continues the same list.
+func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep func(P) bool, filters map[string]any) (*ListResult, error) {
 	switch {
 	case opt.Limit < 0:
 		return nil, InvalidFlag("limit", nil, "--limit must be 0 or more, not %d", opt.Limit)
@@ -485,12 +509,15 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 	if err := k.checkFields(opt.View); err != nil {
 		return nil, err
 	}
-	fp := k.fingerprint(opt, "holder="+holder+"|"+filters)
+	shown := applied("holder", holder, "live", !opt.All)
+	maps.Copy(shown, filters)
+	raw, _ := json.Marshal(shown) // map keys are sorted
+	fp := k.fingerprint(opt, string(raw))
 	var from *cursor
 	if opt.Cursor != "" {
-		raw, err := base64.RawURLEncoding.DecodeString(opt.Cursor)
+		dec, err := base64.RawURLEncoding.DecodeString(opt.Cursor)
 		from = &cursor{}
-		if err != nil || json.Unmarshal(raw, from) != nil || from.ID == "" {
+		if err != nil || json.Unmarshal(dec, from) != nil || from.ID == "" {
 			return nil, badCursor("is not one Kravis gave")
 		}
 		if from.Fingerprint != fp {
@@ -505,7 +532,7 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 		return (!opt.All && !k.live(r.rec)) || (holder != "" && k.holder != nil && k.holder(r.rec) != holder) || (keep != nil && !keep(r.rec))
 	})
 	slices.SortFunc(rows, k.cmp)
-	res := &ListResult{Data: []View{}, Total: len(rows), Filters: holderFilter(holder)}
+	res := &ListResult{Data: []View{}, Total: len(rows), Filters: shown}
 	start := 0
 	if from != nil {
 		start = len(rows)
@@ -517,8 +544,8 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 	if opt.Limit > 0 && opt.Limit < end-start {
 		end = start + opt.Limit
 		last := rows[end-1]
-		raw, _ := json.Marshal(cursor{last.key, last.id, fp})
-		next := base64.RawURLEncoding.EncodeToString(raw)
+		enc, _ := json.Marshal(cursor{last.key, last.id, fp})
+		next := base64.RawURLEncoding.EncodeToString(enc)
 		res.NextCursor = &next
 	}
 	for _, r := range rows[start:end] {

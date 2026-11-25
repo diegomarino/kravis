@@ -714,9 +714,23 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 			}
 		}
 	}
+	// A task from an interaction with the record is about it too.
+	var fromRelated map[string]bool
+	if relatedTo != "" {
+		rows, err := interactions.scan(ws)
+		if err != nil {
+			return nil, err
+		}
+		fromRelated = map[string]bool{}
+		for _, r := range rows {
+			if slices.Contains(r.rec.Participants, relatedTo) {
+				fromRelated[r.id] = true
+			}
+		}
+	}
 	keep := func(t *Task) bool {
 		return (relatedTo == "" || slices.Contains(t.Related, relatedTo) || t.Project == relatedTo || t.Deal == relatedTo ||
-			slices.Contains(relatedProjects, t.Project)) &&
+			slices.Contains(relatedProjects, t.Project) || (t.From != "" && fromRelated[t.From])) &&
 			(f.Project == "" || t.Project == f.Project) &&
 			(f.Deal == "" || t.Deal == f.Deal || slices.Contains(dealProjects, t.Project)) &&
 			(f.Assignee == "" || t.Assignee == f.Assignee) &&
@@ -725,9 +739,8 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 			(!f.Overdue || (t.Live && t.Due != "" && t.Due < today)) &&
 			(before == "" || (t.Due != "" && t.Due < before))
 	}
-	print := fmt.Sprintf("holder=%s|assignee=%s|agent=%s|category=%s|overdue=%t|before=%s|project=%s|deal=%s|related=%s",
-		f.Holder, f.Assignee, f.Agent, f.Category, f.Overdue, before, f.Project, f.Deal, relatedTo)
-	res, err := tasks.list(ws, f.Holder, opt, keep, print)
+	res, err := tasks.list(ws, f.Holder, opt, keep, applied("assignee", f.Assignee, "agent", f.Agent, "category", f.Category,
+		"overdue", f.Overdue, "due_before", before, "project", f.Project, "deal", f.Deal, "related_to", relatedTo))
 	if err != nil {
 		return nil, err
 	}

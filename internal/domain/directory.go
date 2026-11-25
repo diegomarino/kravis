@@ -349,7 +349,7 @@ func (ws *Workspace) GetPerson(ref string, opt ViewOptions) (View, error) {
 
 // ListPeople returns a page of people, by name.
 func (ws *Workspace) ListPeople(opt ListOptions) (*ListResult, error) {
-	return people.list(ws, "", opt, nil, "")
+	return people.list(ws, "", opt, nil, nil)
 }
 
 // DeletePerson deletes a person, by ID or email, with their email keys.
@@ -479,7 +479,7 @@ func (ws *Workspace) GetOrganization(id string, opt ViewOptions) (View, error) {
 
 // ListOrganizations returns a page of organizations, by name.
 func (ws *Workspace) ListOrganizations(opt ListOptions) (*ListResult, error) {
-	return organizations.list(ws, "", opt, nil, "")
+	return organizations.list(ws, "", opt, nil, nil)
 }
 
 // DeleteOrganization deletes an organization that nothing refers to.

@@ -62,7 +62,7 @@ For "everything about Ben Carter": resolve him with `kravis person get <email or
 
 1. `kravis interaction list --participant <person> --limit 0`: what happened, newest first.
 2. `kravis note list --related-to <person> --limit 0`: what is known about him.
-3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him.
+3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him, including those that came from an interaction with him.
 4. `kravis deal list --party <person> --limit 0`: his deals.
 
 For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. `--due-before` excludes its date, so for "the next N days" pass the day after the last one you want. Dates are in the workspace timezone.
