@@ -140,6 +140,24 @@ func TestIDENTITY_INV_06_AHolderKeepsItsLastLiveHuman(t *testing.T) {
 	}
 }
 
+// Two retirements that race each pass the guard; check reports the holder
+// left with users and no live human, as it reports any race left over.
+func TestIDENTITY_INV_06_CheckReportsAHolderWithoutALiveHuman(t *testing.T) {
+	e := newEnv(t)
+	e.mustInit()
+	e.mustAgent()
+	e.ok("user", "update", agentID, "--live=false")
+	for _, id := range []string{userID, agentID} {
+		rec := readRecord(t, "records/users/"+id+".json")
+		rec["live"] = false
+		writeRecord(t, "records/users/"+id+".json", rec)
+	}
+	got := strings.Join(e.findings()["INVALID_RECORD"], "\n")
+	if !strings.Contains(got, "records/organizations/"+orgID+".json") || !strings.Contains(got, "no live human") {
+		t.Errorf("findings %s", got)
+	}
+}
+
 func TestWORKSPACE_AC_10_DeletingAReferencedRecordFailsAndListsTheReferrers(t *testing.T) {
 	e := newEnv(t)
 	e.mustInit()
