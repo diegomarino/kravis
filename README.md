@@ -20,7 +20,7 @@ Today it covers people, organizations, users, interactions (emails, meetings, ca
   - an interaction is not tied to one deal: it concerns any number of deals and projects at once, and its participants are people or organizations;
   - a note is not tied to one record: it is about one or more people, organizations, deals and projects, in any mix.
 
-![The records Kravis keeps: a holder with its users and agents; deals with their parties, projects and tasks; interactions with their participants and follow-ups; notes](docs/assets/entities.svg)
+![The holder with its users and the work records it keeps, beside the shared directory of people and organizations, and the links between them](docs/assets/entities.svg)
 
 ## Install
 
