@@ -23,17 +23,23 @@ var version = "dev"
 // buildVersion is the injected version, else the module version of the build
 // info (go install …@vX.Y.Z), else dev; without the leading v.
 func buildVersion() string {
-	v := version
-	if v == "dev" || v == "" {
+	info, ok := debug.ReadBuildInfo()
+	return versionOf(version, info, ok)
+}
+
+// versionOf picks the version from the injected one and the build info.
+func versionOf(injected string, info *debug.BuildInfo, ok bool) string {
+	v := injected
+	if v == "" || v == "dev" {
 		v = "dev"
-		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		if ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 			v = info.Main.Version
 		}
 	}
-	if v != "dev" {
-		v = strings.TrimPrefix(v, "v")
+	if v == "dev" {
+		return v
 	}
-	return v
+	return strings.TrimPrefix(v, "v")
 }
 
 // deps is what the CLI runs on. Tests swap them to force conflicts,

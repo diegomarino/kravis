@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -135,5 +136,28 @@ func TestSmokeBinary(t *testing.T) {
 	}
 	if got := decodeObject(t, string(out)); got["data"] == nil {
 		t.Fatalf("got %s", out)
+	}
+}
+
+func TestVersionOf(t *testing.T) {
+	info := func(v string) *debug.BuildInfo { return &debug.BuildInfo{Main: debug.Module{Version: v}} }
+	for _, tt := range []struct {
+		name     string
+		injected string
+		info     *debug.BuildInfo
+		ok       bool
+		want     string
+	}{
+		{"injected wins", "0.2.0", info("v9.9.9"), true, "0.2.0"},
+		{"injected with a v", "v0.2.0", nil, false, "0.2.0"},
+		{"go install at a tag", "dev", info("v0.1.0"), true, "0.1.0"},
+		{"empty injected", "", info("v0.1.0"), true, "0.1.0"},
+		{"go build in a checkout", "dev", info("(devel)"), true, "dev"},
+		{"no build info", "dev", nil, false, "dev"},
+		{"empty module version", "dev", info(""), true, "dev"},
+	} {
+		if got := versionOf(tt.injected, tt.info, tt.ok); got != tt.want {
+			t.Errorf("%s: got %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }

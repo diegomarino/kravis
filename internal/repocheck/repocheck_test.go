@@ -4,6 +4,7 @@
 package repocheck
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -227,5 +228,50 @@ func TestModelIDsAreReadable(t *testing.T) {
 		if !slices.Contains(ids, id) {
 			t.Fatalf("%s missing from %v", id, ids)
 		}
+	}
+}
+
+// expectedScope is the scope of increment 1: 16 acceptance criteria and 35
+// invariants. Excluded on purpose: INTERACTIONS-AC-02, WORK-AC-01,
+// INTERACTIONS-INV-05 and -10, WORK-INV-01,
+// -02, -06, -08, -09 and every DEALS-*.
+func expectedScope() []string {
+	var ids []string
+	add := func(prefix string, from, to int, skip ...int) {
+		for n := from; n <= to; n++ {
+			if !slices.Contains(skip, n) {
+				ids = append(ids, fmt.Sprintf("%s-%02d", prefix, n))
+			}
+		}
+	}
+	add("WORKSPACE-AC", 1, 13)
+	add("IDENTITY-AC", 1, 1)
+	add("INTERACTIONS-AC", 1, 1)
+	add("WORK-AC", 2, 2)
+	add("WORKSPACE-INV", 1, 14)
+	add("IDENTITY-INV", 1, 5)
+	add("DIRECTORY-INV", 1, 4)
+	add("INTERACTIONS-INV", 1, 9, 5)
+	add("WORK-INV", 3, 5)
+	add("WORK-INV", 7, 7)
+	return ids
+}
+
+func TestScopeIsExactlyTheIncrement(t *testing.T) {
+	data, err := os.ReadFile("scope.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := readScope(string(data))
+	want := expectedScope()
+	if len(want) != 51 {
+		t.Fatalf("the expected scope has %d IDs, want 16 criteria and 35 invariants", len(want))
+	}
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("scope.txt differs from the increment's scope:\nmissing: %v\nextra: %v",
+			slices.DeleteFunc(slices.Clone(want), func(id string) bool { return slices.Contains(got, id) }),
+			slices.DeleteFunc(slices.Clone(got), func(id string) bool { return slices.Contains(want, id) }))
 	}
 }

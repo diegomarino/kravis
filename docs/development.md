@@ -24,6 +24,9 @@ Stack, repository layout, tooling and the definition of done for the MVP.
 cmd/kravis/            CLI (cobra), thin
 internal/domain/       records, rules, validation, catalogs
 internal/storage/      adapter (get, create, replace, delete, list) and the local filesystem connector
+internal/workspace/    finding the workspace a command runs on, and the local configuration
+internal/repocheck/    whole-repository tests: nothing personal, the scope inventory
+internal/specgate/     the spec gate's classification of a pull request (cmd/specgate runs it)
 internal/schema/       JSON Schema generation and catalog injection
 skills/kravis/         operational skill (SKILL.md, references/ only if it grows)
 docs/                  storage.md, cli.md, development.md
@@ -64,14 +67,14 @@ The Go module path is `github.com/diegomarino/kravis`.
 ### Tests that guard the contract
 
 - **Schema matches validation.** For each type, values accepted by the generated JSON Schema are accepted by the Go validation, and values it rejects are rejected.
-- **Acceptance criteria.** Every acceptance criterion in the ddduck model that is in scope for the increment has an end-to-end test whose name cites its ID, for example `TestWORKSPACE_AC_04`. A test reads the in-scope criteria from the model and fails if any of them has no test. The tests call the CLI in process, through `run(args, stdin, stdout, stderr) int`, against a temporary workspace, and check the JSON output and the exit code, so they count towards coverage. One smoke test runs the built binary.
+- **Acceptance criteria.** Every acceptance criterion in the ddduck model that is in scope for the increment has an end-to-end test whose name cites its ID, for example `TestWORKSPACE_AC_04`. The in-scope criteria and invariants are listed in `internal/repocheck/scope.txt`; a test checks that each exists in the model and fails if any of them has no test, and another pins the list to the increment's scope. The tests call the CLI in process, through `run(args, stdin, stdout, stderr) int`, against a temporary workspace, and check the JSON output and the exit code, so they count towards coverage. One smoke test runs the built binary.
 - **Minimums.** `just test` runs every test with the race detector and fails below 80% coverage of all the code. `just lint` reports no findings.
 - **The skill does not drift.** A test extracts every command the skill cites, meaning every code block or inline code that starts with `kravis`. It takes the words up to the first argument that starts with `-` or `<` or is quoted, and compares them, with their flags, against the command tree that a hidden command of the binary prints. A command or flag that the binary lacks fails the build.
 - **The skill installs.** CI installs the skill from the checkout into a temporary folder with `npx skills add` and checks that it is found with valid frontmatter.
 
 ## CI and releases
 
-- **`ci.yml`** runs on pushes to `main` and on pull requests: format check, lint, tests, build, `govulncheck` and `ddduck check`, plus the commit subject check on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
+- **`ci.yml`** runs on pushes to `main` and on pull requests: format check, lint, tests, build, `govulncheck` and `ddduck check`, on Linux, macOS and Windows, plus the commit subject check and the spec gate on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
 - **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS, Linux and Windows and publishes them as GitHub Release assets.
 
 ## Autonomy
