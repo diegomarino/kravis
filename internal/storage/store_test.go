@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -813,4 +814,53 @@ func TestUpdateReleasesItsKeysWhenTheRecordIsDeletedMeanwhile(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 	checkKey(t, m, email("ana@example.com"), "")
+}
+
+// An update whose sidecar write lands after a delete read the sidecar's
+// token, and whose JSON write finds the record deleted, removes the sidecar
+// it wrote instead of restoring the deleted record's: no orphan is left.
+func TestAnUpdateThatLosesToADeleteLeavesNoSidecar(t *testing.T) {
+	s, m := newTestStore()
+	ana := &testPerson{Base: Base{ID: "pe_ana", Text: text("old")}, Name: "Ana"}
+	if _, _, err := Create(s, ana, "us_a", personPath, nil); err != nil {
+		t.Fatal(err)
+	}
+	p := personPath("pe_ana")
+	var rec testPerson
+	token, err := s.Load(p, &rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	atReplace, jsonGone, updated := make(chan struct{}), make(chan struct{}), make(chan error)
+	started, cleaned := false, atomic.Bool{}
+	m.Hook = func(op Op, path string) error {
+		switch {
+		case op == OpDelete && path == p && !started: // the delete has read the sidecar's token
+			started = true
+			go func() {
+				_, err := Update(s, p, "us_b", func(r *testPerson) error { r.Text = text("new"); return nil }, nil)
+				updated <- err
+			}()
+			<-atReplace
+		case op == OpReplace && path == p: // the update wrote its sidecar
+			atReplace <- struct{}{}
+			<-jsonGone
+		case op == OpDelete && path == SidecarPath(p):
+			if cleaned.CompareAndSwap(false, true) { // the delete's cleanup, not the update's own
+				close(jsonGone)
+				if err := <-updated; !errors.Is(err, ErrNotFound) {
+					t.Errorf("the update: %v", err)
+				}
+			}
+		}
+		return nil
+	}
+	if err := s.Remove(p, rec.ID, token, nil); err != nil {
+		t.Fatal(err)
+	}
+	m.Hook = nil
+	if left := m.Snapshot(); len(left) != 0 {
+		t.Fatalf("left behind: %v", left)
+	}
 }
