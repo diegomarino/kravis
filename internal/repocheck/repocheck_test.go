@@ -64,6 +64,9 @@ func personal(text string) []string {
 func TestNothingPersonalInTrackedFiles(t *testing.T) {
 	top := root(t)
 	for _, f := range trackedFiles(t, top) {
+		if f == "THIRD_PARTY_NOTICES.md" {
+			continue // other authors' license texts, with their addresses
+		}
 		data, err := os.ReadFile(filepath.Join(top, f))
 		if os.IsNotExist(err) {
 			continue // staged for deletion

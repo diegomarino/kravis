@@ -100,3 +100,7 @@ One record, one file. Long text goes in a Markdown file next to it. [`docs/stora
 - [`docs/storage.md`](docs/storage.md): the files on disk.
 - [`docs/development.md`](docs/development.md): stack, tooling and releases.
 - [`GLOSSARY.md`](GLOSSARY.md): the words Kravis uses.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
