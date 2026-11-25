@@ -305,9 +305,11 @@ func (ws *Workspace) CloseProject(actorID, id string, cancel bool, opt ViewOptio
 	}
 	var canceled []string
 	if cancel {
-		status, err := ws.canceledStatus(actor.Holder)
-		if err != nil {
-			return nil, err
+		var status string
+		if len(live) > 0 {
+			if status, err = ws.canceledStatus(actor.Holder); err != nil {
+				return nil, err
+			}
 		}
 		for _, t := range live {
 			res, err := ws.SetTaskStatus(actorID, t, status, ViewOptions{})

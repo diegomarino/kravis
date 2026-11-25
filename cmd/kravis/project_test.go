@@ -452,3 +452,17 @@ func TestWORK_INV_09_AnUpdateCannotMakeATaskLiveInAClosedProject(t *testing.T) {
 	e.ok("project", "reopen", "pr_data-room")
 	outcomeOf(t, e.ok("task", "update", id, "--title", "Renamed"), "updated")
 }
+
+func TestCloseProjectCancelTasksNeedsACanceledStatusOnlyForLiveTasks(t *testing.T) {
+	e := projectWorld(t)
+	e.ok(mkProject()...)
+	e.setStatuses(`[{"name":"todo","category":"open"},{"name":"done","category":"done"}]`)
+	outcomeOf(t, e.ok("project", "close", "pr_data-room", "--cancel-tasks"), "updated")
+	outcomeOf(t, e.ok("project", "close", "pr_data-room", "--cancel-tasks"), "unchanged")
+	e.ok("project", "reopen", "pr_data-room")
+	e.ok(mkTask("Live", "--project", "pr_data-room")...)
+	eo := e.refused("INVALID_VALUE", 2, "project", "close", "pr_data-room", "--cancel-tasks")
+	if details(t, eo)["field"] != "cancel-tasks" {
+		t.Errorf("details %v", eo["details"])
+	}
+}
