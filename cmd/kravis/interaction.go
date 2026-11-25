@@ -58,12 +58,12 @@ func (a *app) interactionCommand() *cobra.Command {
 					return domain.InvalidFlag(name, nil, "missing required flag: --%s", name)
 				}
 			}
-			text, err := summaryText(cmd, summaryFile)
-			if err != nil {
-				return err
-			}
-			in.Summary = text
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				text, err := summaryText(cmd, summaryFile)
+				if err != nil {
+					return nil, err
+				}
+				in.Summary = text
 				return ws.CreateInteraction(actor, in, cv)
 			})
 		},
@@ -91,14 +91,14 @@ func (a *app) interactionCommand() *cobra.Command {
 			ch.Channel, ch.Subject = changed(cmd, "channel", channel), changed(cmd, "subject", subject)
 			ch.Direction, ch.InitiatedBy = changed(cmd, "direction", direction), changed(cmd, "initiated-by", initiatedBy)
 			ch.Live = changed(cmd, "live", live)
-			if cmd.Flags().Changed("summary-file") {
-				text, err := summaryText(cmd, updSummary)
-				if err != nil {
-					return err
-				}
-				ch.Summary = &text
-			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				if cmd.Flags().Changed("summary-file") {
+					text, err := summaryText(cmd, updSummary)
+					if err != nil {
+						return nil, err
+					}
+					ch.Summary = &text
+				}
 				return ws.UpdateInteraction(actor, args[0], ch, uv)
 			})
 		},

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -288,5 +290,28 @@ func TestCheckReportsNotes(t *testing.T) {
 	must(t, os.WriteFile(sidecar(path), []byte("back"), 0o600))
 	if got := e.findings(); len(got["INVALID_RECORD"])+len(got["DANGLING_REFERENCE"])+len(got["HOLDER_MISMATCH"]) != 0 {
 		t.Errorf("repaired note still has findings %v", got)
+	}
+}
+
+// A reader that fails the test if the command touches it.
+type untouchedStdin struct{ t *testing.T }
+
+func (u untouchedStdin) Read([]byte) (int, error) {
+	u.t.Error("stdin was read before the actor was checked")
+	return 0, io.EOF
+}
+
+func TestLongTextIsReadOnlyAfterTheActorIsResolved(t *testing.T) {
+	e := world(t)
+	var stdout, stderr bytes.Buffer
+	code := runWith(e.deps(), []string{"note", "create", "--subject", orgID, "--text-file", "-", "--actor", "us_missing"},
+		untouchedStdin{t}, &stdout, &stderr)
+	if code == 0 || !strings.Contains(stderr.String(), "ACTOR_NOT_LIVE") {
+		t.Errorf("code %d, stderr %q", code, stderr.String())
+	}
+	// With a live actor the text still comes from stdin.
+	out := e.runWithStdin("From stdin.\n", "note", "create", "--subject", orgID, "--text-file", "-")
+	if out.Code != 0 {
+		t.Fatalf("code %d, stderr %q", out.Code, out.Stderr)
 	}
 }

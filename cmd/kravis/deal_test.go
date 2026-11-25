@@ -550,7 +550,7 @@ func TestTerminalListsShowTheirFiltersAlsoWhenEmpty(t *testing.T) {
 	e.TTY = true
 	// Every deal is closed: the live filter explains the empty list.
 	r := e.run("deal", "list")
-	for _, want := range []string{"filters", "live=true", "holder="+orgID, "only the records those filters match"} {
+	for _, want := range []string{"filters", "live=true", "holder=" + orgID, "only the records those filters match"} {
 		if !strings.Contains(r.Stdout, want) {
 			t.Errorf("closed-deal list lacks %q: %q", want, r.Stdout)
 		}
