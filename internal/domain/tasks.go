@@ -55,13 +55,13 @@ type Task struct {
 
 const dateLayout = "2006-01-02"
 
-// taskForm is what a task ID looks like after tk_: a TypeID suffix, 26
+// typeIDForm is what a task or note ID looks like after its prefix: a TypeID suffix, 26
 // characters of base32 that start with 0-7.
-var taskForm = regexp.MustCompile(`^[0-7][0-9a-hjkmnp-tv-z]{25}$`)
+var typeIDForm = regexp.MustCompile(`^[0-7][0-9a-hjkmnp-tv-z]{25}$`)
 
-// taskMonth is the folder of a task: the month, in UTC, of the time in its
+// typeIDMonth is the folder of a task or note: the month, in UTC, of the time in its
 // TypeID, so it never depends on the workspace timezone.
-func taskMonth(id string) string {
+func typeIDMonth(id string) string {
 	tid, err := typeid.FromString(id)
 	if err != nil {
 		return ""
@@ -77,13 +77,13 @@ func taskMonth(id string) string {
 var tasks = newKind(kind[Task, *Task]{
 	Type: Type{Name: "task", Dir: "tasks", Prefix: "tk_",
 		Order: "due, soonest first, tasks without a due date last; then the ID",
-		group: taskMonth},
+		group: typeIDMonth},
 	compact: []compactField{{"id", ""}, {"title", ""}, {"live", "false"}, {"holder", ""},
 		{"status", ""}, {"category", ""}, {"assignee", ""}, {"agent", ""}, {"due", ""}, {"project", ""}, {"deal", ""}},
 	// Tasks without a due date sort after every date.
 	sortKey:     func(t *Task) string { return firstOf(t.Due, "9999-99-99") },
 	holder:      func(t *Task) string { return t.Holder },
-	form:        taskForm,
+	form:        typeIDForm,
 	live:        func(t *Task) bool { return t.Live },
 	keyKinds:    []string{KeyTaskOrigin},
 	extraFields: []string{"description"},
@@ -154,7 +154,7 @@ func taskRules(t *Task) []string {
 	case t.Deal != "" && !hasID("dl_", t.Deal):
 		out = append(out, "the deal "+quote(t.Deal)+" is not a deal ID (dl_<slug>)")
 	}
-	return append(out, relatedRules(t.Related)...)
+	return append(out, relatedRules("related record", t.Related)...)
 }
 
 // parseDate reads a date such as 2026-11-28; "" is no date.
@@ -341,7 +341,7 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 	if err := ws.resolveParent(rec, strings.TrimSpace(in.Interaction)); err != nil {
 		return nil, err
 	}
-	if rec.Related, err = ws.checkRelated(holder, in.Related); err != nil {
+	if rec.Related, err = ws.checkRelated(holder, "related", in.Related); err != nil {
 		return nil, err
 	}
 	if rec.Category, err = ws.checkStatus(holder, initialStatus, false); err != nil {
@@ -527,11 +527,11 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 			return nil, err
 		}
 	}
-	addRelated, err := ws.checkRelated(actor.Holder, ch.Related)
+	addRelated, err := ws.checkRelated(actor.Holder, "related", ch.Related)
 	if err != nil {
 		return nil, err
 	}
-	dropRelated, err := ws.relatedToDrop(ch.RemoveRelated)
+	dropRelated, err := ws.relatedToDrop("remove-related", ch.RemoveRelated)
 	if err != nil {
 		return nil, err
 	}
@@ -977,7 +977,7 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 		if hasID("dl_", t.rec.Deal) {
 			auditHolderLink(add, t.path, "deal", t.rec.Deal, t.rec.Holder, ds)
 		}
-		auditRelated(add, t.path, t.rec.Holder, t.rec.Related, orgs, pe, ds, ps)
+		auditRelated(add, t.path, t.rec.Holder, "related record", t.rec.Related, orgs, pe, ds, ps)
 		if cfg == nil {
 			continue
 		}

@@ -320,7 +320,11 @@ func holdersOf(ws *Workspace, id string) ([]string, error) {
 		return nil, err
 	}
 	ps, err := projectsOf(ws, id)
-	return slices.Concat(us, its, ts, ds, ps), err
+	if err != nil {
+		return nil, err
+	}
+	ns, err := notesOf(ws, id)
+	return slices.Concat(us, its, ts, ds, ps, ns), err
 }
 
 func referringUsers(ws *Workspace, _ string, refers func(*User) bool) ([]string, error) {
