@@ -11,3 +11,5 @@ ownedBy: domain:deals
 constraints:
   - "A party is exactly one person or one organization (DEALS-INV-05; sibling: rel:party-is-person)."
   - "At most one party entry per organization in a deal."
+guarantees:
+  - DEALS-INV-05

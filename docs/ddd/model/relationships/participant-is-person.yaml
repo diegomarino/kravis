@@ -11,3 +11,5 @@ ownedBy: domain:interactions
 constraints:
   - "A participant is exactly one person or one organization (INTERACTIONS-INV-01; sibling: rel:participant-is-organization)."
   - "A person's single affiliation adds its organization when the person is added."
+guarantees:
+  - INTERACTIONS-INV-01

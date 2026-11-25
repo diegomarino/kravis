@@ -12,3 +12,5 @@ constraints:
   - "A task has at most one work parent, a project or a deal (WORK-INV-01; sibling: rel:task-in-deal)."
   - "A task in a project belongs to the project's deal; the deal is not repeated."
   - "A closed project accepts no new tasks."
+guarantees:
+  - WORK-INV-01

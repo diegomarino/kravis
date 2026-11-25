@@ -278,19 +278,19 @@ A human initializes a workspace with its first own organization and user, then a
 - `rel:deal-in-stage`: `concept:deal` -> `concept:stage` (`is-in`) - A deal is in exactly one stage of its pipeline at a time.
 - `rel:holder-is-own-organization`: `concept:holder` -> `concept:own-organization` (`is-a`) - A holder is an organization of the directory that carries the own mark.
 - `rel:human-linked-to-person`: `concept:human` -> `concept:person` (`represented-by`) - A human user may be linked to the person who represents them in the directory, so they can take part in interactions and deals.
-- `rel:initiator-is-participant`: `concept:initiator` -> `concept:participant` (`is-a`) - The initiator of an inbound interaction is one of its participants.
-- `rel:initiator-is-user`: `concept:initiator` -> `concept:user` (`is-a`) - The initiator of an outbound interaction is a user of its holder.
+- `rel:initiator-is-participant`: `concept:initiator` -> `concept:participant` (`is-a`) - The initiator of an inbound interaction is one of its participants. Guarantees: `INTERACTIONS-INV-03`.
+- `rel:initiator-is-user`: `concept:initiator` -> `concept:user` (`is-a`) - The initiator of an outbound interaction is a user of its holder. Guarantees: `INTERACTIONS-INV-03`.
 - `rel:interaction-concerns-deal`: `concept:interaction` -> `concept:deal` (`concerns`) - An interaction may concern any number of deals of its holder.
 - `rel:interaction-concerns-project`: `concept:interaction` -> `concept:project` (`concerns`) - An interaction may concern any number of projects of its holder.
 - `rel:interaction-identified-by-source-reference`: `concept:interaction` -> `concept:source-reference` (`identified-by`) - Some source references identify their interaction, and the pair (reference, holder) is unique.
-- `rel:note-about-deal`: `concept:note` -> `concept:deal` (`about`) - A note may be about deals of its holder.
-- `rel:note-about-organization`: `concept:note` -> `concept:organization` (`about`) - A note may be about organizations.
-- `rel:note-about-person`: `concept:note` -> `concept:person` (`about`) - A note may be about people.
-- `rel:note-about-project`: `concept:note` -> `concept:project` (`about`) - A note may be about projects of its holder.
-- `rel:participant-is-organization`: `concept:participant` -> `concept:organization` (`refers-to`) - A participant may be an organization from the shared directory.
-- `rel:participant-is-person`: `concept:participant` -> `concept:person` (`refers-to`) - A participant may be a person from the shared directory.
-- `rel:party-is-organization`: `concept:party` -> `concept:organization` (`refers-to`) - A party may be an organization from the shared directory.
-- `rel:party-is-person`: `concept:party` -> `concept:person` (`refers-to`) - A party may be a person from the shared directory.
+- `rel:note-about-deal`: `concept:note` -> `concept:deal` (`about`) - A note may be about deals of its holder. Guarantees: `INTERACTIONS-INV-10`.
+- `rel:note-about-organization`: `concept:note` -> `concept:organization` (`about`) - A note may be about organizations. Guarantees: `INTERACTIONS-INV-10`.
+- `rel:note-about-person`: `concept:note` -> `concept:person` (`about`) - A note may be about people. Guarantees: `INTERACTIONS-INV-10`.
+- `rel:note-about-project`: `concept:note` -> `concept:project` (`about`) - A note may be about projects of its holder. Guarantees: `INTERACTIONS-INV-10`.
+- `rel:participant-is-organization`: `concept:participant` -> `concept:organization` (`refers-to`) - A participant may be an organization from the shared directory. Guarantees: `INTERACTIONS-INV-01`.
+- `rel:participant-is-person`: `concept:participant` -> `concept:person` (`refers-to`) - A participant may be a person from the shared directory. Guarantees: `INTERACTIONS-INV-01`.
+- `rel:party-is-organization`: `concept:party` -> `concept:organization` (`refers-to`) - A party may be an organization from the shared directory. Guarantees: `DEALS-INV-05`.
+- `rel:party-is-person`: `concept:party` -> `concept:person` (`refers-to`) - A party may be a person from the shared directory. Guarantees: `DEALS-INV-05`.
 - `rel:party-plays-party-role`: `concept:party` -> `concept:party-role` (`plays`) - A party plays any number of party roles from the catalog, including none.
 - `rel:project-tied-to-deal`: `concept:project` -> `concept:deal` (`tied-to`) - A project may be tied to one deal of its holder; a deal may have several projects.
 - `rel:source-reference-points-into-source`: `concept:source-reference` -> `concept:source` (`points-into`) - A source reference points to one item of a source; each known source defines how its references are made canonical and which ones identify an interaction.
@@ -298,8 +298,8 @@ A human initializes a workspace with its first own organization and user, then a
 - `rel:status-in-category`: `concept:status` -> `concept:category` (`belongs-to`) - Every task status belongs to one fixed category: open, waiting, done or canceled.
 - `rel:task-assigned-to-assignee`: `concept:task` -> `concept:assignee` (`assigned-to`) - Every task has one human assignee and, optionally, an assigned agent working on the assignee's behalf.
 - `rel:task-from-interaction`: `concept:task` -> `concept:interaction` (`created-from`) - A task may record the interaction it was created from. This is provenance, not grouping.
-- `rel:task-in-deal`: `concept:task` -> `concept:deal` (`belongs-to`) - A task may belong directly to a deal of its holder.
-- `rel:task-in-project`: `concept:task` -> `concept:project` (`belongs-to`) - A task may belong to a project of its holder.
+- `rel:task-in-deal`: `concept:task` -> `concept:deal` (`belongs-to`) - A task may belong directly to a deal of its holder. Guarantees: `WORK-INV-01`.
+- `rel:task-in-project`: `concept:task` -> `concept:project` (`belongs-to`) - A task may belong to a project of its holder. Guarantees: `WORK-INV-01`.
 - `rel:user-works-for-holder`: `concept:user` -> `concept:holder` (`belongs-to`) - Each user works for exactly one holder, and every write by that user takes this holder.
 
 ## Decisions

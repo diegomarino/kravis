@@ -1540,6 +1540,126 @@
       "mode": null
     },
     {
+      "id": "edge:guarantees|rel:initiator-is-participant|INTERACTIONS-INV-03",
+      "from": "rel:initiator-is-participant",
+      "to": "INTERACTIONS-INV-03",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:initiator-is-participant",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:initiator-is-user|INTERACTIONS-INV-03",
+      "from": "rel:initiator-is-user",
+      "to": "INTERACTIONS-INV-03",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:initiator-is-user",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:note-about-deal|INTERACTIONS-INV-10",
+      "from": "rel:note-about-deal",
+      "to": "INTERACTIONS-INV-10",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:note-about-deal",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:note-about-organization|INTERACTIONS-INV-10",
+      "from": "rel:note-about-organization",
+      "to": "INTERACTIONS-INV-10",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:note-about-organization",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:note-about-person|INTERACTIONS-INV-10",
+      "from": "rel:note-about-person",
+      "to": "INTERACTIONS-INV-10",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:note-about-person",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:note-about-project|INTERACTIONS-INV-10",
+      "from": "rel:note-about-project",
+      "to": "INTERACTIONS-INV-10",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:note-about-project",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:participant-is-organization|INTERACTIONS-INV-01",
+      "from": "rel:participant-is-organization",
+      "to": "INTERACTIONS-INV-01",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:participant-is-organization",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:participant-is-person|INTERACTIONS-INV-01",
+      "from": "rel:participant-is-person",
+      "to": "INTERACTIONS-INV-01",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:participant-is-person",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:party-is-organization|DEALS-INV-05",
+      "from": "rel:party-is-organization",
+      "to": "DEALS-INV-05",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:party-is-organization",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:party-is-person|DEALS-INV-05",
+      "from": "rel:party-is-person",
+      "to": "DEALS-INV-05",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:party-is-person",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:task-in-deal|WORK-INV-01",
+      "from": "rel:task-in-deal",
+      "to": "WORK-INV-01",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:task-in-deal",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:guarantees|rel:task-in-project|WORK-INV-01",
+      "from": "rel:task-in-project",
+      "to": "WORK-INV-01",
+      "kind": "guarantees",
+      "label": "guarantees",
+      "source": "rel:task-in-project",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
       "id": "edge:owns|domain:deals|concept:deal",
       "from": "domain:deals",
       "to": "concept:deal",

@@ -13,7 +13,7 @@ permissions:
 env:
   GOLANGCI_LINT_VERSION: v2.15.0
   GOVULNCHECK_VERSION: v1.10.0
-  DDDUCK_VERSION: 0.5.0
+  DDDUCK_VERSION: 0.6.0
 
 jobs:
   check:

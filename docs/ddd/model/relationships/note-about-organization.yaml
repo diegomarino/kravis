@@ -10,3 +10,5 @@ description: "A note may be about organizations."
 ownedBy: domain:interactions
 constraints:
   - "A note has one or more subjects in any mix of people, organizations, deals and projects (INTERACTIONS-INV-10)."
+guarantees:
+  - INTERACTIONS-INV-10
