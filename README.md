@@ -73,7 +73,7 @@ kravis task list
 `init` creates the workspace, your organization and you as its first user. The second line adds an agent that works under you. Then you record an interaction with a person and create the follow-up it calls for. `task list` shows it, by due date:
 
 ```json
-{"data":[{"id":"tk_01m89ttyx2fssbxh4xhq07yj7v","title":"Send the proposal","live":true,"holder":"org_acme-advisory","status":"todo","category":"open","assignee":"us_ana","due":"2026-12-01"}],"filters":{"holder":"org_acme-advisory"},"total":1,"next_cursor":null}
+{"data":[{"id":"tk_01m89ttyx2fssbxh4xhq07yj7v","title":"Send the proposal","live":true,"holder":"org_acme-advisory","status":"todo","category":"open","assignee":"us_ana","due":"2026-12-01"}],"filters":{"holder":"org_acme-advisory","live":true},"total":1,"next_cursor":null}
 ```
 
 The task ID is generated, so yours differs.

@@ -2,7 +2,6 @@ package domain
 
 import (
 	"encoding/json"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -397,7 +396,7 @@ type ProjectFilter struct {
 // ListProjects returns a page of projects by name, live ones unless All.
 func (ws *Workspace) ListProjects(f ProjectFilter, opt ListOptions) (*ListResult, error) {
 	keep := func(p *Project) bool { return f.Deal == "" || p.Deal == f.Deal }
-	res, err := projects.list(ws, f.Holder, opt, keep, fmt.Sprintf("holder=%s|deal=%s", f.Holder, f.Deal))
+	res, err := projects.list(ws, f.Holder, opt, keep, applied("deal", f.Deal))
 	if err != nil {
 		return nil, err
 	}

@@ -46,7 +46,7 @@ Success:
 
 - `data` is always present and never `null`: an empty list is `[]`.
 - `warnings` appears only when there are warnings.
-- `filters` appears only on reads, and holds only what Kravis applies by itself (the holder limit), never what the caller asked for.
+- `filters` appears only on reads. A list echoes in it every filter it applied, with the values after normalization (a person's email as its `pe_…` ID, a date as the instant it bounds): the holder limit as `holder`, the live-only default as `live: true`, and each flag the caller gave under its name with underscores (`due_before`, `initiated_by`, `with_agents`, `related_to`; `channel`, `party`, `stage`, `category` and the rest as they are). A flag that is off or absent is not listed, and neither are `holder` without a limit and `live` with `--all`, a `--stage` or a `--category`. A `get` states only the holder limit. For example, `kravis interaction list --channel email --participant e.ruiz@example.com` has `"filters": {"channel": "email", "holder": "org_acme-example", "live": true, "participant": "pe_elena-ruiz"}`.
 
 - **Writes** (`create`, `update`, transitions, `delete`) return `outcome`:
   - `created` for a new record;
@@ -237,7 +237,7 @@ A task created in a closed project, or moved by `task status` to a live status w
 - A task has at most one parent. `--project` together with `--deal` is `INVALID_VALUE`. A task in a project stores only the project and takes the deal from it; a task stores a deal only when the deal is its direct parent. The parent is fixed at creation: to fix a wrong one, delete the task and create it again.
 - A task created with `--interaction` and no parent takes the interaction's project or deal when it has exactly one between both; with several it fails with `INVALID_VALUE`, `details.field: "project"` and the candidates in `details.allowed`; with none it has no parent. An explicit parent wins.
 - `--related` takes people, organizations, deals and projects; a deal or project of another holder is `HOLDER_MISMATCH` and any other type `INVALID_VALUE`.
-- `--related-to <id>` on `task list` matches a task related to the record, or whose parent is that deal or project, or, for a deal, whose project is tied to it. `--deal` on `task list` matches the same way: tasks of the deal and tasks of its projects. On `note list` it matches a subject. Other lists have only their specific filters.
+- `--related-to <id>` on `task list` matches a task related to the record, or whose parent is that deal or project, or, for a deal, whose project is tied to it, or whose source interaction (`from`) has the record as a participant. `--deal` on `task list` matches the same way: tasks of the deal and tasks of its projects. On `note list` it matches a subject. Other lists have only their specific filters.
 - `delete` is `REFERENCED`, with the referrers, while any record refers to the target. A deal is referred to by its projects, tasks, interactions, notes and the related lists of tasks and projects; a project, by its tasks, interactions, notes and related lists; a person or an organization, also by deals (as a party), notes (as a subject) and related lists. A note is referred to by nothing.
 - The skill lists the outreach recipe (the interaction filters above) and the briefing recipe (a person's or organization's interactions, notes with `--related-to`, deals with `--party`, and what is due today); their text is in the skill, not here.
 

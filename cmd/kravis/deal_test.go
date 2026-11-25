@@ -288,7 +288,7 @@ func TestWORKSPACE_INV_02_AnActorWritesOnlyItsOwnHoldersDeals(t *testing.T) {
 	// Reads are limited too, unless they ask for all holders.
 	e.refused("NOT_FOUND", 3, as(otherAgent, "deal", "get", sierraDeal)...)
 	e.ok(as(otherAgent, "deal", "get", sierraDeal, "--all-holders")...)
-	if l := e.ok(as(otherAgent, "deal", "list")...); l["total"] != float64(0) || fmt.Sprint(l["filters"]) != "map[holder:"+otherOrg+"]" {
+	if l := e.ok(as(otherAgent, "deal", "list")...); l["total"] != float64(0) || fmt.Sprint(l["filters"]) != "map[holder:"+otherOrg+" live:true]" {
 		t.Errorf("list %v", l)
 	}
 	// A deal takes its holder from its actor, and that holder can be a party of another holder's deal.

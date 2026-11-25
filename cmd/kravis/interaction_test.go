@@ -196,8 +196,8 @@ func TestWORKSPACE_INV_12_ReadsWithAnActorAreLimitedToItsHolder(t *testing.T) {
 	if len(ids(all)) != 2 || all["total"] != float64(2) {
 		t.Errorf("no actor: %v", all)
 	}
-	if _, ok := all["filters"]; ok {
-		t.Errorf("a read without an actor states no filter: %v", all)
+	if _, ok := obj(t, all, "filters")["holder"]; ok {
+		t.Errorf("a read without an actor states no holder limit: %v", all)
 	}
 	if got := e.ok("interaction", "get", dataRoomID); data(t, got)["id"] != dataRoomID {
 		t.Errorf("get without an actor: %v", got)
@@ -213,8 +213,8 @@ func TestWORKSPACE_AC_09_TheHolderFilterIsStatedAndAllHoldersRemovesIt(t *testin
 	if l["total"] != float64(2) {
 		t.Errorf("--all-holders: %v", l)
 	}
-	if _, ok := l["filters"]; ok {
-		t.Errorf("--all-holders states no filter: %v", l)
+	if _, ok := obj(t, l, "filters")["holder"]; ok {
+		t.Errorf("--all-holders states no holder limit: %v", l)
 	}
 	g := e.ok(as(otherAgent, "interaction", "get", dataRoomID, "--all-holders")...)
 	if _, ok := g["filters"]; ok || data(t, g)["holder"] != orgID {

@@ -387,8 +387,8 @@ func TestDIRECTORY_INV_01_PeopleAndOrganizationsHaveNoHolder(t *testing.T) {
 	}
 	// The other holder's user reads, finds and changes the same records.
 	list := e.ok("--actor", "us_bea-other", "person", "list")
-	if list["total"] != float64(1) || list["filters"] != nil {
-		t.Errorf("shared and never filtered: %v", list)
+	if list["total"] != float64(1) || fmt.Sprint(list["filters"]) != "map[live:true]" {
+		t.Errorf("shared and never limited by holder: %v", list)
 	}
 	outcomeOf(t, e.ok("--actor", "us_bea-other", "person", "create", "--email", elenaEmail), "existing")
 	outcomeOf(t, e.ok("--actor", "us_bea-other", "organization", "update", "org_grupo-sierra", "--name", "Grupo Sierra SL"), "updated")

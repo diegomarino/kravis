@@ -2,7 +2,6 @@ package domain
 
 import (
 	"encoding/json"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -248,7 +247,7 @@ func (ws *Workspace) ListNotes(f NoteFilter, opt ListOptions) (*ListResult, erro
 		}
 	}
 	keep := func(n *Note) bool { return relatedTo == "" || slices.Contains(n.Subjects, relatedTo) }
-	res, err := notes.list(ws, f.Holder, opt, keep, fmt.Sprintf("holder=%s|related=%s", f.Holder, relatedTo))
+	res, err := notes.list(ws, f.Holder, opt, keep, applied("related_to", relatedTo))
 	if err != nil {
 		return nil, err
 	}

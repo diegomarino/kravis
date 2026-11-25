@@ -528,8 +528,7 @@ func (ws *Workspace) ListDeals(f DealFilter, opt ListOptions) (*ListResult, erro
 			(f.Stage == "" || d.Stage == f.Stage) &&
 			(f.Category == "" || d.Category == f.Category)
 	}
-	print := fmt.Sprintf("holder=%s|party=%s|stage=%s|category=%s", f.Holder, f.Party, f.Stage, f.Category)
-	res, err := deals.list(ws, f.Holder, opt, keep, print)
+	res, err := deals.list(ws, f.Holder, opt, keep, applied("party", f.Party, "stage", f.Stage, "category", f.Category))
 	if err != nil {
 		return nil, err
 	}

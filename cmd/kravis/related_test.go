@@ -127,3 +127,19 @@ func TestINTERACTIONS_AC_02_AnOutreachMonthIsListedByDirectionInitiatorAndDates(
 		t.Errorf("with agents: %v", with["total"])
 	}
 }
+
+// A follow-up made from an email with a person has no --related, and the
+// briefing of that person still finds it through the interaction.
+func TestWORK_AC_02_ATaskListRelatedToAlsoFindsTheFollowUpsOfItsInteraction(t *testing.T) {
+	e := noteWorld(t)
+	e.ok(record("Data room documentation")...) // participant: Elena
+	followUp := idOf(t, e.ok(mkTask("Send the proposal", "--interaction", dataRoomID)...))
+	e.ok(mkTask("Unrelated")...)
+
+	if got := ids(t, e.ok("task", "list", "--related-to", elenaID)); !slices.Equal(got, []string{followUp}) {
+		t.Errorf("elena: %v, want the follow-up", got)
+	}
+	if got := ids(t, e.ok("task", "list", "--related-to", "pe_marco-silva")); len(got) != 0 {
+		t.Errorf("marco is no participant of the follow-up's interaction: %v", got)
+	}
+}
