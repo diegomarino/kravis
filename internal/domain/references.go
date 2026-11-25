@@ -45,9 +45,9 @@ func loadForCheck[T any, P interface {
 // auditUserLinks reports what users refer to: records that do not exist
 // (BROKEN_REFERENCE) and records that cannot be what is meant
 // (INVALID_RECORD): a holder that is not an own organization, a handler that
-// is not a live human of the agent's holder. It also reports a holder whose
-// users include no live human (IDENTITY-INV-06), which two retirements that
-// race can leave.
+// is not a live human of the agent's holder. It also reports a holder left
+// without a live human (IDENTITY-INV-06), which two retirements that race
+// can leave.
 func auditUserLinks(st *storage.Store, add addFinding) error {
 	us, err := loadForCheck(st, users)
 	if err != nil {
@@ -57,13 +57,18 @@ func auditUserLinks(st *storage.Store, add addFinding) error {
 	if err != nil {
 		return err
 	}
-	liveHuman := map[string]bool{}
+	// A holder with users but no live human is stranded; so is every holder
+	// when no live human is left anywhere, since then nobody can create one.
+	liveHuman, anyLive := map[string]bool{}, false
 	for _, u := range us {
-		liveHuman[u.rec.Holder] = liveHuman[u.rec.Holder] || u.rec.Kind == KindHuman && u.rec.Live
+		live := u.rec.Kind == KindHuman && u.rec.Live
+		liveHuman[u.rec.Holder] = liveHuman[u.rec.Holder] || live
+		anyLive = anyLive || live
 	}
-	for _, h := range slices.Sorted(maps.Keys(liveHuman)) {
-		if o, ok := orgs[h]; ok && !liveHuman[h] {
-			add(FindingInvalidRecord, o.path, "the holder has users but no live human: nobody can act for it")
+	for _, id := range slices.Sorted(maps.Keys(orgs)) {
+		live, hasUsers := liveHuman[id]
+		if o := orgs[id]; o.rec.Own && !live && (hasUsers || !anyLive) {
+			add(FindingInvalidRecord, o.path, "the holder has no live human to act for it")
 		}
 	}
 	pe, err := loadForCheck(st, people)

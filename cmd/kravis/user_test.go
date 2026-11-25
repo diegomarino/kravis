@@ -156,6 +156,20 @@ func TestIDENTITY_INV_06_CheckReportsAHolderWithoutALiveHuman(t *testing.T) {
 	if !strings.Contains(got, "records/organizations/"+orgID+".json") || !strings.Contains(got, "no live human") {
 		t.Errorf("findings %s", got)
 	}
+
+	// Two deletes that race leave no user at all: with no live human
+	// anywhere in the workspace, nobody can create one, and check says so.
+	e = newEnv(t)
+	e.mustInit()
+	e.ok("organization", "create", "--name", "Other Example", "--own")
+	if got := e.findings(); len(got) != 0 {
+		t.Errorf("a holder without users is fine while someone can create them: %v", got)
+	}
+	must(t, os.Remove("records/users/"+userID+".json"))
+	got = strings.Join(e.findings()["INVALID_RECORD"], "\n")
+	if !strings.Contains(got, "records/organizations/"+orgID+".json") || !strings.Contains(got, "records/organizations/"+otherOrg+".json") {
+		t.Errorf("findings %s", got)
+	}
 }
 
 func TestWORKSPACE_AC_10_DeletingAReferencedRecordFailsAndListsTheReferrers(t *testing.T) {
