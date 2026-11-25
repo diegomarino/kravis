@@ -120,7 +120,9 @@ func TestWORKSPACE_AC_04_NoteWritesReturnTheirOutcome(t *testing.T) {
 		t.Errorf("compact %v", keysOf(d))
 	}
 	outcomeOf(t, e.runOK("New text\n", "note", "update", id, "--text-file", "-"), "updated")
-	outcomeOf(t, e.runOK("New text\n", "note", "update", id, "--text-file", "-"), "unchanged")
+	if u := outcomeOf(t, e.runOK("New text\n", "note", "update", id, "--text-file", "-"), "unchanged"); u["text"] != nil {
+		t.Errorf("an unchanged update shows the text: %v", u)
+	}
 	if v := readRecord(t, noteFile(t, id))["version"]; v != float64(2) {
 		t.Errorf("version %v", v)
 	}

@@ -202,7 +202,7 @@ func (ws *Workspace) UpdateNote(actorID, id string, ch NoteChange, opt ViewOptio
 		return nil, err
 	}
 	touched := touchedIf("subjects", len(add)+len(drop) > 0, "text", ch.Text != nil)
-	return ws.finishNote(opt, ch.Text != nil)(notes.result(outcome(changed), rec, touched, opt))
+	return ws.finishNote(opt, changed && ch.Text != nil)(notes.result(outcome(changed), rec, touched, opt))
 }
 
 // DeleteNote deletes a note of the actor's holder, text included; another
