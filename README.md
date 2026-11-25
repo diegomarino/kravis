@@ -56,6 +56,8 @@ The task ID is generated, so yours differs.
 
 ## What it leaves on disk
 
+An excerpt: the other agent's user file and a `keys/` folder, which keeps creates safe to repeat, are left out.
+
 ```text
 .
 ├── kravis.json
