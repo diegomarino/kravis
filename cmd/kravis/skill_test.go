@@ -129,7 +129,7 @@ func skillProblems(text string, tree map[string][]string) []string {
 			continue
 		}
 		for _, f := range flags {
-			if !slices.Contains(have, f) {
+			if f != "--help" && !slices.Contains(have, f) { // --help belongs to every command
 				problems = append(problems, "`kravis "+path+"` has no flag "+f+" in: "+c)
 			}
 		}
@@ -157,6 +157,7 @@ func TestSkillDriftIsDetected(t *testing.T) {
 		{"Run `kravis task frobnicate <task>`.", "no command `kravis task frobnicate`"},
 		{"Run `kravis task create --title <t> --assignee <u> --owner <u>`.", "has no flag --owner"},
 		{"```sh\nkravis interaction create \\\n  --channel email --invented x\n```", "has no flag --invented"},
+		{"Run `kravis task create --help`.", ""},
 		{"Run `kravis whoami --set <user>` and `kravis task list --overdue | jq .`.", ""},
 	} {
 		problems := strings.Join(skillProblems(tc.text, tree), "\n")
@@ -229,6 +230,23 @@ func TestSkillInstalls(t *testing.T) {
 	for _, f := range []string{"SKILL.md", "references/message-id.md"} {
 		if _, err := os.Stat(filepath.Join(dir, ".claude", "skills", "kravis", filepath.FromSlash(f))); err != nil {
 			t.Errorf("the installed skill lacks %s: %v", f, err)
+		}
+	}
+}
+
+// The installed skill has no repository: it never links to repository files.
+func TestSkillLinksOnlyToItsOwnFiles(t *testing.T) {
+	link := regexp.MustCompile(`\]\(([^)]+)\)`)
+	for name, text := range skillFiles(t) {
+		for _, m := range link.FindAllStringSubmatch(text, -1) {
+			target := m[1]
+			if strings.HasPrefix(target, "http") {
+				continue
+			}
+			if _, err := os.Stat(filepath.Join(skillDir, filepath.Dir(name), filepath.FromSlash(target))); err != nil ||
+				strings.Contains(target, "..") {
+				t.Errorf("%s links to %s, which is not a file inside the skill", name, target)
+			}
 		}
 	}
 }

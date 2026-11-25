@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -16,7 +17,8 @@ func summaryText(cmd *cobra.Command, path string) (string, error) {
 }
 
 // fileText reads the text of a --<flag>-file flag: a path, or - for stdin.
-// An empty path is an empty text.
+// Stdin drops one trailing newline; a file's text is kept as is. An empty
+// path is an empty text.
 func fileText(cmd *cobra.Command, flag, path string) (string, error) {
 	var data []byte
 	var err error
@@ -25,6 +27,10 @@ func fileText(cmd *cobra.Command, flag, path string) (string, error) {
 		return "", nil
 	case "-":
 		data, err = io.ReadAll(cmd.InOrStdin())
+		// A pipe adds a newline the text did not have; a file stays as is.
+		if rest, ok := bytes.CutSuffix(data, []byte("\n")); ok {
+			data = bytes.TrimSuffix(rest, []byte("\r"))
+		}
 	default:
 		data, err = os.ReadFile(path)
 	}

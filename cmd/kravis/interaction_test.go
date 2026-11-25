@@ -605,14 +605,14 @@ func TestINTERACTIONS_INV_08_OnlyReferencesAndSummariesAreKept(t *testing.T) {
 	}
 	text, err := os.ReadFile(strings.TrimSuffix(dataRoom, ".json") + ".md")
 	must(t, err)
-	if string(text) != "The CFO asked for the data room index.\n" {
+	if string(text) != "The CFO asked for the data room index." {
 		t.Errorf("sidecar %q", text)
 	}
 	// The summary is read on request, never in the compact view.
 	if _, ok := data(t, e.ok("interaction", "get", dataRoomID))["summary"]; ok {
 		t.Error("summary in the compact view")
 	}
-	if s := data(t, e.ok("interaction", "get", dataRoomID, "--fields", "summary"))["summary"]; s != "The CFO asked for the data room index.\n" {
+	if s := data(t, e.ok("interaction", "get", dataRoomID, "--fields", "summary"))["summary"]; s != "The CFO asked for the data room index." {
 		t.Errorf("summary %v", s)
 	}
 	if s := data(t, e.ok("interaction", "get", dataRoomID, "--full"))["summary"]; s == nil {
@@ -1224,5 +1224,35 @@ func TestInteractionListByDealIncludesItsProjects(t *testing.T) {
 	}
 	if f := obj(t, out, "filters"); f["deal"] != "dl_grupo-sierra" {
 		t.Errorf("filters %v", f)
+	}
+}
+
+func TestStdinTextDropsOneTrailingNewlineAndAFileDoesNot(t *testing.T) {
+	e := world(t)
+	for stdin, want := range map[string]string{"From a pipe.\n": "From a pipe.", "Two\n\n": "Two\n", "No newline": "No newline", "Windows\r\n": "Windows", "Bare\r": "Bare\r"} {
+		out := e.runWithStdin(stdin, "interaction", "create", "--channel", "email", "--occurred-at", "2026-11-23T17:02:00Z",
+			"--subject", "Stdin "+want, "--participant", elenaID, "--summary-file", "-")
+		if out.Code != 0 {
+			t.Fatalf("%q: %s", stdin, out.Stderr)
+		}
+		if got := data(t, out.JSON(t))["summary"]; got != want {
+			t.Errorf("stdin %q: summary %q, want %q", stdin, got, want)
+		}
+	}
+	file := filepath.Join(t.TempDir(), "s.txt")
+	must(t, os.WriteFile(file, []byte("From a file.\n"), 0o644))
+	if got := data(t, e.ok(record("From file", "--summary-file", file)...))["summary"]; got != "From a file.\n" {
+		t.Errorf("file summary %q", got)
+	}
+}
+
+func TestReferencedInteractionHintNamesTheSteps(t *testing.T) {
+	e := taskWorld(t)
+	e.ok(record("Data room documentation")...)
+	e.ok(mkTask("Follow up", "--interaction", dataRoomID)...)
+	eo := e.refused("REFERENCED", 4, "interaction", "delete", dataRoomID)
+	hint, _ := eo["hint"].(string)
+	if !strings.Contains(hint, "delete the tasks") || !strings.Contains(hint, "then the interaction") || !strings.Contains(hint, "create the interaction and those tasks again") {
+		t.Errorf("hint %q", hint)
 	}
 }

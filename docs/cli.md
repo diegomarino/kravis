@@ -114,7 +114,7 @@ Error (stderr):
 | `NOT_FOUND` | error, 3 | The ID or alias does not exist |
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
 | `DEDUP_CONFLICT` | error, 4 | The natural key exists with contradicting data, or identifying references are split across two interactions |
-| `REFERENCED` | error, 4 | A delete of a record that others refer to, or closing a project that still has live tasks; `details.referrers` lists the records (the live tasks, for a close) |
+| `REFERENCED` | error, 4 | A delete of a record that others refer to (for an interaction that a task comes from, the hint names the steps: delete the tasks in `details.referrers`, then the interaction, then create the interaction and those tasks again), or closing a project that still has live tasks; `details.referrers` lists the records (the live tasks, for a close) |
 | `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or that conflicts with the files an interrupted `init` left (another organization, user or timezone) |
 | `STORAGE_UNAVAILABLE` | error, 5 | The workspace cannot be read or written |
 | `WORKSPACE_FILE_MISSING` | check finding | `kravis.json` or `config.json` does not exist |
@@ -138,7 +138,7 @@ A check finding is data on `kravis check`, with exit code 6, not an error.
 ### Input
 
 - Agent input is strict: unknown flags and fields are refused (`UNKNOWN_FIELD`). Records read from disk are tolerant instead: Kravis keeps their unknown fields.
-- Long text is passed with `--summary-file`, `--description-file` or `--text-file`, or as `-` to read it from stdin.
+- Long text is passed with `--summary-file`, `--description-file` or `--text-file`, or as `-` to read it from stdin. Text from stdin drops one trailing newline (the one a pipe adds); text from a file is kept as is.
 - Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`, `--role`, `--related`, `--subject`, `--deal`, `--project` on interactions) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`, except `--role`, which changes through `deal party`. No flag replaces a whole list.
 - `deal create` takes one `--party`, the deal's first party; repeating it is `INVALID_VALUE` with `details.field: "party"` and a hint to add the others with `deal party add`. `--role` repeats for that party. The other parties come with `deal party add` (see [Deals](#deals)): `kravis deal create --party pe_ben-carter --holder-role advisor`, then `kravis deal party add dl_ben-carter pe_mira-vale --role client`.
 - An empty value clears an optional field: `--agent ""`, `--due ""`.

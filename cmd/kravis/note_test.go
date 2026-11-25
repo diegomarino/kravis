@@ -128,7 +128,7 @@ func TestWORKSPACE_AC_04_NoteWritesReturnTheirOutcome(t *testing.T) {
 	if v := readRecord(t, noteFile(t, id))["version"]; v != float64(2) {
 		t.Errorf("version %v", v)
 	}
-	if raw, _ := os.ReadFile(sidecar(noteFile(t, id))); string(raw) != "New text\n" {
+	if raw, _ := os.ReadFile(sidecar(noteFile(t, id))); string(raw) != "New text" {
 		t.Errorf("sidecar %q", raw)
 	}
 	outcomeOf(t, e.ok("note", "update", id, "--subject", sierraDeal, "--subject", "pr_data-room"), "updated")
@@ -147,7 +147,7 @@ func TestWORKSPACE_AC_04_NoteWritesReturnTheirOutcome(t *testing.T) {
 	if g := data(t, e.ok("note", "get", id)); g["excerpt"] != "New text" || g["text"] != nil {
 		t.Errorf("get %v", g)
 	}
-	if g := data(t, e.ok("note", "get", id, "--full")); g["text"] != "New text\n" || g["version"] != float64(5) {
+	if g := data(t, e.ok("note", "get", id, "--full")); g["text"] != "New text" || g["version"] != float64(5) {
 		t.Errorf("full %v", g)
 	}
 	long := strings.Repeat("é", 100)
@@ -165,7 +165,7 @@ func TestWORKSPACE_AC_04_NoteWritesReturnTheirOutcome(t *testing.T) {
 	// delete takes the note, its sidecar and nothing else.
 	path := noteFile(t, id)
 	d = outcomeOf(t, e.ok("note", "delete", id, "--full"), "deleted")
-	if d["text"] != "New text\n" || exists(path) || exists(sidecar(path)) {
+	if d["text"] != "New text" || exists(path) || exists(sidecar(path)) {
 		t.Errorf("deleted %v", d)
 	}
 	e.refused("NOT_FOUND", 3, "note", "get", id)
