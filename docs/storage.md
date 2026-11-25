@@ -1,6 +1,6 @@
 # Storage
 
-How Kravis keeps a workspace on disk. This document covers increment 1 and notes what it leaves ready for increment 2. Behavior lives in the ddduck model (`docs/ddd/`); this document covers how that behavior is stored.
+How Kravis keeps a workspace on disk. This document covers increments 1 and 2. Behavior lives in the ddduck model (`docs/ddd/`); this document covers how that behavior is stored.
 
 ## Principles
 
@@ -28,9 +28,9 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
     people/pe_<slug>.json
     interactions/<yyyy-mm>/it_<yyyy-mm-dd>-<slug>.json   (+ .md)
     tasks/<yyyy-mm>/tk_<typeid>.json                     (+ .md)
-    deals/dl_<slug>.json                                 (increment 2)
-    projects/pr_<slug>.json                              (increment 2)
-    notes/<yyyy-mm>/nt_<typeid>.json + .md               (increment 2)
+    deals/dl_<slug>.json                                 (+ .md)
+    projects/pr_<slug>.json                              (+ .md)
+    notes/<yyyy-mm>/nt_<typeid>.json + .md
   keys/<kind>/<h0h1>/<hash>.json    deduplication keys
 ```
 
@@ -48,10 +48,11 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 | Person | `pe_<slug>`: from the display name if known, otherwise the local part of the email plus the first label of its domain | `pe_elena-ruiz`, `pe_e-ruiz-gruposierra` |
 | Interaction | `it_<yyyy-mm-dd>-<slug>`: the date it occurred plus the subject, ASCII and truncated to about 40 characters | `it_2026-11-23-documentacion-data-room` |
 | Task | `tk_<typeid>` (prefix + UUIDv7 in base32) | `tk_01jdx…` |
-| Deal, project | `dl_<slug>`, `pr_<slug>` (increment 2) | `dl_solar-vega` |
-| Note | `nt_<typeid>` (increment 2) | `nt_01jdx…` |
+| Deal | `dl_<slug>`: the slug of the first party's ID, without its prefix; the next deal with that party gets `-2`, `-3`… with no warning | `dl_grupo-sierra`, `dl_grupo-sierra-2` |
+| Project | `pr_<slug>` from the name | `pr_data-room` |
+| Note | `nt_<typeid>` | `nt_01jdx…` |
 
-- Slugs are lowercase ASCII with hyphens. On a collision the CLI adds `-2`, `-3`… and returns the `SIMILAR_EXISTS` warning with the existing ID.
+- Slugs are lowercase ASCII with hyphens. On a collision the CLI adds `-2`, `-3`… and returns the `SIMILAR_EXISTS` warning with the existing ID, except for deals, where a second deal with the same party is normal.
 - Kravis generates every ID, except a user's key, which is given at creation (`kravis user create <key>`, `init --user <key>`). An ID never changes afterwards: the name can be edited, but the ID cannot.
 - Each type has exactly one ID form.
 - A person can also be addressed by any of their emails wherever a person ID is accepted.
@@ -90,9 +91,25 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 - Every write increments `version` and sets `updated_at` and `updated_by` from the actor.
 - Unknown fields found on disk are kept when the record is rewritten. Agent input is decoded strictly instead (see `docs/cli.md`).
 
+### Deals, projects and notes
+
+Required fields are marked; every other field is omitted when empty.
+
+| Type | Fields in order |
+|---|---|
+| Deal | `id`, `holder`, `name`, `pipeline` (required, `default`), `stage` (required), `category` (required), `holder_role` (required), `lost_reason`, `parties`, `live`, then the metadata |
+| Project | `id`, `holder`, `name` (required), `deal`, `related`, `live`, then the metadata |
+| Note | `id`, `holder`, `subjects` (at least one), `live` (always `true`), then the metadata |
+
+- A deal's `parties` is a list of `{"party": "<person or organization ID>", "roles": ["client"]}`, sorted by party. A deal's `live` is true while its category is `ongoing`. `lost_reason` is present only in the `lost` category.
+- A project's `live` is false once it is closed.
+- A task adds `project` or `deal` (its parent, never both) and `related`. A task in a project stores no deal: it takes it from the project.
+- An interaction adds `deals` and `projects`.
+- `related` and `subjects` hold person, organization, deal or project IDs, sorted.
+
 ### Sidecars
 
-- Long text lives in `<id>.md` next to the JSON file, and the file exists only when there is text. The text is an interaction's summary, a task's description, or the content of a note (notes always have one).
+- Long text lives in `<id>.md` next to the JSON file, and the file exists only when there is text. The text is an interaction's summary, a task's, deal's or project's description, or the content of a note (notes always have one).
 - On write, Kravis writes the `.md` first and the JSON second. The JSON carries the version and confirms the write.
 - `check` reports sidecars that have no JSON next to them. It does not try to tell who edited a file: it validates every record against the rules (format, catalogs, category and `live`, references that exist and share the holder, deduplication keys), so a correct edit made by hand is valid and a wrong one is reported.
 
@@ -117,6 +134,17 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
       { "name": "done", "category": "done" },
       { "name": "canceled", "category": "canceled" }
     ],
+    "pipelines": {
+      "default": {
+        "stages": [
+          { "name": "prospect", "category": "ongoing" },
+          { "name": "engaged", "category": "ongoing" },
+          { "name": "closing", "category": "ongoing" },
+          { "name": "won", "category": "won" },
+          { "name": "lost", "category": "lost" }
+        ]
+      }
+    },
     "purposes": ["follow-up", "ping", "expand", "intro", "prepare"],
     "channels": ["email", "meeting", "call", "message"],
     "party_roles": ["client", "counterparty", "advisor", "lender", "investor", "buyer", "seller"],
@@ -125,7 +153,7 @@ How Kravis keeps a workspace on disk. This document covers increment 1 and notes
 }
 ```
 
-- `init` writes these defaults, and each workspace may edit them.
+- `init` writes these defaults, and each workspace may edit them. The MVP has the single pipeline `default`, and every deal stores its `pipeline`, so more pipelines can be added later without a migration.
 - Catalog lookups always go through "the configuration for holder H". In the MVP that call returns the workspace configuration, so per-holder configuration can be added later without touching callers.
 - The timezone, the workspace ID and the schema version are always workspace-wide.
 - A catalog value removed while records still use it stays on those records. `check` reports it, per holder, and the next edit of the record must replace it.
@@ -162,6 +190,8 @@ A natural key is stored as a file that points to the record holding it:
 | `interaction-ref` | (holder, canonical identifying source reference) | 1 |
 | `task-origin` | (interaction, purpose) | 1 |
 | `requests` | reserved for `--request-id` | — |
+
+Increment 2 adds no key: deals, projects and notes have no natural key.
 
 ### Sources
 
