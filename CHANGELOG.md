@@ -36,7 +36,7 @@ The MVP. Earlier work was never released on its own; this entry sums it up.
 * **Workspace:** `kravis init` creates a workspace in a folder you own, with your organization as the holder and you as its first user. One JSON file per record, long text in a Markdown file next to it.
 * **Users and agents:** humans and agents are users; each agent works under a human, its handler, and every record says who wrote it (`--actor`, `KRAVIS_ACTOR`, `kravis whoami`).
 * **Directory:** people (found by email) and organizations (found by domain), shared by every holder; a person can be affiliated with several organizations.
-* **Interactions:** emails, meetings and calls with their participants, direction and initiator, identified by their Message-ID or provider reference, so recording the same one twice returns the existing one.
+* **Interactions:** emails, meetings and calls with their participants, direction and initiator; an email recorded with its Message-ID is recorded once, so repeating it returns the existing one.
 * **Tasks:** assigned to a human and optionally one of their agents, with statuses, due dates and follow-ups created from an interaction, safe to repeat.
 * **Deals:** any number of parties, people or organizations, each with any number of party roles; the holder records its own party role; stages from a built-in pipeline, and losing a deal needs a lost reason.
 * **Projects:** optionally tied to a deal; closing one with live tasks is refused, or `--cancel-tasks` cancels them first.
