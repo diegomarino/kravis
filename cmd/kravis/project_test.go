@@ -428,3 +428,27 @@ func TestCheckReportsProjectsAndParentLinks(t *testing.T) {
 	has("INVALID_RECORD", "related record")
 	has("INVALID_RECORD", "live flag")
 }
+
+func TestWORK_INV_08_ARepeatedFollowUpWithAnotherRelatedRecordIsAConflict(t *testing.T) {
+	e := projectWorld(t)
+	e.ok(record("Data room documentation")...)
+	outcomeOf(t, e.ok(mkTask("Follow up", "--interaction", dataRoomID, "--related", elenaID)...), "created")
+	outcomeOf(t, e.ok(mkTask("Follow up", "--interaction", dataRoomID, "--related", elenaID)...), "existing")
+	e.refused("DEDUP_CONFLICT", 4, mkTask("Follow up", "--interaction", dataRoomID, "--related", sierraID)...)
+}
+
+func TestWORK_INV_09_AnUpdateCannotMakeATaskLiveInAClosedProject(t *testing.T) {
+	e := projectWorld(t)
+	e.ok(mkProject()...)
+	id := idOf(t, e.ok(mkTask("One", "--project", "pr_data-room")...))
+	e.ok("task", "status", id, "done")
+	e.ok("project", "close", "pr_data-room")
+	// The catalog now counts done as open: the next edit would make the task live.
+	e.setStatuses(`[{"name":"todo","category":"open"},{"name":"done","category":"open"},{"name":"canceled","category":"canceled"}]`)
+	eo := e.refused("INVALID_VALUE", 2, "task", "update", id, "--title", "Renamed")
+	if details(t, eo)["field"] != "project" {
+		t.Errorf("details %v", eo["details"])
+	}
+	e.ok("project", "reopen", "pr_data-room")
+	outcomeOf(t, e.ok("task", "update", id, "--title", "Renamed"), "updated")
+}

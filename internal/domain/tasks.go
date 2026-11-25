@@ -302,6 +302,14 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 	rec := &Task{Holder: holder, Title: title, Assignee: assignee, Agent: agent, Due: due,
 		Purpose: strings.TrimSpace(in.Purpose), Project: strings.TrimSpace(in.Project), Deal: strings.TrimSpace(in.Deal)}
 	givenProject, givenDeal := rec.Project, rec.Deal
+	var givenRelated []string
+	for _, ref := range in.Related {
+		id, err := ws.relatedID("related", ref)
+		if err != nil {
+			return nil, err
+		}
+		givenRelated = append(givenRelated, id)
+	}
 	if rec.Project != "" && rec.Deal != "" {
 		return nil, invalidValue("project", "a task has one parent: give --project or --deal, not both",
 			"a task has at most one parent, a project or a deal")
@@ -324,7 +332,7 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 			return nil, err
 		}
 		if ex != nil {
-			if err := sameTask(ex, rec, givenProject, givenDeal); err != nil {
+			if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 				return nil, err
 			}
 			return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
@@ -372,7 +380,7 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 		if err != nil {
 			return nil, err
 		}
-		if err := sameTask(ex, rec, givenProject, givenDeal); err != nil {
+		if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 			return nil, err
 		}
 		return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
@@ -466,14 +474,18 @@ func (ws *Workspace) originConflict(rec *Task, cause error) error {
 // sameTask is DEDUP_CONFLICT when the data a create sent contradicts the task
 // it found: another title or assignee, or an agent or due date it gave that
 // differs. A create never changes a record.
-func sameTask(ex, rec *Task, project, deal string) error {
-	return sameData("task", ex.ID,
+func sameTask(ex, rec *Task, project, deal string, related []string) error {
+	clashes := []clash{}
+	for _, r := range related {
+		clashes = append(clashes, clashing("related", !slices.Contains(ex.Related, r), r, "%s is not related to %s", ex.ID, r))
+	}
+	return sameData("task", ex.ID, append(clashes,
 		clashing("project", project != "" && ex.Project != project, project, "%s is in the project %q, not %q", ex.ID, ex.Project, project),
 		clashing("deal", deal != "" && ex.Deal != deal, deal, "%s is in the deal %q, not %q", ex.ID, ex.Deal, deal),
 		clashing("title", ex.Title != rec.Title, rec.Title, "%s already exists with the title %q, not %q", ex.ID, ex.Title, rec.Title),
 		clashing("assignee", ex.Assignee != rec.Assignee, rec.Assignee, "%s is assigned to %s, not to %s", ex.ID, ex.Assignee, rec.Assignee),
 		clashing("agent", rec.Agent != "" && ex.Agent != rec.Agent, rec.Agent, "%s has the agent %q, not %q", ex.ID, ex.Agent, rec.Agent),
-		clashing("due", rec.Due != "" && ex.Due != rec.Due, rec.Due, "%s is due %q, not %q", ex.ID, ex.Due, rec.Due))
+		clashing("due", rec.Due != "" && ex.Due != rec.Due, rec.Due, "%s is due %q, not %q", ex.ID, ex.Due, rec.Due))...)
 }
 
 // TaskChange is what task update takes; nil leaves a field as it is. The
@@ -549,6 +561,15 @@ func (ws *Workspace) UpdateTask(actorID, id string, ch TaskChange, opt ViewOptio
 		}
 		r.Related = slices.DeleteFunc(sortedIDs(slices.Concat(r.Related, addRelated)), func(x string) bool { return slices.Contains(dropRelated, x) })
 		reopened := r.Live && !wasLive
+		if reopened && r.Project != "" {
+			p, err := loadLinked(ws, "project", projects, r.Project)
+			if err != nil {
+				return err
+			}
+			if err := projectAccepts(p); err != nil {
+				return err
+			}
+		}
 		if err := ws.checkAssignment(r.Holder, r.Assignee, r.Agent, reopened || r.Assignee != prevAssignee, reopened && r.Agent != "" || r.Agent != prevAgent); err != nil {
 			return err
 		}
