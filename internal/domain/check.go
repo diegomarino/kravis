@@ -27,8 +27,8 @@ const (
 // type that refers to others adds its audit here, as it adds a scan to
 // referenceScans.
 var audits = []func(st *storage.Store, add addFinding) error{
-	people.audit, organizations.audit, users.audit, interactions.audit, tasks.audit, deals.audit, projects.audit,
-	auditUserLinks, auditPersonLinks, auditInteractionLinks, auditTaskLinks, auditDealLinks, auditProjectLinks,
+	people.audit, organizations.audit, users.audit, interactions.audit, tasks.audit, deals.audit, projects.audit, notes.audit,
+	auditUserLinks, auditPersonLinks, auditInteractionLinks, auditTaskLinks, auditDealLinks, auditProjectLinks, auditNoteLinks,
 }
 
 type addFinding func(code, record, format string, args ...any)

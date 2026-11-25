@@ -31,7 +31,7 @@ func TestTaskMonthIsTheUTCMonthOfTheTypeID(t *testing.T) {
 		{time.Date(2027, 1, 15, 12, 0, 0, 0, time.UTC), "2027-01"},
 	} {
 		id := taskIDAt(t, c.at)
-		if got := taskMonth(id); got != c.want {
+		if got := typeIDMonth(id); got != c.want {
 			t.Errorf("%s: month %q, want %q", id, got, c.want)
 		}
 		if want := "records/tasks/" + c.want + "/" + id + ".json"; tasks.Path(id) != want {
@@ -45,6 +45,6 @@ func TestTaskMonthIsTheUTCMonthOfTheTypeID(t *testing.T) {
 		if tasks.validID(bad) {
 			t.Errorf("%q must not be a task ID", bad)
 		}
-		_ = taskMonth(bad) // copes with any string
+		_ = typeIDMonth(bad) // copes with any string
 	}
 }
