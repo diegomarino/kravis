@@ -11,7 +11,7 @@ kravis init | whoami | schema [type] | check
 
 - The core verbs, uniform across types, are `list`, `get`, `create`, `update` and `delete`.
 - A transition that has rules gets its own verb next to its type, and `update` cannot bypass it. These are `task status`, `deal stage`, `deal party add/remove` and `project close/reopen`.
-- There are no composite operations. Recording an interaction and its follow-up takes two calls, and each one is safe to repeat.
+- There are no composite operations, except `project close --cancel-tasks`, which is safe to repeat after a partial failure. Recording an interaction and its follow-up takes two calls, and each one is safe to repeat.
 
 ## Workspace
 
