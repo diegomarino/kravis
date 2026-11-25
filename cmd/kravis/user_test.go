@@ -381,7 +381,7 @@ func TestCheckReportsBrokenUsersAndAffiliations(t *testing.T) {
 		t.Fatalf("clean: %s", r.Stdout)
 	}
 
-	write := func(path, body string) { must(t, os.WriteFile(path, []byte(body), 0o600)) }
+	write := func(path, body string) { must(t, os.WriteFile(path, withMeta(body), 0o600)) }
 	write("records/users/us_nokind.json", `{"id":"us_nokind","holder":"org_acme-example","kind":"robot","live":true}`)
 	write("records/users/us_nohandler.json", `{"id":"us_nohandler","holder":"org_acme-example","kind":"agent","live":true}`)
 	write("records/users/us_handled.json", `{"id":"us_handled","holder":"org_acme-example","kind":"human","handler":"us_ana-acme","live":true}`)

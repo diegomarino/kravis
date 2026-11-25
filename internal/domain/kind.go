@@ -89,6 +89,24 @@ func (k *kind[T, P]) problems(rec P) []string {
 	return append(out, k.rules(rec)...)
 }
 
+// metaProblems reports what is wrong with a stored record's metadata: a
+// version below 1, or no creation time or author. Check reports them and an
+// update refuses the record until it is repaired: Kravis never invents who
+// created a record, or when.
+func metaProblems(b *storage.Base) []string {
+	var out []string
+	if b.Version < 1 {
+		out = append(out, fmt.Sprintf("the version is %d, not a positive number", b.Version))
+	}
+	if b.CreatedAt.IsZero() {
+		out = append(out, "the record has no created_at")
+	}
+	if b.CreatedBy == "" {
+		out = append(out, "the record has no created_by")
+	}
+	return out
+}
+
 func newKind[T any, P interface {
 	*T
 	storage.Record
@@ -362,6 +380,10 @@ func (k *kind[T, P]) updateIn(ws *Workspace, holder, actor, id string, change fu
 			return k.notFound(id)
 		}
 		seen = p.Meta().Version
+		if problems := metaProblems(p.Meta()); len(problems) > 0 {
+			return newError(CodeInvalidValue, "repair "+k.Path(id)+" by hand; kravis check lists what is wrong",
+				"the %s on disk is invalid: %s", k.Name, problems[0])
+		}
 		if err := change(p); err != nil {
 			return err
 		}
@@ -630,7 +652,7 @@ func (k *kind[T, P]) audit(st *storage.Store, add addFinding) error {
 			add(FindingInvalidRecord, p, "the record has no live flag (true or false)")
 		}
 		id := rec.Meta().ID
-		for _, problem := range k.problems(rec) {
+		for _, problem := range slices.Concat(metaProblems(rec.Meta()), k.problems(rec)) {
 			add(FindingInvalidRecord, p, "%s", problem)
 		}
 		if id != "" && k.Path(id) != p {

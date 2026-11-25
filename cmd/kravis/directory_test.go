@@ -14,6 +14,12 @@ import (
 	"github.com/diegomarino/kravis/internal/storage"
 )
 
+// withMeta adds valid metadata to a record written by hand, so that check
+// reports only what the test breaks.
+func withMeta(rec string) []byte {
+	return []byte(strings.TrimSuffix(rec, "}") + `,"version":1,"created_at":"2026-11-23T00:00:00Z","created_by":"us_ana-acme"}`)
+}
+
 func readRecord(t *testing.T, path string) map[string]any {
 	t.Helper()
 	raw, err := os.ReadFile(path)
@@ -683,12 +689,12 @@ func TestCheckReportsBrokenPeopleAndOrganizations(t *testing.T) {
 	raw, _ = json.Marshal(org)
 	must(t, os.WriteFile("records/organizations/org_grupo-sierra.json", raw, 0o600))
 	// Records that break their rules.
-	must(t, os.WriteFile("records/people/pe_nobody.json", []byte(`{"id":"pe_nobody","live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_moved.json", []byte(`{"id":"pe_other","name":"X","live":true}`), 0o600))
-	must(t, os.WriteFile("records/organizations/org_mail.json", []byte(`{"id":"org_mail","name":"Mail","domains":["gmail.com"],"live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_typed.json", []byte(`{"id":"pe_typed","name":123,"live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_nolive.json", []byte(`{"id":"pe_nolive","name":"No Live"}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_nulllive.json", []byte(`{"id":"pe_nulllive","name":"Null Live","live":null}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nobody.json", withMeta(`{"id":"pe_nobody","live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_moved.json", withMeta(`{"id":"pe_other","name":"X","live":true}`), 0o600))
+	must(t, os.WriteFile("records/organizations/org_mail.json", withMeta(`{"id":"org_mail","name":"Mail","domains":["gmail.com"],"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_typed.json", withMeta(`{"id":"pe_typed","name":123,"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nolive.json", withMeta(`{"id":"pe_nolive","name":"No Live"}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nulllive.json", withMeta(`{"id":"pe_nulllive","name":"Null Live","live":null}`), 0o600))
 	// A key whose record is gone.
 	must(t, os.Remove("records/people/"+elenaID+".json"))
 
