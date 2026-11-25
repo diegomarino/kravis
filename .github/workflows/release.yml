@@ -1,27 +1,41 @@
 name: release
 
+# release-please keeps a release PR with the next version and its changelog.
+# Merging that PR creates the tag and the GitHub release; this workflow then
+# builds the binaries and uploads them to that release. A tag made with
+# GITHUB_TOKEN starts no other workflow, so the build lives here.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 
 permissions:
   contents: write
+  pull-requests: write
 
 env:
   GORELEASER_VERSION: v2.20.3
 
 jobs:
-  release:
+  release-please:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: googleapis/release-please-action@v4
+        id: release
         with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
           fetch-depth: 0
       - uses: actions/setup-go@v5
+        if: ${{ steps.release.outputs.release_created }}
         with:
           go-version-file: go.mod
       - uses: goreleaser/goreleaser-action@v6
+        if: ${{ steps.release.outputs.release_created }}
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
