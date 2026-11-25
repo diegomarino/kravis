@@ -1,6 +1,6 @@
 # CLI contract
 
-The contract of the `kravis` command for agents, scripts and people. This document covers increment 1 and notes what increment 2 adds. All domain logic lives in the Go library; the CLI is a thin layer over it, and a future MCP server will be another thin layer over the same library and schemas.
+The contract of the `kravis` command for agents, scripts and people. This document covers increments 1 and 2. All domain logic lives in the Go library; the CLI is a thin layer over it, and a future MCP server will be another thin layer over the same library and schemas.
 
 ## Shape
 
@@ -10,8 +10,8 @@ kravis init | whoami | schema [type] | check
 ```
 
 - The core verbs, uniform across types, are `list`, `get`, `create`, `update` and `delete`.
-- A transition that has rules gets its own verb next to its type, and `update` cannot bypass it. In increment 1 that is `task status`; increment 2 adds `deal stage`, `deal party add/remove` and `project close/reopen`.
-- There are no composite operations. Recording an interaction and its follow-up takes two calls, and each one is safe to repeat.
+- A transition that has rules gets its own verb next to its type, and `update` cannot bypass it. These are `task status`, `deal stage`, `deal party add/remove` and `project close/reopen`.
+- There are no composite operations, except `project close --cancel-tasks`, which is safe to repeat after a partial failure. Recording an interaction and its follow-up takes two calls, and each one is safe to repeat.
 
 ## Workspace
 
@@ -20,9 +20,9 @@ kravis init | whoami | schema [type] | check
 
 ## Identity and holder
 
-- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS) and `%AppData%\kravis\config.json` on Windows. It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options, and so does `whoami` without `--set`, which has nothing to print. Other reads need no actor.
+- Every write needs an actor. Kravis takes it from `--actor <user>`, then `KRAVIS_ACTOR`, then the local configuration: `$XDG_CONFIG_HOME/kravis/config.json`, by default `~/.config/kravis/config.json` on macOS and Linux (not Go's `os.UserConfigDir`, which points to `~/Library/Application Support` on macOS). It maps each workspace ID to its default actor, `{"workspaces": {"ws_…": {"actor": "us_…"}}}`. It belongs to a person on a machine, never to the workspace. A write without an actor fails with `MISSING_ACTOR` (exit code 2) and a hint naming both options, and so does `whoami` without `--set`, which has nothing to print. Other reads need no actor.
 - The actor must exist and be live. In the MVP the actor is declared rather than authenticated: it serves attribution and auditing, and it is not a security control.
-- A work record (interaction, task, and later deal, project and note) takes its holder from the actor, so there is no `--holder` flag on writes.
+- A work record (deal, project, task, interaction and note) takes its holder from the actor, so there is no `--holder` flag on writes.
 - An actor can only write the work records of its own holder: an update, transition or delete of another holder's record returns `NOT_FOUND`, also with `--all-holders`, which only widens reads.
 - A read made with a declared actor is limited to the actor's holder, and the response states that filter: a `list` returns only that holder's work records, and a `get` of another holder's record returns `NOT_FOUND`. `--all-holders` removes the limit. A read without an actor is not limited. People, organizations and users are shared and never filtered.
 - `kravis whoami` prints the resolved actor, where it came from (flag, environment or configuration) and its holder. `kravis whoami --set <user>` stores a live user as this workspace's default actor in the local configuration.
@@ -64,8 +64,11 @@ Success:
   - Lists show only live records by default; `--all` or an explicit category includes the others.
 - Each type has a fixed default order, declared in `kravis schema`, with the ID breaking ties:
   - users, organizations and people by name, compared as its slug (lowercase ASCII without accents, the same transformation that makes IDs), so the order is the same on every machine. A person without a name uses its smallest email (the emails are a sorted list), else its ID; a user without a name uses its ID. Both are compared the same way;
+  - deals by name, compared as its slug; a deal without a name uses its ID;
+  - projects by name, compared as its slug;
   - interactions by `occurred_at`, newest first;
-  - tasks by `due`, soonest first, with tasks without a due date last.
+  - tasks by `due`, soonest first, with tasks without a due date last;
+  - notes by `created_at`, newest first.
 
 Error (stderr):
 
@@ -98,7 +101,7 @@ Error (stderr):
 | 5 | Storage unavailable or I/O error |
 | 6 | `check` found issues: its findings are data on stdout, not an error |
 
-### Error and warning codes (increment 1)
+### Error and warning codes
 
 | Code | Kind | When |
 |---|---|---|
@@ -107,11 +110,11 @@ Error (stderr):
 | `ACTOR_NOT_LIVE` | error, 2 | The actor does not exist or is not live |
 | `UNKNOWN_FIELD` | error, 2 | Agent input with a field the schema does not define |
 | `INVALID_VALUE` | error, 2 | A value outside its catalog or format, or an unknown command; `details.allowed` lists the valid values |
-| `HOLDER_MISMATCH` | error, 2 | A link to a record of another holder |
+| `HOLDER_MISMATCH` | error, 2; check finding | A link to a record of another holder. As an error, `details.field` names the link; as a check finding, it is a link already on disk to a record of another holder |
 | `NOT_FOUND` | error, 3 | The ID or alias does not exist |
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
 | `DEDUP_CONFLICT` | error, 4 | The natural key exists with contradicting data, or identifying references are split across two interactions |
-| `REFERENCED` | error, 4 | A delete of a record that others refer to; `details.referrers` lists them |
+| `REFERENCED` | error, 4 | A delete of a record that others refer to, or closing a project that still has live tasks; `details.referrers` lists the records (the live tasks, for a close) |
 | `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or that conflicts with the files an interrupted `init` left (another organization, user or timezone) |
 | `STORAGE_UNAVAILABLE` | error, 5 | The workspace cannot be read or written |
 | `WORKSPACE_FILE_MISSING` | check finding | `kravis.json` or `config.json` does not exist |
@@ -119,24 +122,24 @@ Error (stderr):
 | `ORPHAN_SIDECAR` | check finding | A `.md` sidecar has no `.json` record next to it |
 | `UNREADABLE_RECORD` | check finding | A record file exists but cannot be read |
 | `MALFORMED_RECORD` | check finding | A record file is not valid JSON for a record, or has no `id` |
-| `INVALID_RECORD` | check finding | A record breaks its type's rules: an ID of the wrong form or that does not match its file name, a field of the wrong type, no `live` flag, a person with neither name nor email, an invalid or repeated email or domain, or a provider domain on an organization |
+| `INVALID_RECORD` | check finding | A record breaks its type's rules: an ID of the wrong form or that does not match its file name, a field of the wrong type, no `live` flag, a person with neither name nor email, an invalid or repeated email or domain, or a provider domain on an organization. Also: a deal whose category or `live` disagrees with its stage, with a lost reason outside the lost category or none inside it, or whose holder is one of its parties; a task with both a project and a deal; a live task in a project that is not live; a note without subjects or without its text sidecar |
 | `KEY_WITHOUT_VALUE` | check finding | A deduplication key points to a record that does not exist or no longer has the value |
 | `VALUE_WITHOUT_KEY` | check finding | A record has an email or domain whose deduplication key is missing or points to another record |
-| `BROKEN_REFERENCE` | check finding | A user or an affiliation refers to a record that does not exist: a holder, a handler, a linked person or an organization |
-| `DANGLING_REFERENCE` | check finding | A work record refers to a record that does not exist: an interaction's holder, participant or initiator |
-| `VALUE_NOT_IN_CATALOG` | check finding | A catalog-valued field holds a value that the catalog for its holder no longer has, such as an interaction's channel; the next update of the record must replace it |
+| `BROKEN_REFERENCE` | check finding | A user, an affiliation or a deal refers to a record that does not exist: a holder, a handler, a linked person or an organization; a deal's party |
+| `DANGLING_REFERENCE` | check finding | A work record refers to a record that does not exist: an interaction's holder, participant, initiator, deal or project; a task's project, deal or related record; a project's deal or related record; a note's subject |
+| `VALUE_NOT_IN_CATALOG` | check finding | A catalog-valued field holds a value that the catalog for its holder no longer has, such as an interaction's channel, a deal's stage, party role, holder role or lost reason, or a task's status; the next update of the record must replace it |
 | `SIMILAR_EXISTS` | warning | A slug got a `-2` suffix; `details.id` names the existing record |
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |
 | `UNKNOWN_SOURCE` | warning | A source reference to a source that is not in the catalog |
 
-A check finding is data on `kravis check`, with exit code 6, not an error. Later increments add the codes of their types the same way.
+A check finding is data on `kravis check`, with exit code 6, not an error.
 
 ### Input
 
 - Agent input is strict: unknown flags and fields are refused (`UNKNOWN_FIELD`). Records read from disk are tolerant instead: Kravis keeps their unknown fields.
-- Long text is passed with `--summary-file` or `--description-file`, or as `-` to read it from stdin.
-- Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`. No flag replaces a whole list.
+- Long text is passed with `--summary-file`, `--description-file` or `--text-file`, or as `-` to read it from stdin.
+- Repeatable flags (`--email`, `--domain`, `--participant`, `--ref`, `--party`, `--role`, `--related`, `--subject`, `--deal`, `--project` on interactions) add values, on `create` and on `update`; each has a `--remove-<flag>` counterpart on `update`, except `--party` and `--role`, which change through `deal party`. No flag replaces a whole list.
 - An empty value clears an optional field: `--agent ""`, `--due ""`.
 
 ### Compact views
@@ -149,7 +152,12 @@ Every compact view has `id`, the name or title, `live`, and `holder` on work rec
 | Organization | `domains`, `own` |
 | Person | `emails` |
 | Interaction | `occurred_at`, `channel`, `direction`, `subject`, `participants` |
-| Task | `status`, `category`, `assignee`, `agent`, `due` |
+| Task | `status`, `category`, `assignee`, `agent`, `due`, `project`, `deal` |
+| Deal | `name`, `stage`, `category`, `holder_role`, `lost_reason` |
+| Project | `deal` |
+| Note | `subjects`, `excerpt`, `created_at` |
+
+A note has no title, so its view has no name: `excerpt` is the first line of its text, cut at 80 characters. A deal's name is optional and omitted when empty. `--full` adds what the compact view leaves out (`--fields` picks some of it), and plain `get` stays compact: a deal's `pipeline`, `parties` and description; a project's `related` and description; a task's `related` and description; an interaction's `deals` and `projects`; a note's full `text`.
 
 ## Discovery
 
@@ -168,11 +176,11 @@ It is the single source for agents, the skill, the future MCP server and the tes
 Agents arrive with other products' vocabulary. The CLI guides them back to Kravis's terms (see `GLOSSARY.md`):
 
 - An unknown flag that is a common synonym gets a `hint` pointing to the Kravis flag: `--owner` points to `--assignee`, and `--delegate` points to `--agent`. Linear calls the agent working for a human its `delegate`, and most CRMs call the assignee `owner`.
-- `role` appears only inside a party (`parties[].role`, `--role` on `deal party add`), never on its own. Future permissions will be called `permission` or `grant`.
+- `role` appears only inside a party (`parties[].roles`, `--role` on `deal party add`), never on its own. Future permissions will be called `permission` or `grant`.
 - There is never a bare `source` field. In Salesforce and HubSpot it reads as the marketing lead source, so it always appears inside a source reference (`references[].source`).
 - The holder works like Odoo's multi-company `company_id`: people and organizations are shared, and records of different holders cannot be linked. Help texts say so, because agents trained on Salesforce or Dynamics may read "organization" as the tenant.
 
-## Commands in increment 1
+## Commands
 
 | Command | Notes |
 |---|---|
@@ -184,11 +192,11 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 | `kravis organization list\|get\|create\|update\|delete` | `create --name <name>` (required). `--own` marks an own organization. The mark cannot be removed while the organization is a holder. `--domain` can be repeated and deduplicates |
 | `kravis person list\|get\|create\|update\|delete` | `create [--name <name>] [--email <email>]…`: a name, an email or both. `--email` can be repeated and deduplicates; the email is also an alias of the person |
 | `kravis person affiliation add\|remove <person> <organization> [--title <text>]` | At most one affiliation per pair. `add` on an existing pair updates the title |
-| `kravis interaction create` | `--channel`, `--occurred-at`, `--subject`, `--participant` (repeatable), `--ref <source>:<kind>:<id>[@<scope>]` (repeatable), `--direction outbound\|inbound` (default `outbound`), `--initiated-by <user or participant>`, `--summary-file` |
-| `kravis interaction list\|get\|update\|delete` | List filters: `--participant`, `--direction`, `--initiated-by [--with-agents]`, `--channel`, `--from`, `--to` |
-| `kravis task create` | `--title`, `--assignee` (a human of the holder), `--agent`, `--due <date>`, `--purpose`, `--interaction <id>` (provenance: `from`), `--description-file`. A new task starts in `todo` |
+| `kravis interaction create` | `--deal` and `--project` (repeatable, of the holder), `--channel`, `--occurred-at`, `--subject`, `--participant` (repeatable), `--ref <source>:<kind>:<id>[@<scope>]` (repeatable), `--direction outbound\|inbound` (default `outbound`), `--initiated-by <user or participant>`, `--summary-file` |
+| `kravis interaction list\|get\|update\|delete` | List filters: `--participant`, `--direction`, `--initiated-by [--with-agents]`, `--channel`, `--from`, `--to`, `--deal`, `--project`. A person's outreach in a month is `--direction outbound --initiated-by <user> --from <first day> --to <last day>` (INTERACTIONS-AC-02). `update` adds and removes deals and projects with `--deal`, `--project`, `--remove-deal` and `--remove-project` |
+| `kravis task create` | `--title`, `--assignee` (a human of the holder), `--agent`, `--due <date>`, `--purpose`, `--interaction <id>` (provenance: `from`), `--project <project>` or `--deal <deal>` (its parent), `--related <id>` (repeatable), `--description-file`. A new task starts in `todo` |
 | `kravis task status <task> <status>` | The only way to change the status |
-| `kravis task list\|get\|update\|delete` | List filters: `--assignee`, `--agent`, `--category`, `--overdue`, `--due-before <date>`, `--all` |
+| `kravis task list\|get\|update\|delete` | List filters: `--assignee`, `--agent`, `--category`, `--overdue`, `--due-before <date>`, `--project`, `--deal`, `--related-to <id>`, `--all`. `update` adds and removes related records with `--related` and `--remove-related`, and cannot change or clear the parent |
 
 Behavior to note:
 
@@ -196,14 +204,42 @@ Behavior to note:
 - A task created with `--interaction` has a purpose (`follow-up` by default) and deduplicates by (interaction, purpose).
 - Repeating an update or a transition with the same values returns `unchanged`.
 
-## Increment 2 adds
+### Deals
 
-- `deal create|list|get|update|delete`, `deal stage <deal> <stage> [--reason <lost reason>]`, `deal party add|remove <deal> <party> [--role <party role>]`, and the holder's party role on create.
-- `project create|list|get|update|delete` and `project close|reopen`.
-- `--project`, `--deal` and `--related` on tasks, plus task inheritance of the interaction's project or deal.
-- `--deal` and `--project` on interactions.
-- `note create|list|get|update|delete`.
-- `--related-to` filters and the outreach and briefing recipes in the skill.
+| Command | Notes |
+|---|---|
+| `kravis deal create --party <person or organization> [--role <party role>]… --holder-role <party role> [--name <name>] [--stage <stage>] [--description-file]` | `--party` is required and is the deal's first party, with its roles (`--role`, repeatable, optional). `--holder-role` is the holder's party role and has no default. `--name` is optional. The stage defaults to the first stage of the pipeline, `prospect`; `--stage` on create refuses a stage of the lost category with `INVALID_VALUE` and a hint to use `deal stage`, which takes the reason. The ID is `dl_<slug>`, the party's ID without its prefix, then `dl_<slug>-2`, `-3` for the next deals with the same party, without a `SIMILAR_EXISTS` warning; it never changes, even if that party is later removed. A deal has no natural key, so repeating a create makes another deal. It is stored with `pipeline: "default"`. There is no `--pipeline` flag yet |
+| `kravis deal list\|get\|update\|delete` | List filters: `--party <id>`, `--stage`, `--category`, `--all`. `update` changes `--name`, `--holder-role` and the description. `--stage` is refused as an unknown flag with a hint pointing to `deal stage`, and `live` cannot be set: it follows the stage's category (ongoing is live) |
+| `kravis deal stage <deal> <stage> [--reason <lost reason>]` | The only way to change the stage, and it may move to any stage of the pipeline. The same stage with the same reason (or none) is `unchanged`. A stage outside the pipeline is `INVALID_VALUE` with `details.allowed` listing the stages. A stage of the lost category needs `--reason`, else `INVALID_VALUE` with `details.field: "reason"` and the lost reasons in `details.allowed`; `--reason` with any other stage is `INVALID_VALUE` too. A move to a stage outside the lost category, ongoing or won, clears the reason; lost to lost with another reason replaces it |
+| `kravis deal party add <deal> <party> [--role <party role>]…` | A party is a person (ID or email) or an organization, at most once per deal. On an existing party, `add` adds the missing roles and returns `unchanged` when all are there. The roles are optional. The deal's holder as a party is `INVALID_VALUE` with `details.field: "party"` |
+| `kravis deal party remove <deal> <party> [--role <party role>]` | Without `--role` it removes the party; with it, only that role, and the party stays even with none left. A party or a role that is not on the deal is `NOT_FOUND` |
+
+### Projects
+
+| Command | Notes |
+|---|---|
+| `kravis project create --name <name> [--deal <deal>] [--related <id>]… [--description-file]` | The ID is `pr_<slug>` of the name, with `-2` and `SIMILAR_EXISTS` on a collision. A project is tied to at most one deal and a deal may have many projects. A project is created live |
+| `kravis project list\|get\|update\|delete` | List filters: `--deal`, `--all`. `update` changes the name, `--deal` (at any time: a task in the project takes its deal from the project, so none can disagree), `--related` and `--remove-related`, and the description. It cannot set `live` |
+| `kravis project close <project> [--cancel-tasks]` | Closing a project already closed is `unchanged`. With live tasks it fails with `REFERENCED` and the live tasks in `details.referrers`. `--cancel-tasks` first moves every live task of the project to the first status of the `canceled` category in the catalog, then closes it; repeating it after a partial failure finishes the rest. `data` lists the tasks it canceled in `canceled_tasks` |
+| `kravis project reopen <project>` | Reopening a live project is `unchanged` |
+
+A task created in a closed project, or moved by `task status` to a live status while its project is closed, is refused with `INVALID_VALUE` (`details.field: "project"`) and a hint to reopen the project.
+
+### Notes
+
+| Command | Notes |
+|---|---|
+| `kravis note create --subject <id>… --text-file <file>` | `--subject` is repeatable, at least one, each a person (ID or email), organization, deal or project; deals and projects must be of the holder (`HOLDER_MISMATCH` otherwise). The text is required and lives in the `.md` sidecar. The ID is a TypeID. A note is always live: a note that is no longer useful is deleted |
+| `kravis note list\|get\|update\|delete` | List filter: `--related-to <id>`, a subject. `update` changes the text and adds or removes subjects with `--subject` and `--remove-subject`, never below one |
+
+### Parents, related records and refusals
+
+- A task has at most one parent. `--project` together with `--deal` is `INVALID_VALUE`. A task in a project stores only the project and takes the deal from it; a task stores a deal only when the deal is its direct parent. The parent is fixed at creation: to fix a wrong one, delete the task and create it again.
+- A task created with `--interaction` and no parent takes the interaction's project or deal when it has exactly one between both; with several it fails with `INVALID_VALUE`, `details.field: "project"` and the candidates in `details.allowed`; with none it has no parent. An explicit parent wins.
+- `--related` takes people, organizations, deals and projects; a deal or project of another holder is `HOLDER_MISMATCH` and any other type `INVALID_VALUE`.
+- `--related-to <id>` on `task list` matches a task related to the record, or whose parent is that deal or project, or, for a deal, whose project is tied to it. `--deal` on `task list` matches the same way: tasks of the deal and tasks of its projects. On `note list` it matches a subject. Other lists have only their specific filters.
+- `delete` is `REFERENCED`, with the referrers, while any record refers to the target. A deal is referred to by its projects, tasks, interactions, notes and the related lists of tasks and projects; a project, by its tasks, interactions, notes and related lists; a person or an organization, also by deals (as a party), notes (as a subject) and related lists. A note is referred to by nothing.
+- The skill lists the outreach recipe (the interaction filters above) and the briefing recipe (a person's or organization's interactions, notes with `--related-to`, deals with `--party`, and what is due today); their text is in the skill, not here.
 
 ## Ready for later
 
