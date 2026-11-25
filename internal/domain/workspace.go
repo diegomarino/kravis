@@ -213,6 +213,16 @@ type Workspace struct {
 	Config Config
 	Store  *storage.Store
 	now    func() time.Time
+	// strict makes scans fail on a record that does not decode, for the
+	// guards: a referrer that cannot be read must not be skipped.
+	strict bool
+}
+
+// strictly is the workspace with strict scans.
+func (ws *Workspace) strictly() *Workspace {
+	c := *ws
+	c.strict = true
+	return &c
 }
 
 // clock is the time of the call, for what depends on today's date.

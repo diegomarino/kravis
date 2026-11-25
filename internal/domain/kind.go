@@ -412,6 +412,7 @@ var referenceScans = []func(ws *Workspace, id string) ([]string, error){usersRef
 // referrers lists the records that refer to id, sorted.
 func (ws *Workspace) referrers(id string) ([]string, error) {
 	var out []string
+	ws = ws.strictly()
 	for _, scan := range referenceScans {
 		ids, err := scan(ws, id)
 		if err != nil {
@@ -558,8 +559,9 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 	return res, nil
 }
 
-// scan reads every record of the type. Files that vanish meanwhile or do
-// not decode are left out: kravis check reports the latter.
+// scan reads every record of the type. Files that vanish meanwhile are left
+// out, and so are files that do not decode (kravis check reports them),
+// except in a strict workspace, where they fail the scan with their path.
 func (k *kind[T, P]) scan(ws *Workspace) ([]row[P], error) {
 	paths, err := ws.Store.List("records/" + k.Dir + "/")
 	if err != nil {
@@ -574,6 +576,11 @@ func (k *kind[T, P]) scan(ws *Workspace) ([]row[P], error) {
 		if _, err := ws.Store.Load(p, rec); err != nil {
 			if errors.Is(err, storage.ErrUnavailable) {
 				return nil, err
+			}
+			if ws.strict && !errors.Is(err, storage.ErrNotFound) {
+				return nil, newError(CodeStorageUnavailable,
+					"run kravis check, repair that record, then repeat the command",
+					"%s cannot be read, so the references to the record cannot be checked: %v", p, err).with("path", p)
 			}
 			continue
 		}

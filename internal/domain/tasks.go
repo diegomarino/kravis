@@ -885,7 +885,7 @@ func tasksOf(ws *Workspace, id string) ([]string, error) {
 
 // liveTasksOf finds the live tasks that user is the assignee or agent of.
 func (ws *Workspace) liveTasksOf(user string) ([]string, error) {
-	return scanTasks(ws, func(t *Task) bool { return t.Live && (t.Assignee == user || t.Agent == user) })
+	return scanTasks(ws.strictly(), func(t *Task) bool { return t.Live && (t.Assignee == user || t.Agent == user) })
 }
 
 func scanTasks(ws *Workspace, match func(*Task) bool) ([]string, error) {

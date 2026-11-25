@@ -281,7 +281,7 @@ func (ws *Workspace) DeleteUser(id string, opt ViewOptions) (*Result, error) {
 
 // liveAgentsOf lists the live agents that id handles.
 func (ws *Workspace) liveAgentsOf(id string) ([]string, error) {
-	rows, err := users.scan(ws)
+	rows, err := users.scan(ws.strictly())
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +303,7 @@ func usersReferringTo(ws *Workspace, id string) ([]string, error) {
 
 // holdersOf finds the users and work records whose holder is id.
 func holdersOf(ws *Workspace, id string) ([]string, error) {
+	ws = ws.strictly()
 	us, err := referringUsers(ws, id, func(u *User) bool { return u.Holder == id })
 	if err != nil {
 		return nil, err
