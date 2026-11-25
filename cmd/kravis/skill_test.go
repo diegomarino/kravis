@@ -207,6 +207,10 @@ func TestSkillReferencesAreAccepted(t *testing.T) {
 	}
 }
 
+// skillsVersion is the reviewed, exact version of the skills installer;
+// raising it is a deliberate change.
+const skillsVersion = "1.9.0"
+
 // TestSkillInstalls installs the skill from the checkout with npx skills
 // into a temporary folder. It needs the network, so it runs only where
 // SKILL_INSTALL_TEST is set, as in CI.
@@ -216,7 +220,7 @@ func TestSkillInstalls(t *testing.T) {
 	}
 	e := newEnv(t)
 	dir := t.TempDir()
-	cmd := exec.Command("npx", "--yes", "skills", "add", repoDir, "--skill", "kravis", "--yes", "--agent", "claude-code")
+	cmd := exec.Command("npx", "--yes", "skills@"+skillsVersion, "add", repoDir, "--skill", "kravis", "--yes", "--agent", "claude-code")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "HOME="+e.Home, "USERPROFILE="+e.Home)
 	if out, err := cmd.CombinedOutput(); err != nil {
