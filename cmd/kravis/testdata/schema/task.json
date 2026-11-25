@@ -60,7 +60,7 @@
           "type": "string"
         },
         "type": "array",
-        "description": "people",
+        "description": "people and organizations and deals and projects: deals and projects of your holder",
         "x-cli": "--related (repeatable)"
       },
       "description": {

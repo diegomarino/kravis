@@ -271,7 +271,7 @@ type TaskInput struct {
 	Interaction string   `json:"interaction,omitempty" jsonschema:"pattern=^it_.+,description=the origin: one task per interaction and purpose" jsonschema_extras:"x-cli=--interaction"` // the origin; the purpose is follow-up unless given
 	Project     string   `json:"project,omitempty" jsonschema:"pattern=^pr_.+,description=the parent project of your holder: not with deal" jsonschema_extras:"x-cli=--project"`
 	Deal        string   `json:"deal,omitempty" jsonschema:"pattern=^dl_.+,description=the parent deal of your holder: not with project" jsonschema_extras:"x-cli=--deal"`
-	Related     []string `json:"related,omitempty" jsonschema:"description=people, organizations, deals or projects: deals and projects of your holder" jsonschema_extras:"x-cli=--related (repeatable)"`
+	Related     []string `json:"related,omitempty" jsonschema:"description=people and organizations and deals and projects: deals and projects of your holder" jsonschema_extras:"x-cli=--related (repeatable)"`
 	Description string   `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
 }
 
