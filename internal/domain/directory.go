@@ -363,7 +363,7 @@ func (ws *Workspace) DeletePerson(ref string, opt ViewOptions) (*Result, error) 
 
 // OrganizationInput is what organization create takes.
 type OrganizationInput struct {
-	Name    string   `json:"name" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--name"`
+	Name    string   `json:"name" jsonschema:"description=the ID comes from it: it needs a letter or digit with an ASCII form" jsonschema_extras:"x-cli=--name"`
 	Own     bool     `json:"own,omitempty" jsonschema:"description=marks an own organization: a holder" jsonschema_extras:"x-cli=--own"`
 	Domains []string `json:"domains,omitempty" jsonschema:"description=lowercase and without www. and never an email provider domain" jsonschema_extras:"x-cli=--domain (repeatable)"`
 }

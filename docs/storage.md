@@ -156,7 +156,7 @@ Required fields are marked; every other field is omitted when empty.
 - `init` writes these defaults, and each workspace may edit them. The MVP has the single pipeline `default`, and every deal stores its `pipeline`, so more pipelines can be added later without a migration.
 - Catalog lookups always go through "the configuration for holder H". In the MVP that call returns the workspace configuration, so per-holder configuration can be added later without touching callers.
 - The timezone, the workspace ID and the schema version are always workspace-wide.
-- A catalog value removed while records still use it stays on those records. `check` reports it, per holder, and the next edit of the record must replace it.
+- A catalog value removed while records still use it stays on those records. `check` reports it, per holder, and the next edit of the record must replace it. A task's purpose is the exception: it never changes, so a purpose in use is grandfathered and `check` does not report it.
 
 ## Writes and concurrency
 

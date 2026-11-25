@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -1015,5 +1016,50 @@ func TestInitSaysTheWorkspaceExistsWhenTheLocalConfigIsBroken(t *testing.T) {
 	outcomeOf(t, e.init().JSON(t), "existing")
 	if out := e.ok("whoami"); data(t, out)["actor"] != userID {
 		t.Errorf("whoami %v", out)
+	}
+}
+
+func TestCheckReportsInvalidMetadataAndUpdateRefusesIt(t *testing.T) {
+	e := newEnv(t)
+	e.mustInit()
+	e.ok("person", "create", "--name", "Elena Ruiz", "--email", elenaEmail)
+	path := "records/people/" + elenaID + ".json"
+	good := readRecord(t, path)
+	for _, tt := range []struct {
+		name   string
+		edit   func(map[string]any)
+		reason string
+	}{
+		{"negative version, no created_at", func(r map[string]any) { r["version"] = -5; delete(r, "created_at") }, "version"},
+		{"zero version", func(r map[string]any) { r["version"] = 0 }, "version"},
+		{"no version", func(r map[string]any) { delete(r, "version") }, "version"},
+		{"null created_at", func(r map[string]any) { r["created_at"] = nil }, "created_at"},
+		{"no created_by", func(r map[string]any) { delete(r, "created_by") }, "created_by"},
+		{"null created_by", func(r map[string]any) { r["created_by"] = nil }, "created_by"},
+	} {
+		func() {
+			rec := maps.Clone(good)
+			tt.edit(rec)
+			raw, _ := json.Marshal(rec)
+			must(t, os.WriteFile(path, raw, 0o600))
+			r := e.run("check")
+			got := e.findings()["INVALID_RECORD"]
+			if all := strings.Join(got, "; "); r.Code != 6 || !strings.Contains(all, tt.reason) || tt.name == "negative version, no created_at" && !strings.Contains(all, "created_at") {
+				t.Errorf("%s: check: code %d, INVALID_RECORD %v", tt.name, r.Code, got)
+			}
+			before := e.Files()
+			eo := e.refused("INVALID_VALUE", 2, "person", "update", elenaID, "--name", "Elena Ruiz Vega")
+			if h, _ := eo["hint"].(string); !strings.Contains(h, "kravis check") || !strings.Contains(eo["message"].(string), tt.reason) {
+				t.Errorf("%s: update: %v", tt.name, eo)
+			}
+			if !maps.Equal(before, e.Files()) {
+				t.Errorf("%s: the refused update changed files", tt.name)
+			}
+		}()
+	}
+	raw, _ := json.Marshal(good)
+	must(t, os.WriteFile(path, raw, 0o600))
+	if r := e.run("check"); r.Code != 0 {
+		t.Errorf("repaired: %s", r.Stdout)
 	}
 }

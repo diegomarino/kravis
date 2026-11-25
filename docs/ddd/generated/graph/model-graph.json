@@ -528,6 +528,15 @@
       "ownerDomain": "domain:identity"
     },
     {
+      "id": "IDENTITY-INV-06",
+      "kind": "Guarantee",
+      "name": null,
+      "ownershipKind": null,
+      "purpose": "A holder keeps a live human once it has one: deactivating or deleting the holder's last live human is refused before any change, so someone can still act for it.",
+      "model": "model:kravis",
+      "ownerDomain": "domain:identity"
+    },
+    {
       "id": "INTERACTIONS-AC-01",
       "kind": "Guarantee",
       "name": null,
@@ -1252,7 +1261,7 @@
       "kind": "Guarantee",
       "name": null,
       "ownershipKind": null,
-      "purpose": "A catalog-valued field only accepts values from the catalog that applies to the record's holder. A value removed from the catalog stays on existing records, check reports it, and the next edit of the record must replace it.",
+      "purpose": "A catalog-valued field only accepts values from the catalog that applies to the record's holder. A value removed from the catalog stays on existing records, check reports it, and the next edit of the record must replace it. The one exception is a task's purpose, which never changes: a purpose in use is grandfathered. Removing it from the catalog only stops new tasks from taking it; the tasks that have it keep it, an update does not require replacing it, and check does not report it.",
       "model": "model:kravis",
       "ownerDomain": "domain:workspace"
     },
@@ -1973,6 +1982,16 @@
       "id": "edge:owns|domain:identity|IDENTITY-INV-05",
       "from": "domain:identity",
       "to": "IDENTITY-INV-05",
+      "kind": "owns",
+      "label": "owns",
+      "source": "domain:identity",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:owns|domain:identity|IDENTITY-INV-06",
+      "from": "domain:identity",
+      "to": "IDENTITY-INV-06",
       "kind": "owns",
       "label": "owns",
       "source": "domain:identity",

@@ -147,7 +147,7 @@ func (ws *Workspace) relatedToDrop(field string, refs []string) ([]string, error
 
 // ProjectInput is what project create takes.
 type ProjectInput struct {
-	Name        string   `json:"name" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--name"`
+	Name        string   `json:"name" jsonschema:"description=the ID comes from it: it needs a letter or digit with an ASCII form" jsonschema_extras:"x-cli=--name"`
 	Deal        string   `json:"deal,omitempty" jsonschema:"pattern=^dl_.+,description=the deal of your holder it is tied to" jsonschema_extras:"x-cli=--deal"`
 	Related     []string `json:"related,omitempty" jsonschema:"description=people and organizations and deals and projects: deals and projects of your holder" jsonschema_extras:"x-cli=--related (repeatable)"`
 	Description string   `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
@@ -167,7 +167,8 @@ func (ws *Workspace) CreateProject(actorID string, in ProjectInput, opt ViewOpti
 	holder := actor.Holder
 	name := strings.TrimSpace(in.Name)
 	if Slug(name) == "" {
-		return nil, invalidValue("name", "give --name with letters or digits", "a project needs a name")
+		return nil, invalidValue("name", "the name needs at least one letter or digit that has an ASCII form",
+			"%q is not a usable project name", name)
 	}
 	rec := &Project{Holder: holder, Name: name, Live: true}
 	if deal := strings.TrimSpace(in.Deal); deal != "" {

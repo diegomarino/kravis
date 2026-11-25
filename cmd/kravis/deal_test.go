@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -564,5 +565,23 @@ func TestTerminalListsShowTheirFiltersAlsoWhenEmpty(t *testing.T) {
 	e.TTY = false
 	if out := e.ok("deal", "list"); fmt.Sprint(out["filters"]) != "map[holder:"+orgID+" live:true]" {
 		t.Errorf("json filters %v", out["filters"])
+	}
+}
+
+func TestDealCreateRefusesARepeatedParty(t *testing.T) {
+	e := world(t)
+	before := e.Files()
+	eo := e.refused("INVALID_VALUE", 2, mkDeal("--party", elenaID)...)
+	if det := details(t, eo); det["field"] != "party" || !strings.Contains(eo["hint"].(string), "deal party add") {
+		t.Errorf("refused: %v", eo)
+	}
+	if !maps.Equal(before, e.Files()) {
+		t.Error("the refused create changed files")
+	}
+	// The documented recipe: one party on create, the others with party add.
+	e.ok(mkDeal()...)
+	e.ok("deal", "party", "add", sierraDeal, elenaID, "--role", "client")
+	if got := fmt.Sprint(data(t, e.ok("deal", "get", sierraDeal, "--full"))["parties"]); !strings.Contains(got, sierraID) || !strings.Contains(got, elenaID) {
+		t.Errorf("parties %s", got)
 	}
 }

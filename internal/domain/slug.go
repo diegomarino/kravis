@@ -41,3 +41,9 @@ func Slug(name string) string {
 	}
 	return b.String()
 }
+
+// SlugPattern is a JSON Schema pattern that matches exactly the names Slug
+// makes a slug from: those with at least one character that has an ASCII
+// letter or digit form. TestSlugPatternIsSlug checks it against Slug for
+// every character.
+const SlugPattern = "[0-9A-Za-zÀ-ÖØ-öø-ĥĨ-ıĴ-ķĹ-ľŁ-ňŌ-ťŨ-žƠơƯưǍ-ǜǞ-ǣǦ-ǭǰǴǵǸ-țȞȟȦ-ȳḀ-ẙẞẠ-ỹKÅ]"

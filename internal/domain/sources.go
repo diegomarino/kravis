@@ -178,3 +178,6 @@ func refRules(refs []SourceRef) []string {
 	}
 	return out
 }
+
+// Identity is the reference's identity in its list: its written form.
+func (r SourceRef) Identity() string { return r.String() }

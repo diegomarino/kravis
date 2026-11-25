@@ -14,6 +14,12 @@ import (
 	"github.com/diegomarino/kravis/internal/storage"
 )
 
+// withMeta adds valid metadata to a record written by hand, so that check
+// reports only what the test breaks.
+func withMeta(rec string) []byte {
+	return []byte(strings.TrimSuffix(rec, "}") + `,"version":1,"created_at":"2026-11-23T00:00:00Z","created_by":"us_ana-acme"}`)
+}
+
 func readRecord(t *testing.T, path string) map[string]any {
 	t.Helper()
 	raw, err := os.ReadFile(path)
@@ -277,6 +283,62 @@ func TestWORKSPACE_AC_07_StrictInputAndUnknownFieldsKeptOnDisk(t *testing.T) {
 	if full := data(t, e.ok("person", "get", elenaID, "--full")); full["nickname"] != "Ele" {
 		t.Errorf("--full shows the whole record: %v", full)
 	}
+
+	// Inside known nested objects too, matched by their identity: the
+	// affiliation's organization, the party, the reference.
+	e.ok("organization", "create", "--name", "Grupo Sierra")
+	e.ok("organization", "create", "--name", "Norte Example")
+	e.ok("person", "affiliation", "add", elenaID, "org_norte-example")
+	e.ok("person", "affiliation", "add", elenaID, "org_grupo-sierra", "--title", "CFO")
+	mark := func(path, list string, i int) {
+		t.Helper()
+		rec := readRecord(t, path)
+		rec[list].([]any)[i].(map[string]any)["x_external_id"] = "keep-me"
+		raw, _ := json.Marshal(rec)
+		must(t, os.WriteFile(path, raw, 0o600))
+	}
+	kept := func(what, path, list, key, id string) {
+		t.Helper()
+		for _, it := range readRecord(t, path)[list].([]any) {
+			m := it.(map[string]any)
+			if m[key] == id {
+				if m["x_external_id"] != "keep-me" {
+					t.Errorf("%s: %s %s lost its unknown field: %v", what, list, id, m)
+				}
+			} else if _, ok := m["x_external_id"]; ok {
+				t.Errorf("%s: the unknown field moved to %s %v", what, list, m)
+			}
+		}
+	}
+	mark(path, "affiliations", 0) // org_grupo-sierra sorts first
+	e.ok("person", "update", elenaID, "--name", "Elena Example Two")
+	kept("rename", path, "affiliations", "organization", "org_grupo-sierra")
+	full := data(t, e.ok("person", "get", elenaID, "--full"))
+	if a := full["affiliations"].([]any)[0].(map[string]any); a["x_external_id"] != "keep-me" {
+		t.Errorf("--full shows the nested unknown field: %v", a)
+	}
+	e.ok("organization", "create", "--name", "Alba Example")
+	e.ok("person", "affiliation", "add", elenaID, "org_alba-example") // sorts before, moving the others
+	kept("an added affiliation", path, "affiliations", "organization", "org_grupo-sierra")
+	e.ok("person", "affiliation", "add", elenaID, "org_grupo-sierra", "--title", "CEO")
+	kept("a new title", path, "affiliations", "organization", "org_grupo-sierra")
+	e.ok("person", "affiliation", "remove", elenaID, "org_alba-example")
+	kept("a removed affiliation", path, "affiliations", "organization", "org_grupo-sierra")
+
+	deal := "records/deals/dl_grupo-sierra.json"
+	e.ok("deal", "create", "--party", "org_grupo-sierra", "--holder-role", "advisor")
+	mark(deal, "parties", 0)
+	e.ok("deal", "party", "add", "dl_grupo-sierra", elenaID, "--role", "client")
+	kept("an added party", deal, "parties", "party", "org_grupo-sierra")
+	e.ok("deal", "update", "dl_grupo-sierra", "--name", "Grupo Sierra advisory")
+	kept("a renamed deal", deal, "parties", "party", "org_grupo-sierra")
+
+	it := "records/interactions/2026-11/it_2026-11-23-kickoff.json"
+	e.ok("interaction", "create", "--channel", "email", "--occurred-at", "2026-11-23T17:02:00Z", "--subject", "Kickoff",
+		"--participant", elenaID, "--ref", "email:message:kickoff@example.com")
+	mark(it, "references", 0)
+	e.ok("interaction", "update", "it_2026-11-23-kickoff", "--subject", "Kickoff call")
+	kept("a new subject", it, "references", "id", "kickoff@example.com")
 }
 
 func TestWORKSPACE_AC_08_AConcurrentChangeSurvivesAndThreeConflictsFail(t *testing.T) {
@@ -627,12 +689,12 @@ func TestCheckReportsBrokenPeopleAndOrganizations(t *testing.T) {
 	raw, _ = json.Marshal(org)
 	must(t, os.WriteFile("records/organizations/org_grupo-sierra.json", raw, 0o600))
 	// Records that break their rules.
-	must(t, os.WriteFile("records/people/pe_nobody.json", []byte(`{"id":"pe_nobody","live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_moved.json", []byte(`{"id":"pe_other","name":"X","live":true}`), 0o600))
-	must(t, os.WriteFile("records/organizations/org_mail.json", []byte(`{"id":"org_mail","name":"Mail","domains":["gmail.com"],"live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_typed.json", []byte(`{"id":"pe_typed","name":123,"live":true}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_nolive.json", []byte(`{"id":"pe_nolive","name":"No Live"}`), 0o600))
-	must(t, os.WriteFile("records/people/pe_nulllive.json", []byte(`{"id":"pe_nulllive","name":"Null Live","live":null}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nobody.json", withMeta(`{"id":"pe_nobody","live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_moved.json", withMeta(`{"id":"pe_other","name":"X","live":true}`), 0o600))
+	must(t, os.WriteFile("records/organizations/org_mail.json", withMeta(`{"id":"org_mail","name":"Mail","domains":["gmail.com"],"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_typed.json", withMeta(`{"id":"pe_typed","name":123,"live":true}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nolive.json", withMeta(`{"id":"pe_nolive","name":"No Live"}`), 0o600))
+	must(t, os.WriteFile("records/people/pe_nulllive.json", withMeta(`{"id":"pe_nulllive","name":"Null Live","live":null}`), 0o600))
 	// A key whose record is gone.
 	must(t, os.Remove("records/people/"+elenaID+".json"))
 

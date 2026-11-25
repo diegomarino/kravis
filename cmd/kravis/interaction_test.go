@@ -1202,3 +1202,27 @@ func TestCommandGroupsWithoutASubcommandAreUsageErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestInteractionListByDealIncludesItsProjects(t *testing.T) {
+	e := world(t)
+	e.ok("deal", "create", "--party", sierraID, "--holder-role", "advisor")
+	e.ok("deal", "create", "--party", elenaID, "--holder-role", "advisor")
+	e.ok("project", "create", "--name", "Data room", "--deal", "dl_grupo-sierra")
+	e.ok("project", "create", "--name", "Other room", "--deal", "dl_elena-ruiz")
+	e.ok(record("On the deal", "--deal", "dl_grupo-sierra")...)
+	e.ok(record("On its project", "--project", "pr_data-room")...)
+	e.ok(record("On another deal's project", "--project", "pr_other-room")...)
+	e.ok(record("On nothing")...)
+	out := e.ok("interaction", "list", "--deal", "dl_grupo-sierra")
+	var got []string
+	for _, it := range out["data"].([]any) {
+		got = append(got, it.(map[string]any)["subject"].(string))
+	}
+	slices.Sort(got)
+	if fmt.Sprint(got) != "[On its project On the deal]" {
+		t.Errorf("--deal lists %v", got)
+	}
+	if f := obj(t, out, "filters"); f["deal"] != "dl_grupo-sierra" {
+		t.Errorf("filters %v", f)
+	}
+}

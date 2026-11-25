@@ -79,6 +79,7 @@ Know who acts in Kravis (humans and their agents) and attribute every write to a
 - `IDENTITY-INV-03` - Every agent has exactly one handler: a live human of the agent's holder. In the MVP the handler never changes.
 - `IDENTITY-INV-04` - Every write declares an actor, taken from the command flag, then the environment, then the local configuration. A write without an actor is refused; reads need none.
 - `IDENTITY-INV-05` - The actor of a write is an existing user.
+- `IDENTITY-INV-06` - A holder keeps a live human once it has one: deactivating or deleting the holder's last live human is refused before any change, so someone can still act for it.
 - `WORKSPACE-INV-14` - Only a live user can act.
 
 ### Interactions (`domain:interactions`)
@@ -182,7 +183,7 @@ Keep the workspace's records, catalogs and holder partition consistent, and expo
 - `WORKSPACE-INV-02` - A work record takes its holder from its actor when it is created, and that holder matches the holder of every record it is structurally linked to.
 - `WORKSPACE-INV-03` - A record's holder never changes.
 - `WORKSPACE-INV-04` - An own organization that is the holder of any record cannot lose its own mark.
-- `WORKSPACE-INV-05` - A catalog-valued field only accepts values from the catalog that applies to the record's holder. A value removed from the catalog stays on existing records, check reports it, and the next edit of the record must replace it.
+- `WORKSPACE-INV-05` - A catalog-valued field only accepts values from the catalog that applies to the record's holder. A value removed from the catalog stays on existing records, check reports it, and the next edit of the record must replace it. The one exception is a task's purpose, which never changes: a purpose in use is grandfathered. Removing it from the catalog only stops new tasks from taking it; the tasks that have it keep it, an update does not require replacing it, and check does not report it.
 - `WORKSPACE-INV-06` - Categories are fixed and the same everywhere. Every status and stage belongs to exactly one category, and each record stores its category and its live flag next to its status or stage, consistent with the catalog.
 - `WORKSPACE-INV-07` - A record's ID never changes, and its form is fixed per record type.
 - `WORKSPACE-INV-08` - Every write increments the record's version and records which actor wrote it and when.

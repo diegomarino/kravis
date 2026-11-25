@@ -4,8 +4,11 @@ id: WORKSPACE-INV-05
 model: model:kravis
 ownerDomain: domain:workspace
 classification: invariant
-statement: A catalog-valued field only accepts values from the catalog that
+statement: "A catalog-valued field only accepts values from the catalog that
   applies to the record's holder. A value removed from the catalog stays on
   existing records, check reports it, and the next edit of the record must
-  replace it.
+  replace it. The one exception is a task's purpose, which never changes: a
+  purpose in use is grandfathered. Removing it from the catalog only stops
+  new tasks from taking it; the tasks that have it keep it, an update does
+  not require replacing it, and check does not report it."
 status: active

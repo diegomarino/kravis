@@ -919,9 +919,10 @@ func configForCheck(st *storage.Store) *Config {
 
 // auditTaskLinks reports what tasks refer to: records that do not exist, a
 // holder that is not an own organization, people and interactions of another
-// holder, an agent that the assignee does not handle, and a status or
-// purpose the catalog no longer has or whose category or live flag the
-// catalog contradicts.
+// holder, an agent that the assignee does not handle, and a status the
+// catalog no longer has or whose category or live flag the catalog
+// contradicts. A purpose the catalog no longer has is grandfathered: a
+// task's purpose never changes (WORKSPACE-INV-05).
 func auditTaskLinks(st *storage.Store, add addFinding) error {
 	ts, err := loadForCheck(st, tasks)
 	if err != nil || len(ts) == 0 {
@@ -1022,9 +1023,6 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 			case isLive(t.rec.Category) != t.rec.Live:
 				add(FindingInvalidRecord, t.path, "live is %t, but the catalog puts %q in %q", t.rec.Live, t.rec.Status, t.rec.Category)
 			}
-		}
-		if slugID.MatchString(t.rec.Purpose) && !slices.Contains(conf.Catalogs.Purposes, t.rec.Purpose) {
-			add(FindingValueNotInCatalog, t.path, "the purpose %q is not in the purpose catalog for holder %s", t.rec.Purpose, t.rec.Holder)
 		}
 	}
 	return nil

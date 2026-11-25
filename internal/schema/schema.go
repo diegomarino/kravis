@@ -61,17 +61,21 @@ func For(name string, cfg domain.Config) (*jsonschema.Schema, error) {
 	case "person":
 		items(s, "emails", &jsonschema.Schema{Type: "string", Pattern: emailPattern})
 		// A person has a name that is not blank, or an email.
-		nameSet := with(&jsonschema.Schema{Required: []string{"name"}}, "name", &jsonschema.Schema{Type: "string", Pattern: `\S`})
+		// Without an email, the ID comes from the name, so it needs a letter or digit with an ASCII form.
+		nameSet := with(&jsonschema.Schema{Required: []string{"name"}}, "name", &jsonschema.Schema{Type: "string", Pattern: domain.SlugPattern})
 		emailSet := with(&jsonschema.Schema{Required: []string{"emails"}}, "emails", &jsonschema.Schema{Type: "array", MinItems: ptr(1)})
 		s.AnyOf = []*jsonschema.Schema{nameSet, emailSet}
 		s.Required = nil
 	case "organization":
+		slugName(s)
 		items(s, "domains", &jsonschema.Schema{Type: "string", Pattern: domainPattern,
 			Not: &jsonschema.Schema{Pattern: providerPattern()}})
 	case "interaction":
 		enum(s, "channel", cat.Channels)
 		enum(s, "direction", domain.Directions())
 		items(s, "refs", refItem())
+	case "project":
+		slugName(s)
 	case "task":
 		enum(s, "purpose", cat.Purposes)
 	case "deal":
@@ -131,6 +135,14 @@ func caseless(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// slugName requires a name the ID can come from: one with a letter or digit
+// that has an ASCII form, as Slug needs.
+func slugName(s *jsonschema.Schema) {
+	if p, ok := s.Properties.Get("name"); ok {
+		p.Pattern = domain.SlugPattern
+	}
 }
 
 func enum(s *jsonschema.Schema, field string, values []string) {

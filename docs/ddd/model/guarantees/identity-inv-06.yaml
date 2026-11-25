@@ -1,0 +1,10 @@
+schemaVersion: "1"
+kind: Guarantee
+id: IDENTITY-INV-06
+model: model:kravis
+ownerDomain: domain:identity
+classification: invariant
+statement: "A holder keeps a live human once it has one: deactivating or
+  deleting the holder's last live human is refused before any change, so someone
+  can still act for it."
+status: active
