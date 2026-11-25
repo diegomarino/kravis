@@ -48,8 +48,7 @@
           "prospect",
           "engaged",
           "closing",
-          "won",
-          "lost"
+          "won"
         ],
         "description": "a stage of the pipeline that is not lost: the first one when omitted",
         "x-cli": "--stage"

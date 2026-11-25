@@ -47,7 +47,7 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 ## Projects
 
 - `kravis project create --name <name> [--deal <deal>]` and `kravis project list --deal <deal>`. A task takes `--project <project>` or `--deal <deal>` as its parent, never both, fixed at creation.
-- `kravis project close <project>` fails with `REFERENCED` while the project has live tasks. `--cancel-tasks` cancels them first; `kravis project reopen <project>` undoes it.
+- `kravis project close <project>` fails with `REFERENCED` while the project has live tasks. `--cancel-tasks` cancels them first; `kravis project reopen <project>` makes the project live again but leaves canceled tasks canceled: move them with `kravis task status`.
 - `--related <id>` on a task or project adds a person, organization, deal or project that is not its parent.
 
 ## Notes
@@ -56,22 +56,22 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 
 ## Prepare a briefing
 
-For "everything about Ben Carter": resolve him with `kravis person get <email or id>`, then ask each list for his records, all with the same ID.
+For "everything about Ben Carter": resolve him with `kravis person get <email or id>`, then ask each list for his records with `--limit 0`, which returns them all (a list stops at 50 otherwise).
 
-1. `kravis interaction list --participant <person>`: what happened, newest first.
-2. `kravis note list --related-to <person>`: what is known about him.
-3. `kravis task list --related-to <person>`: the follow-ups about him.
-4. `kravis deal list --party <person>`: his deals.
+1. `kravis interaction list --participant <person> --limit 0`: what happened, newest first.
+2. `kravis note list --related-to <person> --limit 0`: what is known about him.
+3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him.
+4. `kravis deal list --party <person> --limit 0`: his deals.
 
 For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` and `note list` also finds the work under it. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. Dates are in the workspace timezone.
 
 ## Measure outreach
 
-For "how many people did Ana write to in November, and who": the outbound interactions she started, in the month.
+For "what outreach did Ana do in November": the outbound interactions she started, in the month.
 
 `kravis interaction list --direction outbound --initiated-by <user> --from 2026-11-01 --to 2026-11-30 --limit 0`
 
-`total` is the count. `--to` includes its whole day. Add `--participant <person>` for one person and `--with-agents` to count what her agents started too. Inbound ones are never outreach, and an interaction without an initiator matches no `--initiated-by`.
+`total` counts interactions, not people: for "how many people", collect the person IDs in `participants` and count the distinct ones. `--to` includes its whole day. Add `--participant <person>` for one person and `--with-agents` to count what her agents started too. Inbound ones are never outreach, and an interaction without an initiator matches no `--initiated-by`.
 
 ## Correct a mistake
 

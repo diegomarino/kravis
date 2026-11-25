@@ -77,7 +77,9 @@ func For(name string, cfg domain.Config) (*jsonschema.Schema, error) {
 	case "deal":
 		var stages []string
 		for _, st := range cat.Pipelines[domain.DefaultPipeline].Stages {
-			stages = append(stages, st.Name)
+			if st.Category != "lost" { // deal create refuses a lost stage: deal stage takes the reason
+				stages = append(stages, st.Name)
+			}
 		}
 		enum(s, "stage", stages)
 		enum(s, "holder_role", cat.PartyRoles)

@@ -200,6 +200,7 @@ var corpus = map[string][]inputCase{
 		{"no holder role", `{"party":"pe_elena-ruiz"}`, false},
 		{"a holder role outside the catalog", `{"party":"pe_elena-ruiz","holder_role":"wizard"}`, false},
 		{"a role outside the catalog", `{"party":"pe_elena-ruiz","holder_role":"seller","roles":["wizard"]}`, false},
+		{"a lost stage on create", `{"party":"pe_elena-ruiz","holder_role":"seller","stage":"lost"}`, false},
 		{"a stage outside the pipeline", `{"party":"pe_elena-ruiz","holder_role":"seller","stage":"dreaming"}`, false},
 		{"an unknown field", `{"party":"pe_elena-ruiz","holder_role":"seller","value":10}`, false},
 	},
