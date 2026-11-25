@@ -7,6 +7,7 @@
       "package-name": "kravis",
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
+      "extra-files": ["README.md", "docs/development.md"],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Fixes" },

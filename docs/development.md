@@ -88,6 +88,11 @@ The Go module path is `github.com/diegomarino/kravis`.
 - **`release.yml`** runs on pushes to `main`. release-please keeps one release PR open with the next version and its changelog, built from the Conventional Commit subjects since the last release (`release-please-config.json`, `.release-please-manifest.json`; while the version is below 1.0 a `feat` bumps the minor and a `fix` the patch). Merging that PR creates the tag and the GitHub release, and the same workflow then runs goreleaser, which builds binaries for macOS and Linux and adds them and `checksums.txt` to that release. goreleaser writes no changelog: the notes are release-please's. The build is in this workflow, not a tag-triggered one, because a tag created with `GITHUB_TOKEN` starts no other workflow. For the same reason the release PR runs no checks unless the repository secret `RELEASE_PLEASE_TOKEN` (a PAT or app token) is set; without it, `GITHUB_TOKEN` is used and the PR needs its checks run another way.
 - **To release**, merge the release PR; that merge is the person's yes. Each increment is released by merging it at the end of the increment. Pull request titles start with the Conventional Commit type (no ticket prefix): release-please reads the squash commit, which takes the title.
 
+## Platforms
+
+- macOS is the main platform. Linux is built and CI runs every test on Ubuntu, but it is not used day to day.
+- Before 1.0 there is no automatic upgrade of a workspace's format from older releases. A release that changes it says so in its notes.
+
 ## Autonomy
 
 Agents implement on their own within the spec. Only decisions that change what was already agreed wait for the person.
@@ -101,7 +106,7 @@ Agents implement on their own within the spec. Only decisions that change what w
 ## Installation
 
 - `go install github.com/diegomarino/kravis/cmd/kravis@latest`, or download a binary from GitHub Releases.
-- The skill: `npx skills add diegomarino/kravis --skill kravis`.
+- The skill, of the same release as the binary: `npx skills add https://github.com/diegomarino/kravis/tree/v0.2.0/skills/kravis` <!-- x-release-please-version -->. release-please rewrites the version on the marked lines of `README.md` and this file on every release (`extra-files` in `release-please-config.json`).
 - Homebrew and npm are later improvements.
 
 ## Definition of done for the MVP
