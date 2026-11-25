@@ -15,8 +15,8 @@ Today it covers people, organizations, users, interactions (emails, meetings, ca
 - **Local.** Records are plain JSON files in a folder you own: read them, `grep` them, review them in a pull request, keep them in git. There is no database and no service to run.
 - **Agents first.** Off a terminal, every command prints one JSON object, and an error carries a hint for what to try next. A skill teaches your agent the commands. Each agent is a user with its own identity and works under a human, its handler, who answers for it.
 - **No one-to-one limits.** The model guarantees that:
-  - a deal is not tied to one account: it has any number of parties, people or organizations, each with any number of party roles, and it records the holder's own party role;
-  - a person is not tied to one company: a person has any number of affiliations, at most one per organization;
+  - a deal is not tied to one party: it has any number of parties, people or organizations, each with any number of party roles, and it records the holder's own party role;
+  - a person is not tied to one organization: a person has any number of affiliations, at most one per organization;
   - an interaction is not tied to one deal: it concerns any number of deals and projects at once, and its participants are people or organizations;
   - a note is not tied to one record: it is about one or more people, organizations, deals and projects, in any mix.
 
