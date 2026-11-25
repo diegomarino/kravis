@@ -454,7 +454,7 @@ func (ws *Workspace) refused(name, id string) error {
 	}
 	hint := "change or delete the records in details.referrers first"
 	if name == "interaction" && slices.ContainsFunc(refs, func(r string) bool { return strings.HasPrefix(r, "tk_") }) {
-		hint = "delete the task in details.referrers, then the interaction, then create both again"
+		hint = "delete the tasks in details.referrers, then the interaction, then create the interaction and those tasks again"
 	}
 	return newError(CodeReferenced, hint,
 		"the %s %s is referred to by %d record(s)", name, id, len(refs)).with("referrers", refs)

@@ -1252,7 +1252,7 @@ func TestReferencedInteractionHintNamesTheSteps(t *testing.T) {
 	e.ok(mkTask("Follow up", "--interaction", dataRoomID)...)
 	eo := e.refused("REFERENCED", 4, "interaction", "delete", dataRoomID)
 	hint, _ := eo["hint"].(string)
-	if !strings.Contains(hint, "delete the task") || !strings.Contains(hint, "then the interaction") || !strings.Contains(hint, "create both again") {
+	if !strings.Contains(hint, "delete the tasks") || !strings.Contains(hint, "then the interaction") || !strings.Contains(hint, "create the interaction and those tasks again") {
 		t.Errorf("hint %q", hint)
 	}
 }

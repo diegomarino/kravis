@@ -114,7 +114,7 @@ Error (stderr):
 | `NOT_FOUND` | error, 3 | The ID or alias does not exist |
 | `VERSION_CONFLICT` | error, 4 | The record kept changing during 3 attempts |
 | `DEDUP_CONFLICT` | error, 4 | The natural key exists with contradicting data, or identifying references are split across two interactions |
-| `REFERENCED` | error, 4 | A delete of a record that others refer to (for an interaction that a task comes from, the hint names the steps: delete the task, then the interaction, then create both again), or closing a project that still has live tasks; `details.referrers` lists the records (the live tasks, for a close) |
+| `REFERENCED` | error, 4 | A delete of a record that others refer to (for an interaction that a task comes from, the hint names the steps: delete the tasks in `details.referrers`, then the interaction, then create the interaction and those tasks again), or closing a project that still has live tasks; `details.referrers` lists the records (the live tasks, for a close) |
 | `WORKSPACE_EXISTS` | error, 2 | `init` with data that does not match the existing workspace, or that conflicts with the files an interrupted `init` left (another organization, user or timezone) |
 | `STORAGE_UNAVAILABLE` | error, 5 | The workspace cannot be read or written |
 | `WORKSPACE_FILE_MISSING` | check finding | `kravis.json` or `config.json` does not exist |
