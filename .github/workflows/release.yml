@@ -23,6 +23,9 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          # A PR made with GITHUB_TOKEN starts no checks; set RELEASE_PLEASE_TOKEN
+          # (a PAT or app token) so the release PR runs ci.yml.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
       - uses: actions/checkout@v4

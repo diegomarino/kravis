@@ -5,6 +5,7 @@
     ".": {
       "release-type": "simple",
       "package-name": "kravis",
+      "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
