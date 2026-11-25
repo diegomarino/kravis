@@ -31,12 +31,12 @@ func (a *app) noteCommand() *cobra.Command {
 			if !cmd.Flags().Changed("text-file") {
 				return domain.InvalidFlag("text-file", nil, "missing required flag: --text-file")
 			}
-			text, err := fileText(cmd, "text-file", textFile)
-			if err != nil {
-				return err
-			}
-			in.Text = text
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				text, err := fileText(cmd, "text-file", textFile)
+				if err != nil {
+					return nil, err
+				}
+				in.Text = text
 				return ws.CreateNote(actor, in, cv)
 			})
 		},
@@ -53,14 +53,14 @@ func (a *app) noteCommand() *cobra.Command {
 	update := &cobra.Command{
 		Use: "update <note>", Short: "Change the text or subjects of a note of your holder", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Flags().Changed("text-file") {
-				text, err := fileText(cmd, "text-file", updText)
-				if err != nil {
-					return err
-				}
-				ch.Text = &text
-			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				if cmd.Flags().Changed("text-file") {
+					text, err := fileText(cmd, "text-file", updText)
+					if err != nil {
+						return nil, err
+					}
+					ch.Text = &text
+				}
 				return ws.UpdateNote(actor, args[0], ch, uv)
 			})
 		},

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -43,7 +44,10 @@ func (a *app) initCommand() *cobra.Command {
 			// one finds none and gets it now.
 			changed, err := workspace.SetDefaultActor(res.Workspace, res.UserID, res.Outcome == domain.OutcomeExisting)
 			if err != nil {
-				return err
+				path, _ := workspace.ConfigPath()
+				return &domain.Error{Code: domain.CodeStorageUnavailable, Cause: err,
+					Message: fmt.Sprintf("the workspace exists at %s, but its default actor %s could not be saved: %v", root, res.UserID, err),
+					Hint:    fmt.Sprintf("repair the local configuration file %s, then repeat init with the same arguments", path)}
 			}
 			a.log.Debug("default actor", "user", res.UserID, "stored", changed)
 			return a.emit(cmd, reply{Data: res, Outcome: res.Outcome})

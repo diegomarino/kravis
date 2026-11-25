@@ -28,12 +28,12 @@ func (a *app) projectCommand() *cobra.Command {
 			if !cmd.Flags().Changed("name") {
 				return domain.InvalidFlag("name", nil, "missing required flag: --name")
 			}
-			text, err := fileText(cmd, "description-file", descriptionFile)
-			if err != nil {
-				return err
-			}
-			in.Description = text
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				text, err := fileText(cmd, "description-file", descriptionFile)
+				if err != nil {
+					return nil, err
+				}
+				in.Description = text
 				return ws.CreateProject(actor, in, cv)
 			})
 		},
@@ -53,14 +53,14 @@ func (a *app) projectCommand() *cobra.Command {
 		Use: "update <project>", Short: "Change a project of your holder", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ch.Name, ch.Deal = changed(cmd, "name", name), changed(cmd, "deal", deal)
-			if cmd.Flags().Changed("description-file") {
-				text, err := fileText(cmd, "description-file", updDescription)
-				if err != nil {
-					return err
-				}
-				ch.Description = &text
-			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				if cmd.Flags().Changed("description-file") {
+					text, err := fileText(cmd, "description-file", updDescription)
+					if err != nil {
+						return nil, err
+					}
+					ch.Description = &text
+				}
 				return ws.UpdateProject(actor, args[0], ch, uv)
 			})
 		},

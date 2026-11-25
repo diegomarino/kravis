@@ -269,7 +269,7 @@ func (ws *Workspace) UpdateProject(actorID, id string, ch ProjectChange, opt Vie
 
 // liveTasksOfProject lists the live tasks that have the project as parent.
 func (ws *Workspace) liveTasksOfProject(id string) ([]string, error) {
-	return scanTasks(ws, func(t *Task) bool { return t.Live && t.Project == id })
+	return scanTasks(ws.strictly(), func(t *Task) bool { return t.Live && t.Project == id })
 }
 
 // canceledStatus is the first status of the canceled category.

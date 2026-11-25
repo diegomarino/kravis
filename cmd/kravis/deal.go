@@ -28,12 +28,12 @@ func (a *app) dealCommand() *cobra.Command {
 			if !cmd.Flags().Changed("party") {
 				return domain.InvalidFlag("party", nil, "missing required flag: --party")
 			}
-			text, err := fileText(cmd, "description-file", descriptionFile)
-			if err != nil {
-				return err
-			}
-			in.Description = text
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				text, err := fileText(cmd, "description-file", descriptionFile)
+				if err != nil {
+					return nil, err
+				}
+				in.Description = text
 				return ws.CreateDeal(actor, in, cv)
 			})
 		},
@@ -61,14 +61,14 @@ func (a *app) dealCommand() *cobra.Command {
 					Details: map[string]any{"field": "stage"}}
 			}
 			ch.Name, ch.HolderRole = changed(cmd, "name", name), changed(cmd, "holder-role", holderRole)
-			if cmd.Flags().Changed("description-file") {
-				text, err := fileText(cmd, "description-file", updDescription)
-				if err != nil {
-					return err
-				}
-				ch.Description = &text
-			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				if cmd.Flags().Changed("description-file") {
+					text, err := fileText(cmd, "description-file", updDescription)
+					if err != nil {
+						return nil, err
+					}
+					ch.Description = &text
+				}
 				return ws.UpdateDeal(actor, args[0], ch, uv)
 			})
 		},

@@ -30,12 +30,12 @@ func (a *app) taskCommand() *cobra.Command {
 					return domain.InvalidFlag(name, nil, "missing required flag: --%s", name)
 				}
 			}
-			text, err := fileText(cmd, "description-file", descriptionFile)
-			if err != nil {
-				return err
-			}
-			in.Description = text
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				text, err := fileText(cmd, "description-file", descriptionFile)
+				if err != nil {
+					return nil, err
+				}
+				in.Description = text
 				return ws.CreateTask(actor, in, cv)
 			})
 		},
@@ -69,14 +69,14 @@ func (a *app) taskCommand() *cobra.Command {
 			}
 			ch.Title, ch.Assignee, ch.Agent = changed(cmd, "title", title), changed(cmd, "assignee", assignee), changed(cmd, "agent", agent)
 			ch.Due, ch.Status = changed(cmd, "due", due), changed(cmd, "status", status)
-			if cmd.Flags().Changed("description-file") {
-				text, err := fileText(cmd, "description-file", updDescription)
-				if err != nil {
-					return err
-				}
-				ch.Description = &text
-			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
+				if cmd.Flags().Changed("description-file") {
+					text, err := fileText(cmd, "description-file", updDescription)
+					if err != nil {
+						return nil, err
+					}
+					ch.Description = &text
+				}
 				return ws.UpdateTask(actor, args[0], ch, uv)
 			})
 		},

@@ -1012,3 +1012,34 @@ func TestTaskCreateRefusesARecordThatBreaksItsRules(t *testing.T) {
 	}
 	outcomeOf(t, e.ok(mkTask("x", "--purpose", "ping")...), "created")
 }
+
+func TestWORKSPACE_AC_10_AMalformedReferrerStopsADeleteUntilRepaired(t *testing.T) {
+	e := taskWorld(t)
+	tom := tomID(t, e)
+	id := idOf(t, e.ok(mkTask("Send the teaser", "--assignee", tom, "--due", "2026-12-01")...))
+	path := taskFile(t, id)
+	good, err := os.ReadFile(path)
+	must(t, err)
+	var rec map[string]any
+	must(t, json.Unmarshal(good, &rec))
+	rec["due"] = []string{"2026-12-01"}
+	bad, err := json.Marshal(rec)
+	must(t, err)
+	must(t, os.WriteFile(path, bad, 0o600))
+
+	// The guard cannot tell what the task refers to: it fails closed, with the path.
+	eo := e.refused("STORAGE_UNAVAILABLE", 5, "user", "delete", tom)
+	if !strings.Contains(fmt.Sprint(eo["message"]), path) || !strings.Contains(fmt.Sprint(eo["hint"]), "kravis check") {
+		t.Errorf("error %v", eo)
+	}
+	// Deactivation fails closed the same way.
+	e.refused("STORAGE_UNAVAILABLE", 5, "user", "update", tom, "--live=false")
+
+	must(t, os.WriteFile(path, good, 0o600))
+	eo = e.refused("REFERENCED", 4, "user", "delete", tom)
+	if fmt.Sprint(details(t, eo)["referrers"]) != "["+id+"]" {
+		t.Errorf("details %v", eo["details"])
+	}
+	e.ok("task", "delete", id)
+	outcomeOf(t, e.ok("user", "delete", tom), "deleted")
+}
