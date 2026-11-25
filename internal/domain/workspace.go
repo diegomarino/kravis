@@ -36,19 +36,47 @@ type Status struct {
 	Category string `json:"category"`
 }
 
+// Pipeline is a sequence of deal stages, each with its category.
+type Pipeline struct {
+	Stages []Status `json:"stages"`
+}
+
 // Catalogs are the lists a workspace configures for itself.
 type Catalogs struct {
-	TaskStatuses []Status `json:"task_statuses"`
-	Purposes     []string `json:"purposes"`
-	Channels     []string `json:"channels"`
-	PartyRoles   []string `json:"party_roles"`
-	LostReasons  []string `json:"lost_reasons"`
+	TaskStatuses []Status            `json:"task_statuses"`
+	Pipelines    map[string]Pipeline `json:"pipelines"`
+	Purposes     []string            `json:"purposes"`
+	Channels     []string            `json:"channels"`
+	PartyRoles   []string            `json:"party_roles"`
+	LostReasons  []string            `json:"lost_reasons"`
 }
 
 // Config is config.json: the timezone and the catalogs.
 type Config struct {
 	Timezone string   `json:"timezone"`
 	Catalogs Catalogs `json:"catalogs"`
+}
+
+// UnmarshalJSON reads config.json and fills the deal catalogs that a
+// workspace made before deals existed does not have with their defaults.
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type plain Config
+	var p plain
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	d := DefaultCatalogs()
+	if p.Catalogs.Pipelines == nil {
+		p.Catalogs.Pipelines = d.Pipelines
+	}
+	if p.Catalogs.PartyRoles == nil {
+		p.Catalogs.PartyRoles = d.PartyRoles
+	}
+	if p.Catalogs.LostReasons == nil {
+		p.Catalogs.LostReasons = d.LostReasons
+	}
+	*c = Config(p)
+	return nil
 }
 
 // forHolder is the configuration that applies to a holder. In the MVP it is
@@ -69,6 +97,10 @@ func DefaultCatalogs() Catalogs {
 			{"todo", "open"}, {"in-progress", "open"}, {"waiting", "waiting"},
 			{"done", "done"}, {"canceled", "canceled"},
 		},
+		Pipelines: map[string]Pipeline{DefaultPipeline: {Stages: []Status{
+			{"prospect", "ongoing"}, {"engaged", "ongoing"}, {"closing", "ongoing"},
+			{"won", "won"}, {"lost", "lost"},
+		}}},
 		Purposes:    []string{"follow-up", "ping", "expand", "intro", "prepare"},
 		Channels:    []string{"email", "meeting", "call", "message"},
 		PartyRoles:  []string{"client", "counterparty", "advisor", "lender", "investor", "buyer", "seller"},
@@ -89,6 +121,21 @@ func (c Config) Validate() error {
 		seen[s.Name] = true
 		if !slices.Contains(statusCategories, s.Category) {
 			return fmt.Errorf("task status %q has category %q, not one of %v", s.Name, s.Category, statusCategories)
+		}
+	}
+	if len(c.Catalogs.Pipelines[DefaultPipeline].Stages) == 0 {
+		return fmt.Errorf("the pipeline %q has no stages", DefaultPipeline)
+	}
+	for name, p := range c.Catalogs.Pipelines {
+		seen := map[string]bool{}
+		for _, s := range p.Stages {
+			if s.Name == "" || seen[s.Name] {
+				return fmt.Errorf("stage %q of pipeline %q is empty or repeated", s.Name, name)
+			}
+			seen[s.Name] = true
+			if !slices.Contains(stageCategories, s.Category) {
+				return fmt.Errorf("stage %q of pipeline %q has category %q, not one of %v", s.Name, name, s.Category, stageCategories)
+			}
 		}
 	}
 	return nil

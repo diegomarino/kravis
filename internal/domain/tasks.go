@@ -622,15 +622,22 @@ func withField(v View, name, text string) View {
 	return append(v, storage.Field{Name: name, Value: raw})
 }
 
-// addText reads the description of the task a view shows.
+// addText reads the description of the task or deal a view shows.
 func (ws *Workspace) addText(v View, field string) (View, error) {
 	for _, f := range v {
 		if f.Name == "id" {
 			var id string
-			if json.Unmarshal(f.Value, &id) != nil || !tasks.validID(id) {
+			if json.Unmarshal(f.Value, &id) != nil {
 				break
 			}
-			text, err := ws.Store.Text(tasks.Path(id))
+			path := tasks.Path(id)
+			switch {
+			case deals.validID(id):
+				path = deals.Path(id)
+			case !tasks.validID(id):
+				return v, nil
+			}
+			text, err := ws.Store.Text(path)
 			return withField(v, field, text), err
 		}
 	}
@@ -682,6 +689,20 @@ func scanTasks(ws *Workspace, match func(*Task) bool) ([]string, error) {
 	return out, nil
 }
 
+// configForCheck reads config.json for check; nil when it cannot be read,
+// which check reports by itself.
+func configForCheck(st *storage.Store) *Config {
+	data, _, err := st.Raw(ConfigPath)
+	if err != nil {
+		return nil
+	}
+	c := Config{}
+	if json.Unmarshal(data, &c) != nil || c.Validate() != nil {
+		return nil
+	}
+	return &c
+}
+
 // auditTaskLinks reports what tasks refer to: records that do not exist, a
 // holder that is not an own organization, people and interactions of another
 // holder, an agent that the assignee does not handle, and a status or
@@ -704,13 +725,7 @@ func auditTaskLinks(st *storage.Store, add addFinding) error {
 	if err != nil {
 		return err
 	}
-	var cfg *Config // nil when config.json cannot be read: check reports that
-	if data, _, err := st.Raw(ConfigPath); err == nil {
-		c := Config{}
-		if json.Unmarshal(data, &c) == nil && c.Validate() == nil {
-			cfg = &c
-		}
-	}
+	cfg := configForCheck(st)
 	for _, id := range slices.Sorted(maps.Keys(ts)) {
 		t := ts[id]
 		switch o, ok := orgs[t.rec.Holder]; {
