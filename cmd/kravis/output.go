@@ -222,12 +222,27 @@ func writeTable(w io.Writer, r reply) error {
 		if r.NextCursor != nil {
 			next = "--cursor " + *r.NextCursor
 		}
-		_, _ = fmt.Fprintf(tw, "\ntotal\t%d\nnext page\t%s\n", r.Total, next)
+		_, _ = fmt.Fprintf(tw, "\nfilters\t%s\ntotal\t%d (only the records those filters match)\nnext page\t%s\n", filterText(r.Filters), r.Total, next)
 	}
 	for _, wn := range r.Warnings {
 		_, _ = fmt.Fprintf(tw, "warning\t%s: %s\n", wn.Code, wn.Message)
 	}
 	return tw.Flush()
+}
+
+// filterText lists the filters a list applied as key=value pairs.
+func filterText(f any) string {
+	raw, _ := json.Marshal(f)
+	var m map[string]any
+	_ = json.Unmarshal(raw, &m)
+	if len(m) == 0 {
+		return "none"
+	}
+	pairs := make([]string, 0, len(m))
+	for _, k := range sortedKeys(m) {
+		pairs = append(pairs, k+"="+cell(m[k]))
+	}
+	return strings.Join(pairs, " ")
 }
 
 func sortedKeys(m map[string]any) []string {

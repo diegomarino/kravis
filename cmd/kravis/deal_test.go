@@ -542,3 +542,27 @@ func TestDealPartyWritesFollowTheCatalogAndShowTheDescription(t *testing.T) {
 		t.Errorf("findings %v", got)
 	}
 }
+
+func TestTerminalListsShowTheirFiltersAlsoWhenEmpty(t *testing.T) {
+	e := world(t)
+	e.ok(mkDeal()...)
+	e.ok("deal", "stage", sierraDeal, "won")
+	e.TTY = true
+	// Every deal is closed: the live filter explains the empty list.
+	r := e.run("deal", "list")
+	for _, want := range []string{"filters", "live=true", "holder="+orgID, "only the records those filters match"} {
+		if !strings.Contains(r.Stdout, want) {
+			t.Errorf("closed-deal list lacks %q: %q", want, r.Stdout)
+		}
+	}
+	// Another holder's actor sees none of holder A's deals: the holder filter says so.
+	r = e.run(as(otherAgent, "deal", "list", "--all")...)
+	if !strings.Contains(r.Stdout, "holder="+otherOrg) || !strings.Contains(r.Stdout, "filters") {
+		t.Errorf("other-holder list lacks its holder filter: %q", r.Stdout)
+	}
+	// JSON keeps its filters exactly as before.
+	e.TTY = false
+	if out := e.ok("deal", "list"); fmt.Sprint(out["filters"]) != "map[holder:"+orgID+" live:true]" {
+		t.Errorf("json filters %v", out["filters"])
+	}
+}
