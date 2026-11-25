@@ -12,12 +12,11 @@
   <rect x="560" y="48" width="580" height="284" rx="14" fill="#020617" stroke="#1e293b" stroke-width="2"/>
   <circle cx="588" cy="76" r="7" fill="#f87171"/><circle cx="612" cy="76" r="7" fill="#fbbf24"/><circle cx="636" cy="76" r="7" fill="#4ade80"/>
   <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="20">
-    <text x="588" y="130" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis interaction create \</tspan></text>
-    <text x="588" y="158" fill="#e2e8f0">    --channel email --subject "Intro call" \</text>
-    <text x="588" y="186" fill="#e2e8f0">    --participant ben@example.com</text>
-    <text x="588" y="214" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis task create --title "Send the proposal" \</tspan></text>
-    <text x="588" y="242" fill="#e2e8f0">    --assignee us_ana --due 2026-12-01 ...</text>
-    <text x="588" y="284" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis task list</tspan></text>
-    <text x="588" y="312" fill="#4ade80">{"data":[{"title":"Send the proposal",</text>
+    <text x="588" y="126" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis interaction create \</tspan></text>
+    <text x="588" y="154" fill="#e2e8f0" xml:space="preserve">    --subject "Intro call" ...</text>
+    <text x="588" y="192" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis task create \</tspan></text>
+    <text x="588" y="220" fill="#e2e8f0" xml:space="preserve">    --title "Send the proposal" ...</text>
+    <text x="588" y="258" fill="#38bdf8">$ <tspan fill="#e2e8f0">kravis task list</tspan></text>
+    <text x="588" y="298" fill="#4ade80">{"data":[{"title":"Send the proposal",</text>
   </g>
 </svg>
