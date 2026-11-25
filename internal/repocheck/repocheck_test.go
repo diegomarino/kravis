@@ -253,7 +253,7 @@ func expectedScope() []string {
 	add("INTERACTIONS-AC", 1, 2)
 	add("WORK-AC", 1, 2)
 	add("WORKSPACE-INV", 1, 14)
-	add("IDENTITY-INV", 1, 5)
+	add("IDENTITY-INV", 1, 6)
 	add("DIRECTORY-INV", 1, 4)
 	add("INTERACTIONS-INV", 1, 10)
 	add("WORK-INV", 1, 9)
@@ -269,8 +269,8 @@ func TestScopeIsExactlyTheIncrement(t *testing.T) {
 	}
 	got := readScope(string(data))
 	want := expectedScope()
-	if len(want) != 66 {
-		t.Fatalf("the expected scope has %d IDs, want 19 criteria and 47 invariants", len(want))
+	if len(want) != 67 {
+		t.Fatalf("the expected scope has %d IDs, want 19 criteria and 48 invariants", len(want))
 	}
 	slices.Sort(got)
 	slices.Sort(want)

@@ -79,6 +79,7 @@ Know who acts in Kravis (humans and their agents) and attribute every write to a
 - `IDENTITY-INV-03` - Every agent has exactly one handler: a live human of the agent's holder. In the MVP the handler never changes.
 - `IDENTITY-INV-04` - Every write declares an actor, taken from the command flag, then the environment, then the local configuration. A write without an actor is refused; reads need none.
 - `IDENTITY-INV-05` - The actor of a write is an existing user.
+- `IDENTITY-INV-06` - A holder keeps a live human once it has one: deactivating or deleting the holder's last live human is refused before any change, so someone can still act for it.
 - `WORKSPACE-INV-14` - Only a live user can act.
 
 ### Interactions (`domain:interactions`)

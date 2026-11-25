@@ -83,6 +83,7 @@ func TestIDENTITY_INV_03_AnAgentHasAHandlerThatIsALiveHumanOfItsHolder(t *testin
 	e.ok("user", "create", "dan-acme", "--human", "--holder", orgID)
 	e.ok("user", "update", "us_dan-acme", "--live=false")
 	e.refused("INVALID_VALUE", 2, "user", "create", "a5", "--agent", "--holder", orgID, "--handler", "us_dan-acme")
+	e.ok("user", "update", "us_dan-acme", "--live=true") // the holder keeps a live human (IDENTITY-INV-06)
 
 	// Deactivating the handler of a live agent is refused, with the agent named.
 	eo = e.refused("REFERENCED", 4, "user", "update", userID, "--live=false")
@@ -96,6 +97,49 @@ func TestIDENTITY_INV_03_AnAgentHasAHandlerThatIsALiveHumanOfItsHolder(t *testin
 	outcomeOf(t, e.ok("user", "update", userID, "--live=false"), "updated")
 }
 
+func TestIDENTITY_INV_06_AHolderKeepsItsLastLiveHuman(t *testing.T) {
+	e := newEnv(t)
+	e.mustInit()
+	file := "records/users/" + userID + ".json"
+	before := e.Files()
+	for _, args := range [][]string{
+		{"user", "update", userID, "--live=false"},
+		{"user", "delete", userID},
+	} {
+		eo := e.refused("INVALID_VALUE", 2, args...)
+		if obj(t, eo, "details")["holder"] != orgID || !strings.Contains(eo["hint"].(string), "another human") {
+			t.Errorf("%v: %v", args, eo)
+		}
+	}
+	if !maps.Equal(before, e.Files()) {
+		t.Error("a refused retirement changed files")
+	}
+	// The workspace stays operable: whoami and writes work.
+	if d := data(t, e.ok("whoami")); d["actor"] != userID {
+		t.Errorf("whoami: %v", d)
+	}
+	outcomeOf(t, e.ok("user", "update", userID, "--live=true"), "unchanged")
+
+	// An agent, a deactivated human or another holder's human does not count.
+	e.mustAgent()
+	e.ok("user", "create", "eva-acme", "--human", "--holder", orgID)
+	e.ok("user", "update", "us_eva-acme", "--live=false")
+	e.ok("organization", "create", "--name", "Other Example", "--own")
+	e.ok("user", "create", "bea-other", "--human", "--holder", otherOrg)
+	e.ok("user", "update", agentID, "--live=false")
+	e.refused("INVALID_VALUE", 2, "user", "update", userID, "--live=false")
+	// With another live human of the holder, retiring is allowed.
+	e.ok("user", "update", "us_eva-acme", "--live=true")
+	outcomeOf(t, e.ok("user", "update", userID, "--live=false"), "updated")
+	e.refused("INVALID_VALUE", 2, "--actor", "us_eva-acme", "user", "delete", "us_eva-acme")
+	// A deactivated human can always be deleted; deleting a live one needs another.
+	e.ok("--actor", "us_eva-acme", "user", "delete", agentID)
+	outcomeOf(t, e.ok("--actor", "us_eva-acme", "user", "delete", userID), "deleted")
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Errorf("the user file is still there: %v", err)
+	}
+}
+
 func TestWORKSPACE_AC_10_DeletingAReferencedRecordFailsAndListsTheReferrers(t *testing.T) {
 	e := newEnv(t)
 	e.mustInit()
@@ -105,12 +149,14 @@ func TestWORKSPACE_AC_10_DeletingAReferencedRecordFailsAndListsTheReferrers(t *t
 	e.ok("person", "affiliation", "add", elenaID, "org_grupo-sierra", "--title", "CFO")
 
 	referrers := func(eo map[string]any) string { return fmt.Sprint(obj(t, eo, "details")["referrers"]) }
+	// Eva keeps the holder a live human, so Ana could be retired (IDENTITY-INV-06).
+	e.ok("user", "create", "eva-acme", "--human", "--holder", orgID, "--person", elenaEmail)
 	// A human who is a handler.
 	if got := referrers(e.refused("REFERENCED", 4, "user", "delete", userID)); got != "["+agentID+"]" {
 		t.Errorf("handler referrers %s", got)
 	}
 	// An organization that is a holder.
-	if got := referrers(e.refused("REFERENCED", 4, "organization", "delete", orgID)); got != "["+userID+" "+agentID+"]" {
+	if got := referrers(e.refused("REFERENCED", 4, "organization", "delete", orgID)); got != "["+userID+" us_eva-acme "+agentID+"]" {
 		t.Errorf("holder referrers %s", got)
 	}
 	// An organization with affiliations.
@@ -118,7 +164,6 @@ func TestWORKSPACE_AC_10_DeletingAReferencedRecordFailsAndListsTheReferrers(t *t
 		t.Errorf("affiliation referrers %s", got)
 	}
 	// A person linked to a human.
-	e.ok("user", "create", "eva-acme", "--human", "--holder", orgID, "--person", elenaEmail)
 	if got := referrers(e.refused("REFERENCED", 4, "person", "delete", elenaID)); got != "[us_eva-acme]" {
 		t.Errorf("person referrers %s", got)
 	}

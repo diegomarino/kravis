@@ -209,6 +209,9 @@ func (ws *Workspace) UpdateUser(actor, id string, ch UserChange, opt ViewOptions
 		}
 	}
 	if ch.Live != nil && !*ch.Live {
+		if err := ws.keepsALiveHuman(id); err != nil {
+			return nil, err
+		}
 		agents, err := ws.liveAgentsOf(id)
 		if err != nil {
 			return nil, err
@@ -276,7 +279,35 @@ func (ws *Workspace) ListUsers(opt ListOptions) (*ListResult, error) {
 
 // DeleteUser deletes a user that nothing refers to.
 func (ws *Workspace) DeleteUser(id string, opt ViewOptions) (*Result, error) {
+	if err := users.checkFields(opt); err != nil {
+		return nil, err
+	}
+	if err := ws.keepsALiveHuman(id); err != nil {
+		return nil, err
+	}
 	return users.remove(ws, id, opt)
+}
+
+// keepsALiveHuman refuses to deactivate or delete id when it is the last
+// live human of its holder (IDENTITY-INV-06): nobody could act for the
+// holder again. A user that does not exist is left to the caller.
+func (ws *Workspace) keepsALiveHuman(id string) error {
+	u, _, err := users.load(ws, id)
+	if err != nil || u.Kind != KindHuman || !u.Live {
+		return nil // the update or delete reports a missing user
+	}
+	rows, err := users.scan(ws.strictly())
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if r.id != id && r.rec.Holder == u.Holder && r.rec.Kind == KindHuman && r.rec.Live {
+			return nil
+		}
+	}
+	return newError(CodeInvalidValue, "create or reactivate another human of "+u.Holder+" first",
+		"%s is the last live human of %s, so it stays: someone must be able to act for the holder", id, u.Holder).
+		with("holder", u.Holder)
 }
 
 // liveAgentsOf lists the live agents that id handles.
