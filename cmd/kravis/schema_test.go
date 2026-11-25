@@ -18,7 +18,7 @@ import (
 
 var update = flag.Bool("update", false, "rewrite the golden schema files")
 
-var schemaTypes = []string{"interaction", "organization", "person", "task", "user"}
+var schemaTypes = []string{"deal", "interaction", "note", "organization", "person", "project", "task", "user"}
 
 // schemaOf runs kravis schema and returns its data.
 func schemaOf(t *testing.T, e *env, args ...string) map[string]any {
@@ -82,7 +82,7 @@ func TestWORKSPACE_AC_06_SchemaDescribesATypeWithItsCatalogsDefaultsOrderAndErro
 	if len(all) != len(schemaTypes) {
 		t.Errorf("types %d", len(all))
 	}
-	eo := wantError(t, e.run("schema", "deal"), "INVALID_VALUE", 2)
+	eo := wantError(t, e.run("schema", "invoice"), "INVALID_VALUE", 2)
 	allowed := slices.Clone(obj(t, eo, "details")["allowed"].([]any))
 	slices.SortFunc(allowed, func(a, b any) int { return strings.Compare(a.(string), b.(string)) })
 	if fmt.Sprint(allowed) != fmt.Sprint(anySlice(schemaTypes)) {
@@ -192,6 +192,34 @@ var corpus = map[string][]inputCase{
 		{"a blank subject", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":" ","participants":["pe_elena-ruiz"]}`, false},
 		{"an unknown field", `{"channel":"email","occurred_at":"2026-11-23T17:02:00Z","subject":"x","participants":["pe_elena-ruiz"],"deal":"d1"}`, false},
 	},
+	"deal": {
+		{"a party and the holder's role", `{"party":"pe_elena-ruiz","holder_role":"seller"}`, true},
+		{"with roles, a name and a stage", `{"party":"org_grupo-sierra","roles":["buyer","advisor"],"holder_role":"seller","name":"Sierra sale","stage":"engaged"}`, true},
+		{"with a description", `{"party":"pe_elena-ruiz","holder_role":"seller","description":"Warm lead."}`, true},
+		{"no party", `{"holder_role":"seller"}`, false},
+		{"no holder role", `{"party":"pe_elena-ruiz"}`, false},
+		{"a holder role outside the catalog", `{"party":"pe_elena-ruiz","holder_role":"wizard"}`, false},
+		{"a role outside the catalog", `{"party":"pe_elena-ruiz","holder_role":"seller","roles":["wizard"]}`, false},
+		{"a stage outside the pipeline", `{"party":"pe_elena-ruiz","holder_role":"seller","stage":"dreaming"}`, false},
+		{"an unknown field", `{"party":"pe_elena-ruiz","holder_role":"seller","value":10}`, false},
+	},
+	"project": {
+		{"a name", `{"name":"Data room"}`, true},
+		{"with related records and a description", `{"name":"Onboarding","related":["pe_elena-ruiz"],"description":"Steps."}`, true},
+		{"no name", `{}`, false},
+		{"a blank name", `{"name":"  "}`, false},
+		{"a deal that is not one", `{"name":"Bad deal","deal":"org_grupo-sierra"}`, false},
+		{"an unknown field", `{"name":"Owned","owner":"us_ana-acme"}`, false},
+	},
+	"note": {
+		{"a subject and a text", `{"subjects":["pe_elena-ruiz"],"text":"Prefers mornings."}`, true},
+		{"two subjects", `{"subjects":["pe_elena-ruiz","org_grupo-sierra"],"text":"Met at the fair."}`, true},
+		{"no subjects", `{"text":"Orphan."}`, false},
+		{"an empty list of subjects", `{"subjects":[],"text":"Orphan."}`, false},
+		{"no text", `{"subjects":["pe_elena-ruiz"]}`, false},
+		{"a blank text", `{"subjects":["pe_elena-ruiz"],"text":"  "}`, false},
+		{"an unknown field", `{"subjects":["pe_elena-ruiz"],"text":"x","title":"y"}`, false},
+	},
 	"person": {
 		{"a name", `{"name":"Zoe Example"}`, true},
 		{"an email", `{"emails":["zoe@example.com"]}`, true},
@@ -240,7 +268,7 @@ var corpus = map[string][]inputCase{
 // name with hyphens.
 var flagOf = map[string]string{
 	"participants": "participant", "deals": "deal", "projects": "project", "refs": "ref", "emails": "email", "domains": "domain",
-	"summary": "summary-file", "description": "description-file",
+	"summary": "summary-file", "description": "description-file", "roles": "role", "subjects": "subject", "text": "text-file",
 }
 
 // cliArgs turns an input document into the arguments of its create command
@@ -274,7 +302,7 @@ func cliArgs(t *testing.T, typ, doc string) (args []string, stdin string) {
 				for _, x := range list {
 					args = append(args, flag, fmt.Sprint(x))
 				}
-			} else if k == "summary" || k == "description" {
+			} else if k == "summary" || k == "description" || k == "text" {
 				args, stdin = append(args, flag, "-"), fmt.Sprint(v)
 			} else {
 				args = append(args, flag, fmt.Sprint(v))

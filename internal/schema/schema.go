@@ -74,6 +74,14 @@ func For(name string, cfg domain.Config) (*jsonschema.Schema, error) {
 		items(s, "refs", refItem())
 	case "task":
 		enum(s, "purpose", cat.Purposes)
+	case "deal":
+		var stages []string
+		for _, st := range cat.Pipelines[domain.DefaultPipeline].Stages {
+			stages = append(stages, st.Name)
+		}
+		enum(s, "stage", stages)
+		enum(s, "holder_role", cat.PartyRoles)
+		items(s, "roles", &jsonschema.Schema{Type: "string", Enum: anys(cat.PartyRoles)})
 	}
 
 	ext := map[string]any{
@@ -84,6 +92,10 @@ func For(name string, cfg domain.Config) (*jsonschema.Schema, error) {
 	}
 	if name == "task" {
 		ext["statuses"] = cat.TaskStatuses
+	}
+	if name == "deal" {
+		ext["stages"] = cat.Pipelines[domain.DefaultPipeline].Stages
+		ext["lost_reasons"] = cat.LostReasons
 	}
 	s.Extras = map[string]any{Extension: ext}
 	return s, nil
@@ -130,6 +142,14 @@ func enum(s *jsonschema.Schema, field string, values []string) {
 			p.Enum = append(p.Enum, v)
 		}
 	}
+}
+
+func anys(values []string) []any {
+	out := make([]any, len(values))
+	for i, v := range values {
+		out[i] = v
+	}
+	return out
 }
 
 func ptr(n uint64) *uint64 { return &n }

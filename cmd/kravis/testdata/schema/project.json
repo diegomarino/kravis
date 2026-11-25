@@ -1,0 +1,66 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "name": {
+        "type": "string",
+        "pattern": "\\S",
+        "x-cli": "--name"
+      },
+      "deal": {
+        "type": "string",
+        "pattern": "^dl_.+",
+        "description": "the deal of your holder it is tied to",
+        "x-cli": "--deal"
+      },
+      "related": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "description": "people and organizations and deals and projects: deals and projects of your holder",
+        "x-cli": "--related (repeatable)"
+      },
+      "description": {
+        "type": "string",
+        "x-cli": "--description-file"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "name"
+    ],
+    "title": "project",
+    "description": "The fields of kravis project create.",
+    "x-kravis": {
+      "defaults": null,
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "name",
+          "live",
+          "holder",
+          "deal"
+        ],
+        "default_limit": 50,
+        "order": "name compared as its slug; then the ID"
+      },
+      "type": "project"
+    }
+  }
+}

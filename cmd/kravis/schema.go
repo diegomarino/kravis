@@ -14,7 +14,7 @@ func (a *app) schemaCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "schema [type]",
 		Short: "Describe the record types: fields, catalogs, defaults, order and errors",
-		Long: "Print a JSON Schema for the input of a record type (user, organization, person, interaction or task), or of every type " +
+		Long: "Print a JSON Schema for the input of a record type (user, organization, person, interaction, task, deal, project or note), or of every type " +
 			"without an argument. The catalogs that apply to the actor's holder appear as enumerations, with the category of every " +
 			"task status, the value used when a field is omitted, the default list order, the compact view and the error codes. " +
 			"Agents query it instead of copying it.",

@@ -26,6 +26,12 @@ func InputFor(name string) any {
 		return InteractionInput{}
 	case "task":
 		return TaskInput{}
+	case "deal":
+		return DealInput{}
+	case "project":
+		return ProjectInput{}
+	case "note":
+		return NoteInput{}
 	}
 	return nil
 }
@@ -40,6 +46,8 @@ func Defaults(name string) map[string]any {
 		return map[string]any{"direction": DirectionOutbound}
 	case "task":
 		return map[string]any{"status": initialStatus, "purpose": map[string]any{"value": defaultPurpose, "when": "interaction"}}
+	case "deal":
+		return map[string]any{"stage": "the first stage of the pipeline", "pipeline": DefaultPipeline}
 	}
 	return nil
 }

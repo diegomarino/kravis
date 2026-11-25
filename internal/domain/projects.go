@@ -148,10 +148,10 @@ func (ws *Workspace) relatedToDrop(field string, refs []string) ([]string, error
 
 // ProjectInput is what project create takes.
 type ProjectInput struct {
-	Name        string
-	Deal        string
-	Related     []string
-	Description string
+	Name        string   `json:"name" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--name"`
+	Deal        string   `json:"deal,omitempty" jsonschema:"pattern=^dl_.+,description=the deal of your holder it is tied to" jsonschema_extras:"x-cli=--deal"`
+	Related     []string `json:"related,omitempty" jsonschema:"description=people and organizations and deals and projects: deals and projects of your holder" jsonschema_extras:"x-cli=--related (repeatable)"`
+	Description string   `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
 }
 
 // CreateProject creates a live project of the actor's holder, tied to at

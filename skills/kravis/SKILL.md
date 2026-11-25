@@ -1,6 +1,6 @@
 ---
 name: kravis
-description: Use Kravis, a CRM for agents, to record interactions with people and organizations, follow them up with tasks, and keep the history in one workspace of JSON files. Use it when asked to log an email, meeting or call, to remember who was involved, to create or move a follow-up, or to see what is overdue.
+description: Use Kravis, a CRM for agents, to record interactions with people and organizations, follow them up with tasks, and keep the history in one workspace of JSON files. Use it when asked to log an email, meeting or call, to remember who was involved, to create or move a follow-up, to run a deal or a project, to write a note, to see what is overdue or due today, to prepare a briefing on a person or organization, or to count a person's outreach.
 ---
 
 # Kravis
@@ -11,11 +11,11 @@ Kravis is a command, `kravis`, over a workspace: a folder with one JSON file per
 
 - The workspace is `KRAVIS_WORKSPACE`, or the nearest folder with `kravis.json` above the current one. Outside any workspace every command fails with `STORAGE_UNAVAILABLE`. In a new folder run `kravis init --timezone <zone> --organization <name> --user <key>`.
 - A write needs an actor, a live user: `--actor <user>`, then `KRAVIS_ACTOR`, then the default stored on this machine. `kravis whoami` shows who you are and for which holder. `kravis whoami --set <user>` stores the default.
-- A work record (interaction, task) belongs to the holder of the actor, and you read and write only your holder's. People, organizations and users are shared.
+- A work record (deal, project, task, interaction, note) belongs to the holder of the actor, and you read and write only your holder's. People, organizations and users are shared.
 
 ## Ask Kravis, do not copy it
 
-Query `kravis schema <type>` for a type's fields, the catalogs that apply to you (channels, purposes, task statuses with their category), the value used when a field is omitted, the default order, the compact view and the error codes. The types are `user`, `organization`, `person`, `interaction` and `task`. Each property says which flag sets it. `kravis schema` alone prints every type. Never copy its values into your notes: they change with the workspace.
+Query `kravis schema <type>` for a type's fields, the catalogs that apply to you (channels, purposes, task statuses with their category), the value used when a field is omitted, the default order, the compact view and the error codes. The types are `user`, `organization`, `person`, `interaction`, `task`, `deal`, `project` and `note`. Each property says which flag sets it. `kravis schema` alone prints every type. Never copy its values into your notes: they change with the workspace.
 
 `kravis <type> list|get|create|update|delete` is the same for every type. Add `--fields <a,b>` or `--full` to widen what a command prints. A create that has a natural key returns `existing` when repeated: a person by email, an organization by domain, an interaction by an identifying reference such as the Message-ID, a task by its interaction and purpose. A task without `--interaction`, or an interaction without a reference, has none: after a lost answer, list before you create it again.
 
@@ -38,9 +38,44 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 - `kravis task update <task> --due <date>` changes the rest. An empty value clears a field: `--agent ""`.
 - A task has one assignee, a live human, and may have an agent that the assignee handles: `--agent <agent>`.
 
+## Run a deal
+
+- `kravis deal create --party <person or organization> --holder-role <party role> [--role <party role>] [--name <name>]` opens a deal at the first stage. A deal has no natural key: list with `kravis deal list --party <id>` before you create it again.
+- `kravis deal stage <deal> <stage>` is the only way to move it, and a lost stage needs `--reason <lost reason>`. `kravis deal party add <deal> <party> --role <party role>` adds a party.
+- Link work to it: `--deal <deal>` on `kravis interaction create` and `kravis task create`.
+
+## Projects
+
+- `kravis project create --name <name> [--deal <deal>]` and `kravis project list --deal <deal>`. A task takes `--project <project>` or `--deal <deal>` as its parent, never both, fixed at creation.
+- `kravis project close <project>` fails with `REFERENCED` while the project has live tasks. `--cancel-tasks` cancels them first; `kravis project reopen <project>` undoes it.
+- `--related <id>` on a task or project adds a person, organization, deal or project that is not its parent.
+
+## Notes
+
+`kravis note create --subject <id> --text-file -` writes a note about people, organizations, deals or projects, with the text piped in. Repeat `--subject` for several. `kravis note update <note> --subject <id>` adds one, and `--remove-subject` removes one, never the last. A note that is no longer useful is deleted.
+
+## Prepare a briefing
+
+For "everything about Ben Carter": resolve him with `kravis person get <email or id>`, then ask each list for his records, all with the same ID.
+
+1. `kravis interaction list --participant <person>`: what happened, newest first.
+2. `kravis note list --related-to <person>`: what is known about him.
+3. `kravis task list --related-to <person>`: the follow-ups about him.
+4. `kravis deal list --party <person>`: his deals.
+
+For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` and `note list` also finds the work under it. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. Dates are in the workspace timezone.
+
+## Measure outreach
+
+For "how many people did Ana write to in November, and who": the outbound interactions she started, in the month.
+
+`kravis interaction list --direction outbound --initiated-by <user> --from 2026-11-01 --to 2026-11-30 --limit 0`
+
+`total` is the count. `--to` includes its whole day. Add `--participant <person>` for one person and `--with-agents` to count what her agents started too. Inbound ones are never outreach, and an interaction without an initiator matches no `--initiated-by`.
+
 ## Correct a mistake
 
-A record created under the wrong actor is removed and created again, with no trace left: `kravis interaction delete <interaction>` or `kravis task delete <task>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
+A record created under the wrong actor is removed and created again, with no trace left: `kravis interaction delete <interaction>`, `kravis task delete <task>` or `kravis note delete <note>`, then create it with the right `--actor`. A delete of something other records refer to fails with `REFERENCED` and lists them in `details.referrers`. Deactivate a user with `kravis user update <user> --live=false`. Run `kravis check` when a workspace seems damaged: it lists findings and exits with code 6.
 
 ## Words
 
