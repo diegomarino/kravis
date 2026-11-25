@@ -63,7 +63,7 @@ For "everything about Ben Carter": resolve him with `kravis person get <email or
 3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him.
 4. `kravis deal list --party <person> --limit 0`: his deals.
 
-For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` and `note list` also finds the work under it. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. Dates are in the workspace timezone.
+For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. Dates are in the workspace timezone.
 
 ## Measure outreach
 
