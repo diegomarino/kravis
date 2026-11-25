@@ -26,6 +26,6 @@
       <path d="M272 160H346"/><path d="M572 160H646"/>
       <path d="M872 140L946 100"/><path d="M872 180L946 220"/>
     </g>
-    <text x="600" y="316" font-size="20" fill="#94a3b8">Every record is one JSON file. Notes can be about any of them.</text>
+    <text x="600" y="316" font-size="20" fill="#94a3b8">Every record is one JSON file. Notes can be about people, organizations, deals and projects.</text>
   </g>
 </svg>
