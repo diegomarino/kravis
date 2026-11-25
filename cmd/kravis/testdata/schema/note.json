@@ -1,0 +1,59 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "subjects": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "minItems": 1,
+        "description": "people and organizations and deals and projects: deals and projects of your holder",
+        "x-cli": "--subject (repeatable)"
+      },
+      "text": {
+        "type": "string",
+        "pattern": "\\S",
+        "x-cli": "--text-file"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "subjects",
+      "text"
+    ],
+    "title": "note",
+    "description": "The fields of kravis note create.",
+    "x-kravis": {
+      "defaults": null,
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "live",
+          "holder",
+          "subjects",
+          "excerpt",
+          "created_at"
+        ],
+        "default_limit": 50,
+        "order": "created_at, newest first; then the ID"
+      },
+      "type": "note"
+    }
+  }
+}

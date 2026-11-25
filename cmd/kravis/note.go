@@ -85,6 +85,7 @@ func (a *app) noteCommand() *cobra.Command {
 		},
 	}
 	f = list.Flags()
+	f.StringVar(&lf.RelatedTo, "related-to", "", "only notes with this person, organization, deal or project as a subject")
 	f.BoolVar(&listAll, "all-holders", false, "do not limit the list to the actor's holder")
 	listFlags(f, &lo)
 

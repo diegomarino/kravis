@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -108,8 +109,8 @@ func (ws *Workspace) finishNote(opt ViewOptions, touched bool) func(*Result, err
 
 // NoteInput is what note create takes.
 type NoteInput struct {
-	Subjects []string
-	Text     string
+	Subjects []string `json:"subjects" jsonschema:"minItems=1,description=people and organizations and deals and projects: deals and projects of your holder" jsonschema_extras:"x-cli=--subject (repeatable)"`
+	Text     string   `json:"text" jsonschema:"pattern=\\S" jsonschema_extras:"x-cli=--text-file"`
 }
 
 // CreateNote creates a note of the actor's holder about one or more
@@ -233,12 +234,21 @@ func (ws *Workspace) DeleteNote(actorID, id string, opt ViewOptions) (*Result, e
 // NoteFilter is what note list narrows by.
 type NoteFilter struct {
 	// Holder limits the list to one holder's notes; "" is no limit.
-	Holder string
+	Holder    string
+	RelatedTo string // a person, organization, deal or project: a subject
 }
 
 // ListNotes returns a page of notes, newest first.
 func (ws *Workspace) ListNotes(f NoteFilter, opt ListOptions) (*ListResult, error) {
-	res, err := notes.list(ws, f.Holder, opt, nil, "")
+	var relatedTo string
+	if f.RelatedTo != "" {
+		var err error
+		if relatedTo, err = ws.relatedID("related-to", f.RelatedTo); err != nil {
+			return nil, err
+		}
+	}
+	keep := func(n *Note) bool { return relatedTo == "" || slices.Contains(n.Subjects, relatedTo) }
+	res, err := notes.list(ws, f.Holder, opt, keep, fmt.Sprintf("holder=%s|related=%s", f.Holder, relatedTo))
 	if err != nil {
 		return nil, err
 	}

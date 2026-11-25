@@ -1,0 +1,136 @@
+{
+  "data": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "party": {
+        "type": "string",
+        "description": "the first party: a person (ID or email) or an organization",
+        "x-cli": "--party"
+      },
+      "roles": {
+        "items": {
+          "type": "string",
+          "enum": [
+            "client",
+            "counterparty",
+            "advisor",
+            "lender",
+            "investor",
+            "buyer",
+            "seller"
+          ]
+        },
+        "type": "array",
+        "description": "party roles of the first party",
+        "x-cli": "--role (repeatable)"
+      },
+      "holder_role": {
+        "type": "string",
+        "enum": [
+          "client",
+          "counterparty",
+          "advisor",
+          "lender",
+          "investor",
+          "buyer",
+          "seller"
+        ],
+        "description": "the holder's own party role: no default",
+        "x-cli": "--holder-role"
+      },
+      "name": {
+        "type": "string",
+        "x-cli": "--name"
+      },
+      "stage": {
+        "type": "string",
+        "enum": [
+          "prospect",
+          "engaged",
+          "closing",
+          "won"
+        ],
+        "description": "a stage of the pipeline that is not lost: the first one when omitted",
+        "x-cli": "--stage"
+      },
+      "description": {
+        "type": "string",
+        "x-cli": "--description-file"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "party",
+      "holder_role"
+    ],
+    "title": "deal",
+    "description": "The fields of kravis deal create.",
+    "x-kravis": {
+      "defaults": {
+        "pipeline": "default",
+        "stage": "the first stage of the pipeline"
+      },
+      "errors": [
+        "INTERNAL",
+        "MISSING_ACTOR",
+        "ACTOR_NOT_LIVE",
+        "UNKNOWN_FIELD",
+        "INVALID_VALUE",
+        "HOLDER_MISMATCH",
+        "NOT_FOUND",
+        "VERSION_CONFLICT",
+        "DEDUP_CONFLICT",
+        "REFERENCED",
+        "WORKSPACE_EXISTS",
+        "STORAGE_UNAVAILABLE"
+      ],
+      "list": {
+        "compact": [
+          "id",
+          "name",
+          "live",
+          "holder",
+          "stage",
+          "category",
+          "holder_role",
+          "lost_reason"
+        ],
+        "default_limit": 50,
+        "order": "name compared as its slug, else the ID; then the ID"
+      },
+      "lost_reasons": [
+        "price",
+        "timing",
+        "competitor",
+        "no-decision",
+        "ghosting",
+        "fit",
+        "other"
+      ],
+      "stages": [
+        {
+          "name": "prospect",
+          "category": "ongoing"
+        },
+        {
+          "name": "engaged",
+          "category": "ongoing"
+        },
+        {
+          "name": "closing",
+          "category": "ongoing"
+        },
+        {
+          "name": "won",
+          "category": "won"
+        },
+        {
+          "name": "lost",
+          "category": "lost"
+        }
+      ],
+      "type": "deal"
+    }
+  }
+}

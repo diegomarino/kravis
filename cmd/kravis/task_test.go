@@ -543,7 +543,6 @@ func sortedIDs(t *testing.T, list map[string]any) []string {
 func live(f fixture) bool { return f.status != "done" && f.status != "canceled" }
 
 func TestWORK_AC_02_ATaskListShowsLiveTasksAndFilters(t *testing.T) {
-	// The filter by related record belongs to increment 2: there are no related records yet.
 	e := taskWorld(t)
 	all := dataset(t, e)
 	mine := func(f fixture) bool { return f.holder == orgID }

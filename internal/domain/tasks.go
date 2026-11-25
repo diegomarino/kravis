@@ -671,6 +671,7 @@ type TaskFilter struct {
 	DueBefore string // a date: only tasks due before it
 	Project   string // only tasks in this project
 	Deal      string // only tasks of this deal, or in its projects
+	RelatedTo string // a person, organization, deal or project: related to it, or its parent's
 }
 
 // ListTasks returns a page of tasks by due date. Live tasks only, unless
@@ -701,8 +702,22 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 			return nil, err
 		}
 	}
+	var relatedTo string
+	var relatedProjects []string
+	if f.RelatedTo != "" {
+		if relatedTo, err = ws.relatedID("related-to", f.RelatedTo); err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(relatedTo, "dl_") {
+			if relatedProjects, err = scanProjects(ws, func(p *Project) bool { return p.Deal == relatedTo }); err != nil {
+				return nil, err
+			}
+		}
+	}
 	keep := func(t *Task) bool {
-		return (f.Project == "" || t.Project == f.Project) &&
+		return (relatedTo == "" || slices.Contains(t.Related, relatedTo) || t.Project == relatedTo || t.Deal == relatedTo ||
+			slices.Contains(relatedProjects, t.Project)) &&
+			(f.Project == "" || t.Project == f.Project) &&
 			(f.Deal == "" || t.Deal == f.Deal || slices.Contains(dealProjects, t.Project)) &&
 			(f.Assignee == "" || t.Assignee == f.Assignee) &&
 			(f.Agent == "" || t.Agent == f.Agent) &&
@@ -710,8 +725,8 @@ func (ws *Workspace) ListTasks(f TaskFilter, opt ListOptions) (*ListResult, erro
 			(!f.Overdue || (t.Live && t.Due != "" && t.Due < today)) &&
 			(before == "" || (t.Due != "" && t.Due < before))
 	}
-	print := fmt.Sprintf("holder=%s|assignee=%s|agent=%s|category=%s|overdue=%t|before=%s|project=%s|deal=%s",
-		f.Holder, f.Assignee, f.Agent, f.Category, f.Overdue, before, f.Project, f.Deal)
+	print := fmt.Sprintf("holder=%s|assignee=%s|agent=%s|category=%s|overdue=%t|before=%s|project=%s|deal=%s|related=%s",
+		f.Holder, f.Assignee, f.Agent, f.Category, f.Overdue, before, f.Project, f.Deal, relatedTo)
 	res, err := tasks.list(ws, f.Holder, opt, keep, print)
 	if err != nil {
 		return nil, err

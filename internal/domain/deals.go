@@ -192,12 +192,12 @@ func (ws *Workspace) refreshCategory(d *Deal) {
 
 // DealInput is what deal create takes.
 type DealInput struct {
-	Party       string
-	Roles       []string
-	HolderRole  string
-	Name        string
-	Stage       string // "" is the first stage of the pipeline
-	Description string
+	Party       string   `json:"party" jsonschema:"description=the first party: a person (ID or email) or an organization" jsonschema_extras:"x-cli=--party"`
+	Roles       []string `json:"roles,omitempty" jsonschema:"description=party roles of the first party" jsonschema_extras:"x-cli=--role (repeatable)"`
+	HolderRole  string   `json:"holder_role" jsonschema:"description=the holder's own party role: no default" jsonschema_extras:"x-cli=--holder-role"`
+	Name        string   `json:"name,omitempty" jsonschema_extras:"x-cli=--name"`
+	Stage       string   `json:"stage,omitempty" jsonschema:"description=a stage of the pipeline that is not lost: the first one when omitted" jsonschema_extras:"x-cli=--stage"` // "" is the first stage of the pipeline
+	Description string   `json:"description,omitempty" jsonschema_extras:"x-cli=--description-file"`
 }
 
 // CreateDeal creates a deal of the actor's holder with its first party.
