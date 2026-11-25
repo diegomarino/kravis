@@ -4,7 +4,8 @@
     "properties": {
       "name": {
         "type": "string",
-        "pattern": "\\S",
+        "pattern": "[0-9A-Za-zÀ-ÖØ-öø-ĥĨ-ıĴ-ķĹ-ľŁ-ňŌ-ťŨ-žƠơƯưǍ-ǜǞ-ǣǦ-ǭǰǴǵǸ-țȞȟȦ-ȳḀ-ẙẞẠ-ỹKÅ]",
+        "description": "the ID comes from it: it needs a letter or digit with an ASCII form",
         "x-cli": "--name"
       },
       "own": {

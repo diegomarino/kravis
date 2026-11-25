@@ -210,6 +210,9 @@ var corpus = map[string][]inputCase{
 		{"no name", `{}`, false},
 		{"a blank name", `{"name":"  "}`, false},
 		{"a deal that is not one", `{"name":"Bad deal","deal":"org_grupo-sierra"}`, false},
+		{"an accented name", `{"name":"Revisión Ñandú"}`, true},
+		{"a name in a script without an ASCII form", `{"name":"東京"}`, false},
+		{"a name of punctuation", `{"name":"!!!"}`, false},
 		{"an unknown field", `{"name":"Owned","owner":"us_ana-acme"}`, false},
 	},
 	"note": {
@@ -232,6 +235,11 @@ var corpus = map[string][]inputCase{
 		{"a name and no emails listed", `{"name":"Zoe Four","emails":[]}`, true},
 		{"an empty name beside an email", `{"name":"","emails":["zoe4@example.com"]}`, true},
 		{"an email with spaces around it", `{"emails":[" zoe5@example.com "]}`, true},
+		{"an accented name", `{"name":"Zoë Peña"}`, true},
+		{"a name in a script without an ASCII form", `{"name":"東京"}`, false},
+		{"a name of punctuation", `{"name":"!!!"}`, false},
+		{"a non-Latin name with an email", `{"name":"東京","emails":["tokyo@example.com"]}`, true},
+		{"a name of punctuation with an email", `{"name":"!!!","emails":["bang@example.com"]}`, true},
 		{"an unknown field", `{"name":"Zoe Three","phone":"123"}`, false},
 	},
 	"organization": {
@@ -247,6 +255,9 @@ var corpus = map[string][]inputCase{
 		{"an email provider's domain with www", `{"name":"Omicron Example","domains":["www.gmail.com"]}`, false},
 		{"an email provider's domain in capitals", `{"name":"Nu Example","domains":["GMAIL.com"]}`, false},
 		{"an unknown field", `{"name":"Xi Example","industry":"software"}`, false},
+		{"an accented name", `{"name":"Ñandú Óptica"}`, true},
+		{"a name in a script without an ASCII form", `{"name":"東京"}`, false},
+		{"a name of punctuation", `{"name":"!!!"}`, false},
 	},
 	"user": {
 		{"a human", `{"key":"zoe-acme","kind":"human","holder":"org_acme-example"}`, true},

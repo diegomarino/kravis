@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"regexp"
 	"sync"
 	"testing"
+	"unicode"
 )
 
 func TestSlug(t *testing.T) {
@@ -46,4 +48,15 @@ func TestSlugIsSafeToCallInParallel(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+// The schema's pattern for names that become slugs matches a character
+// exactly when Slug makes something of it.
+func TestSlugPatternIsSlug(t *testing.T) {
+	class := regexp.MustCompile("^" + SlugPattern + "$")
+	for r := rune(0); r <= unicode.MaxRune; r++ {
+		if s := string(r); class.MatchString(s) != (Slug(s) != "") {
+			t.Errorf("%U %q: the pattern matches it %v, Slug gives %q", r, s, class.MatchString(s), Slug(s))
+		}
+	}
 }
