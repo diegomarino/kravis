@@ -2,7 +2,7 @@
 
 A CRM for agents. Agents and the people they work for use it to record and follow relationships and work, in files they own: one JSON file per record, in a folder you can read, diff and keep in git.
 
-Every command prints one JSON object, so an agent can call it directly. Today it covers people, organizations, users, interactions (emails, meetings, calls) and the tasks that follow from them.
+Off a terminal, every command prints one JSON object, so an agent can call it directly (`--output json` forces it on a terminal). Today it covers people, organizations, users, interactions (emails, meetings, calls) and the tasks that follow from them.
 
 ## Install
 
