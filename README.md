@@ -13,18 +13,49 @@ Today it covers people, organizations, users, interactions (emails, meetings, ca
 ## Why Kravis
 
 - **Local.** Records are plain JSON files in a folder you own: read them, `grep` them, review them in a pull request, keep them in git. There is no database and no service to run.
-- **Agents first.** Off a terminal, every command prints one JSON object, and an error carries a hint for what to try next. A skill teaches your agent the commands. Each agent has its own identity and works under a human who answers for it.
-- **No absurd CRM restrictions.** A deal has any number of parties, people or organizations, each with any number of party roles, and the holder records its own party role. An interaction links to several deals and projects. A note can be about several records. A person can belong to several organizations.
+- **Agents first.** Off a terminal, every command prints one JSON object, and an error carries a hint for what to try next. A skill teaches your agent the commands. Each agent is a user with its own identity and works under a human, its handler, who answers for it.
+- **No one-to-one limits.** The model guarantees that:
+  - a deal is not tied to one account: it has any number of parties, people or organizations, each with any number of party roles, and it records the holder's own party role;
+  - a person is not tied to one company: a person has any number of affiliations, at most one per organization;
+  - an interaction is not tied to one deal: it concerns any number of deals and projects at once, and its participants are people or organizations;
+  - a note is not tied to one record: it is about one or more people, organizations, deals and projects, in any mix.
 
 ![The records Kravis keeps: a holder with its users and agents; deals with their parties, projects and tasks; interactions with their participants and follow-ups; notes](docs/assets/entities.svg)
 
 ## Install
 
+The binary, with Go:
+
 ```sh
 go install github.com/diegomarino/kravis/cmd/kravis@latest
 ```
 
-Or download a binary for macOS or Linux from [Releases](https://github.com/diegomarino/kravis/releases). Check it with `kravis --version`.
+Or download one for macOS or Linux from [Releases](https://github.com/diegomarino/kravis/releases). Check it with `kravis --version`.
+
+The skill, so your agent knows the commands, the flags and what to do on an error:
+
+```sh
+npx skills add diegomarino/kravis --skill kravis
+```
+
+Then ask it in plain words: "log my call with Ben and remind me to send the proposal on Monday".
+
+## What it manages
+
+Every type has `create`, `list`, `get`, `update` and `delete`; the table lists what each adds. `kravis schema <type>` prints a type's fields, flags and catalogs.
+
+| Record | What it is | Try |
+|---|---|---|
+| People | An individual you keep a relationship with, found by email | `kravis person create --name <name> --email <email>`, `kravis person affiliation add <person> <organization>` |
+| Organizations | A company or other group, found by domain | `kravis organization create --name <name> --domain <domain>` |
+| Users and agents | Who writes records: humans, and agents that work under a human | `kravis user create <key> --agent --holder <org> --handler <user>`, `kravis whoami` |
+| Interactions | An email, meeting or call, with its participants and deals | `kravis interaction create --channel <channel> --occurred-at <time> --subject <text> --participant <person> --deal <deal>` |
+| Deals | A transaction with its parties, their party roles and a stage | `kravis deal create --party <party> --role <role> --holder-role <role>`, `kravis deal party add <deal> <party>`, `kravis deal stage <deal> <stage>` |
+| Projects | Work that groups tasks, optionally tied to a deal | `kravis project create --name <name> --deal <deal>`, `kravis project close <project>` |
+| Tasks | A piece of work with a human assignee, often a follow-up | `kravis task create --title <title> --assignee <user> --due <date>`, `kravis task status <task> <status>`, `kravis task list --overdue` |
+| Notes | Free text about people, organizations, deals or projects | `kravis note create --subject <id> --text-file <file>` |
+
+`kravis check` validates a workspace. The full contract is in [`docs/cli.md`](docs/cli.md).
 
 ## Five-minute quickstart
 
@@ -47,26 +78,7 @@ kravis task list
 
 The task ID is generated, so yours differs.
 
-## What it manages
-
-Every type has `create`, `list`, `get`, `update` and `delete`; the table lists what each adds. `kravis schema <type>` prints a type's fields, flags and catalogs.
-
-| Record | What it is | Try |
-|---|---|---|
-| People | An individual you keep a relationship with, found by email | `kravis person create --name <name> --email <email>`, `kravis person affiliation add <person> <organization>` |
-| Organizations | A company or other group, found by domain | `kravis organization create --name <name> --domain <domain>` |
-| Users and agents | Who writes records: humans, and agents that work under a human | `kravis user create <key> --agent --holder <org> --handler <user>`, `kravis whoami` |
-| Interactions | An email, meeting or call, with its participants and deals | `kravis interaction create --channel <channel> --occurred-at <time> --subject <text> --participant <person> --deal <deal>` |
-| Deals | A transaction with its parties, their party roles and a stage | `kravis deal create --party <party> --role <role> --holder-role <role>`, `kravis deal party add <deal> <party>`, `kravis deal stage <deal> <stage>` |
-| Projects | Work that groups tasks, optionally tied to a deal | `kravis project create --name <name> --deal <deal>`, `kravis project close <project>` |
-| Tasks | A piece of work with a human assignee, often a follow-up | `kravis task create --title <title> --assignee <user> --due <date>`, `kravis task status <task> <status>`, `kravis task list --overdue` |
-| Notes | Free text about people, organizations, deals or projects | `kravis note create --subject <id> --text-file <file>` |
-
-`kravis check` validates a workspace. The full contract is in [`docs/cli.md`](docs/cli.md).
-
-## What it leaves on disk
-
-An excerpt: the other agent's user file and a `keys/` folder, which keeps creates safe to repeat, are left out.
+This leaves the following on disk. It is an excerpt: the other agent's user file and a `keys/` folder, which keeps creates safe to repeat, are left out.
 
 ```text
 .
@@ -81,16 +93,6 @@ An excerpt: the other agent's user file and a `keys/` folder, which keeps create
 ```
 
 One record, one file. Long text goes in a Markdown file next to it. [`docs/storage.md`](docs/storage.md) has the whole layout.
-
-## Use it from an agent
-
-Install the skill and your agent learns the commands, the flags and what to do on an error:
-
-```sh
-npx skills add diegomarino/kravis --skill kravis
-```
-
-Then ask it in plain words: "log my call with Ben and remind me to send the proposal on Monday".
 
 ## More
 
