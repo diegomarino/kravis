@@ -652,3 +652,6 @@ func auditDealLinks(st *storage.Store, add addFinding) error {
 	}
 	return nil
 }
+
+// Identity is the party's identity in its list: the party.
+func (p Party) Identity() string { return p.Party }

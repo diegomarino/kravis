@@ -439,3 +439,6 @@ func (ws *Workspace) RemoveAffiliation(actor, personRef, org string, opt ViewOpt
 	}
 	return people.result(OutcomeDeleted, rec, []string{"affiliations"}, opt)
 }
+
+// Identity is the affiliation's identity in its list: the organization.
+func (a Affiliation) Identity() string { return a.Organization }
