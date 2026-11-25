@@ -157,12 +157,12 @@ func Create[T any, P interface {
 			// it is the existing record.
 			held, herr := heldKeys(s, p, keyFn)
 			if herr == nil && slices.ContainsFunc(keys, func(k Key) bool { return slices.Contains(held, k) }) {
-				return b.ID, true, errors.Join(undo(true), s.dropKeys(notIn(created, held), b.ID))
+				return b.ID, true, errors.Join(undo(), s.dropKeys(notIn(created, held), b.ID))
 			}
 		}
 	}
 	if err != nil {
-		return "", false, errors.Join(err, undo(true), s.dropKeys(created, b.ID))
+		return "", false, errors.Join(err, undo(), s.dropKeys(created, b.ID))
 	}
 	return b.ID, false, nil
 }
@@ -229,7 +229,7 @@ func Update[T any, P interface {
 		if owner != "" {
 			return nil, errors.Join(err, release(created))
 		}
-		undo := func(bool) error { return nil }
+		undo := func() error { return nil }
 		if err == nil {
 			undo, err = s.writeText(p, cb.Text)
 		}
@@ -239,8 +239,7 @@ func Update[T any, P interface {
 			}
 		}
 		if err != nil {
-			// A record deleted since keeps no sidecar: not even its old one.
-			err = errors.Join(err, undo(!errors.Is(err, ErrNotFound)), release(created))
+			err = errors.Join(err, undo(), release(created))
 			if errors.Is(err, ErrTokenMismatch) || errors.Is(err, ErrExists) {
 				continue // changed in between: reread and reapply
 			}
@@ -436,12 +435,10 @@ func (s *Store) dropKeys(keys []Key, id string) error {
 }
 
 // writeText writes the sidecar of the record at p: nil leaves it alone, an
-// empty text removes it. undo(true) puts the earlier sidecar back, and
-// undo(false) only removes this write's, for a record deleted since: both
-// leave the sidecar alone if someone wrote it since, as its token is no
-// longer the one this write returned.
-func (s *Store) writeText(p string, text *string) (undo func(restore bool) error, err error) {
-	undo = func(bool) error { return nil }
+// empty text removes it. undo puts the earlier sidecar back, unless someone
+// wrote it since: its token is no longer the one this write returned.
+func (s *Store) writeText(p string, text *string) (undo func() error, err error) {
+	undo = func() error { return nil }
 	if text == nil {
 		return undo, nil
 	}
@@ -466,12 +463,7 @@ func (s *Store) writeText(p string, text *string) (undo func(restore bool) error
 	if err != nil {
 		return undo, err
 	}
-	return func(restore bool) error {
-		if !restore {
-			old = nil
-		}
-		return s.restoreText(sp, ours, old)
-	}, nil
+	return func() error { return s.restoreText(sp, ours, old) }, nil
 }
 
 // restoreText puts old back at sp (nil: no sidecar) if sp is still at the
