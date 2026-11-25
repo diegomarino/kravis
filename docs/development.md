@@ -106,7 +106,7 @@ Agents implement on their own within the spec. Only decisions that change what w
 ## Installation
 
 - `go install github.com/diegomarino/kravis/cmd/kravis@latest`, or download a binary from GitHub Releases.
-- The skill, of the same release as the binary: `npx skills add https://github.com/diegomarino/kravis/tree/v0.2.0/skills/kravis` <!-- x-release-please-version -->. release-please rewrites the version on the marked lines of `README.md` and this file on every release (`extra-files` in `release-please-config.json`).
+- The skill, of the same release as the binary: `npx skills add https://github.com/diegomarino/kravis/tree/v0.3.0/skills/kravis` <!-- x-release-please-version -->. release-please rewrites the version on the marked lines of `README.md` and this file on every release (`extra-files` in `release-please-config.json`).
 - Homebrew and npm are later improvements.
 
 ## Definition of done for the MVP

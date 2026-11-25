@@ -36,7 +36,7 @@ The skill, so your agent knows the commands, the flags and what to do on an erro
 
 <!-- x-release-please-start-version -->
 ```sh
-npx skills add https://github.com/diegomarino/kravis/tree/v0.2.0/skills/kravis
+npx skills add https://github.com/diegomarino/kravis/tree/v0.3.0/skills/kravis
 ```
 <!-- x-release-please-end -->
 
