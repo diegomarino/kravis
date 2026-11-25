@@ -243,8 +243,9 @@ func TestSkillLinksOnlyToItsOwnFiles(t *testing.T) {
 			if strings.HasPrefix(target, "http") {
 				continue
 			}
-			if strings.Contains(target, "..") || strings.Contains(target, "docs/") {
-				t.Errorf("%s links to %s, outside the skill", name, target)
+			if _, err := os.Stat(filepath.Join(skillDir, filepath.Dir(name), filepath.FromSlash(target))); err != nil ||
+				strings.Contains(target, "..") {
+				t.Errorf("%s links to %s, which is not a file inside the skill", name, target)
 			}
 		}
 	}

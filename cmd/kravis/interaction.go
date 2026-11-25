@@ -28,7 +28,9 @@ func fileText(cmd *cobra.Command, flag, path string) (string, error) {
 	case "-":
 		data, err = io.ReadAll(cmd.InOrStdin())
 		// A pipe adds a newline the text did not have; a file stays as is.
-		data = bytes.TrimSuffix(bytes.TrimSuffix(data, []byte("\n")), []byte("\r"))
+		if rest, ok := bytes.CutSuffix(data, []byte("\n")); ok {
+			data = bytes.TrimSuffix(rest, []byte("\r"))
+		}
 	default:
 		data, err = os.ReadFile(path)
 	}

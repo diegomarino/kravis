@@ -1229,7 +1229,7 @@ func TestInteractionListByDealIncludesItsProjects(t *testing.T) {
 
 func TestStdinTextDropsOneTrailingNewlineAndAFileDoesNot(t *testing.T) {
 	e := world(t)
-	for stdin, want := range map[string]string{"From a pipe.\n": "From a pipe.", "Two\n\n": "Two\n", "No newline": "No newline", "Windows\r\n": "Windows"} {
+	for stdin, want := range map[string]string{"From a pipe.\n": "From a pipe.", "Two\n\n": "Two\n", "No newline": "No newline", "Windows\r\n": "Windows", "Bare\r": "Bare\r"} {
 		out := e.runWithStdin(stdin, "interaction", "create", "--channel", "email", "--occurred-at", "2026-11-23T17:02:00Z",
 			"--subject", "Stdin "+want, "--participant", elenaID, "--summary-file", "-")
 		if out.Code != 0 {
