@@ -21,12 +21,18 @@ func (a *app) dealCommand() *cobra.Command {
 	var in domain.DealInput
 	var descriptionFile string
 	var cv domain.ViewOptions
+	party := &countedString{val: &in.Party}
 	create := &cobra.Command{
 		Use:   "create --party <person or organization> [--role <party role>]... --holder-role <party role> [--name <name>] [--stage <stage>]",
 		Short: "Create a deal with its first party", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !cmd.Flags().Changed("party") {
 				return domain.InvalidFlag("party", nil, "missing required flag: --party")
+			}
+			if party.n > 1 {
+				e := domain.InvalidFlag("party", nil, "deal create takes one --party, the deal's first party")
+				e.Hint = "create the deal with one --party, then add the others with kravis deal party add <deal> <party>"
+				return e
 			}
 			return a.write(cmd, func(ws *domain.Workspace, actor string) (*domain.Result, error) {
 				text, err := fileText(cmd, "description-file", descriptionFile)
@@ -39,7 +45,7 @@ func (a *app) dealCommand() *cobra.Command {
 		},
 	}
 	f := create.Flags()
-	f.StringVar(&in.Party, "party", "", "the first party: a person (ID or email) or an organization (ID); the deal's ID comes from it")
+	f.Var(party, "party", "the first party: a person (ID or email) or an organization (ID); the deal's ID comes from it")
 	f.StringArrayVar(&in.Roles, "role", nil, "a party role of the first party (repeatable)")
 	f.StringVar(&in.HolderRole, "holder-role", "", "the party role your holder plays in the deal")
 	f.StringVar(&in.Name, "name", "", "a name for the deal")
@@ -186,3 +192,14 @@ func (a *app) partyCommand() *cobra.Command {
 	cmd.AddCommand(add, remove)
 	return cmd
 }
+
+// countedString is a string flag that counts how often it was given, so a
+// flag that takes one value can refuse a repeat instead of keeping the last.
+type countedString struct {
+	val *string
+	n   int
+}
+
+func (c *countedString) Set(s string) error { *c.val = s; c.n++; return nil }
+func (c *countedString) String() string     { return *c.val }
+func (c *countedString) Type() string       { return "string" }
