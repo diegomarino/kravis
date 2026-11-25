@@ -19,6 +19,7 @@ const (
 	FindingInvalidRecord    = "INVALID_RECORD"
 	FindingKeyWithoutValue  = "KEY_WITHOUT_VALUE"
 	FindingValueWithoutKey  = "VALUE_WITHOUT_KEY"
+	FindingHolderMismatch   = "HOLDER_MISMATCH"
 )
 
 // audits check the records of each type against its rules and its natural
@@ -26,8 +27,8 @@ const (
 // type that refers to others adds its audit here, as it adds a scan to
 // referenceScans.
 var audits = []func(st *storage.Store, add addFinding) error{
-	people.audit, organizations.audit, users.audit, interactions.audit, tasks.audit, deals.audit,
-	auditUserLinks, auditPersonLinks, auditInteractionLinks, auditTaskLinks, auditDealLinks,
+	people.audit, organizations.audit, users.audit, interactions.audit, tasks.audit, deals.audit, projects.audit,
+	auditUserLinks, auditPersonLinks, auditInteractionLinks, auditTaskLinks, auditDealLinks, auditProjectLinks,
 }
 
 type addFinding func(code, record, format string, args ...any)

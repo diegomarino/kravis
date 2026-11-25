@@ -63,6 +63,22 @@
       "summary": {
         "type": "string",
         "x-cli": "--summary-file"
+      },
+      "deals": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "description": "deals of your holder it belongs to",
+        "x-cli": "--deal (repeatable)"
+      },
+      "projects": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "description": "projects of your holder it belongs to",
+        "x-cli": "--project (repeatable)"
       }
     },
     "additionalProperties": false,

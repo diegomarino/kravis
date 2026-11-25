@@ -47,16 +47,26 @@ func (a *app) taskCommand() *cobra.Command {
 	f.StringVar(&in.Due, "due", "", "the due date, such as 2026-11-28, in the workspace timezone")
 	f.StringVar(&in.Purpose, "purpose", "", "why it exists: a purpose of the catalog (follow-up when it comes from an interaction)")
 	f.StringVar(&in.Interaction, "interaction", "", "the interaction it comes from; one task per interaction and purpose")
+	f.StringVar(&in.Project, "project", "", "its parent project, of your holder: it takes the project's deal; not with --deal")
+	f.StringVar(&in.Deal, "deal", "", "its parent deal, of your holder; not with --project")
+	f.StringArrayVar(&in.Related, "related", nil, "a related person, organization, deal or project (repeatable)")
 	f.StringVar(&descriptionFile, "description-file", "", "a file with the description, or - for stdin")
 	viewFlags(f, &cv)
 
 	var ch domain.TaskChange
-	var title, assignee, agent, due, status, updDescription string
+	var title, assignee, agent, due, status, updDescription, parent string
 	var allHolders bool
 	var uv domain.ViewOptions
 	update := &cobra.Command{
 		Use: "update <task>", Short: "Change a task of your holder", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			for _, name := range []string{"project", "deal"} {
+				if cmd.Flags().Changed(name) {
+					return &domain.Error{Code: domain.CodeUnknownField, Message: "unknown flag: --" + name,
+						Hint:    "the parent is fixed at creation: delete the task and create it again with the right parent",
+						Details: map[string]any{"field": name}}
+				}
+			}
 			ch.Title, ch.Assignee, ch.Agent = changed(cmd, "title", title), changed(cmd, "assignee", assignee), changed(cmd, "agent", agent)
 			ch.Due, ch.Status = changed(cmd, "due", due), changed(cmd, "status", status)
 			if cmd.Flags().Changed("description-file") {
@@ -78,6 +88,12 @@ func (a *app) taskCommand() *cobra.Command {
 	f.StringVar(&due, "due", "", `a new due date, or "" to clear it`)
 	f.StringVar(&updDescription, "description-file", "", `a file with the new description, - for stdin, or "" to clear it`)
 	f.StringVar(&status, "status", "", "refused: the status changes only with kravis task status")
+	f.StringArrayVar(&ch.Related, "related", nil, "add a related person, organization, deal or project (repeatable)")
+	f.StringArrayVar(&ch.RemoveRelated, "remove-related", nil, "remove a related record (repeatable)")
+	f.StringVar(&parent, "project", "", "refused: the parent is fixed at creation")
+	f.StringVar(&parent, "deal", "", "refused: the parent is fixed at creation")
+	_ = f.MarkHidden("project")
+	_ = f.MarkHidden("deal")
 	f.BoolVar(&allHolders, "all-holders", false, "accepted, and ignored: only your own holder's tasks can be changed")
 	viewFlags(f, &uv)
 
@@ -112,6 +128,8 @@ func (a *app) taskCommand() *cobra.Command {
 	f.StringVar(&lf.Category, "category", "", "only tasks in this status category: open, waiting, done or canceled")
 	f.BoolVar(&lf.Overdue, "overdue", false, "only live tasks due before today in the workspace timezone")
 	f.StringVar(&lf.DueBefore, "due-before", "", "only tasks due before this date")
+	f.StringVar(&lf.Project, "project", "", "only tasks in this project")
+	f.StringVar(&lf.Deal, "deal", "", "only tasks of this deal and of its projects")
 	f.BoolVar(&listAll, "all-holders", false, "do not limit the list to the actor's holder")
 	listFlags(f, &lo)
 

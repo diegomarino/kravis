@@ -77,6 +77,8 @@ func (a *app) interactionCommand() *cobra.Command {
 	f.StringVar(&in.Direction, "direction", "", "outbound (ours started it, the default) or inbound")
 	f.StringVar(&in.InitiatedBy, "initiated-by", "", "who started it: a user of the holder if outbound, a participant if inbound; never inferred")
 	f.StringVar(&summaryFile, "summary-file", "", "a file with the summary, or - for stdin")
+	f.StringArrayVar(&in.Deals, "deal", nil, "a deal of your holder it belongs to (repeatable)")
+	f.StringArrayVar(&in.Projects, "project", nil, "a project of your holder it belongs to (repeatable)")
 	viewFlags(f, &cv)
 
 	var ch domain.InteractionChange
@@ -112,6 +114,10 @@ func (a *app) interactionCommand() *cobra.Command {
 	f.StringArrayVar(&ch.RemoveParticipants, "remove-participant", nil, "remove a participant (repeatable)")
 	f.StringArrayVar(&ch.Refs, "ref", nil, "add a source reference (repeatable)")
 	f.StringArrayVar(&ch.RemoveRefs, "remove-ref", nil, "remove a source reference (repeatable)")
+	f.StringArrayVar(&ch.Deals, "deal", nil, "link a deal of your holder (repeatable)")
+	f.StringArrayVar(&ch.RemoveDeals, "remove-deal", nil, "unlink a deal (repeatable)")
+	f.StringArrayVar(&ch.Projects, "project", nil, "link a project of your holder (repeatable)")
+	f.StringArrayVar(&ch.RemoveProjects, "remove-project", nil, "unlink a project (repeatable)")
 	f.BoolVar(&allHolders, "all-holders", false, "accepted, and ignored: only your own holder's interactions can be changed")
 	viewFlags(f, &uv)
 
@@ -133,6 +139,8 @@ func (a *app) interactionCommand() *cobra.Command {
 	f.StringVar(&lf.InitiatedBy, "initiated-by", "", "only those started by this user, person or organization")
 	f.BoolVar(&lf.WithAgents, "with-agents", false, "with --initiated-by <human>: also those started by the human's agents")
 	f.StringVar(&lf.Channel, "channel", "", "only those through this channel")
+	f.StringVar(&lf.Deal, "deal", "", "only those linked to this deal")
+	f.StringVar(&lf.Project, "project", "", "only those linked to this project")
 	f.StringVar(&lf.From, "from", "", "only from this date (in the workspace timezone) or instant")
 	f.StringVar(&lf.To, "to", "", "only up to this date (included, in the workspace timezone) or instant")
 	f.BoolVar(&listAll, "all-holders", false, "do not limit the list to the actor's holder")

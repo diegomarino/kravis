@@ -49,7 +49,11 @@ type Interaction struct {
 	// participants when inbound.
 	InitiatedBy string      `json:"initiated_by,omitempty"`
 	References  []SourceRef `json:"references,omitempty"`
-	Live        bool        `json:"live"`
+	// Deals and Projects are the work the interaction belongs to, all of
+	// its holder (INTERACTIONS-INV-05).
+	Deals    storage.IDs `json:"deals,omitempty"`
+	Projects storage.IDs `json:"projects,omitempty"`
+	Live     bool        `json:"live"`
 }
 
 const instantLayout = "2006-01-02T15:04:05Z"
@@ -132,7 +136,43 @@ func interactionRules(i *Interaction) []string {
 	case i.Direction == DirectionInbound && !slices.Contains(i.Participants, i.InitiatedBy):
 		out = append(out, "an inbound interaction is initiated by one of its participants, and "+quote(i.InitiatedBy)+" is not")
 	}
+	for n, d := range i.Deals {
+		if !hasID("dl_", d) || slices.Contains(i.Deals[:n], d) {
+			out = append(out, "the deal "+quote(d)+" is repeated or not a deal ID (dl_<slug>)")
+		}
+	}
+	for n, p := range i.Projects {
+		if !hasID("pr_", p) || slices.Contains(i.Projects[:n], p) {
+			out = append(out, "the project "+quote(p)+" is repeated or not a project ID (pr_<slug>)")
+		}
+	}
 	return append(out, refRules(i.References)...)
+}
+
+func trimAll(in []string) []string {
+	var out []string
+	for _, s := range in {
+		out = append(out, strings.TrimSpace(s))
+	}
+	return out
+}
+
+// checkWork checks the deals and projects an interaction is linked to: they
+// exist and belong to its holder (INTERACTIONS-INV-05).
+func (ws *Workspace) checkWork(holder string, dealRefs, projectRefs []string) (ds, ps []string, err error) {
+	for _, d := range trimAll(dealRefs) {
+		if _, err := ws.holderDeal(holder, "deal", d); err != nil {
+			return nil, nil, err
+		}
+		ds = append(ds, d)
+	}
+	for _, p := range trimAll(projectRefs) {
+		if _, err := ws.holderProject(holder, "project", p); err != nil {
+			return nil, nil, err
+		}
+		ps = append(ps, p)
+	}
+	return sortedIDs(ds), sortedIDs(ps), nil
 }
 
 // checkChannel refuses a channel that is not in the catalog of the
@@ -285,6 +325,8 @@ type InteractionInput struct {
 	Direction    string   `json:"direction,omitempty" jsonschema_extras:"x-cli=--direction"` // "" is outbound
 	InitiatedBy  string   `json:"initiated_by,omitempty" jsonschema:"description=a user of the holder if outbound: a participant if inbound" jsonschema_extras:"x-cli=--initiated-by"`
 	Summary      string   `json:"summary,omitempty" jsonschema_extras:"x-cli=--summary-file"`
+	Deals        []string `json:"deals,omitempty" jsonschema:"description=deals of your holder it belongs to" jsonschema_extras:"x-cli=--deal (repeatable)"`
+	Projects     []string `json:"projects,omitempty" jsonschema:"description=projects of your holder it belongs to" jsonschema_extras:"x-cli=--project (repeatable)"`
 }
 
 // CreateInteraction records an interaction under the actor's holder, or
@@ -337,6 +379,9 @@ func (ws *Workspace) CreateInteraction(actorID string, in InteractionInput, opt 
 	}
 	rec.References = refs
 	warnings = append(warnings, refWarnings...)
+	if rec.Deals, rec.Projects, err = ws.checkWork(holder, in.Deals, in.Projects); err != nil {
+		return nil, err
+	}
 	if in.Summary != "" {
 		rec.Text = &in.Summary
 	}
@@ -349,7 +394,8 @@ func (ws *Workspace) CreateInteraction(actorID string, in InteractionInput, opt 
 		return nil, err
 	}
 	touched := touchedIf("occurred_at", true, "channel", true, "direction", true, "subject", true, "participants", true,
-		"initiated_by", rec.InitiatedBy != "", "references", len(refs) > 0, "summary", in.Summary != "")
+		"initiated_by", rec.InitiatedBy != "", "references", len(refs) > 0, "summary", in.Summary != "",
+		"deals", len(rec.Deals) > 0, "projects", len(rec.Projects) > 0)
 	ex, similar, err := interactions.create(ws, actorID, rec, interactionBase(at.In(loc).Format("2006-01-02"), subject))
 	if errors.Is(err, storage.ErrKeyConflict) {
 		return nil, ws.refConflict(rec, "", err)
@@ -426,6 +472,12 @@ func sameInteraction(ex, rec *Interaction, given []string) error {
 	for _, p := range given {
 		clashes = append(clashes, clashing("participant", !slices.Contains(ex.Participants, p), p, "%s does not have the participant %s", ex.ID, p))
 	}
+	for _, d := range rec.Deals {
+		clashes = append(clashes, clashing("deal", !slices.Contains(ex.Deals, d), d, "%s is not linked to the deal %s", ex.ID, d))
+	}
+	for _, p := range rec.Projects {
+		clashes = append(clashes, clashing("project", !slices.Contains(ex.Projects, p), p, "%s is not linked to the project %s", ex.ID, p))
+	}
 	for _, r := range rec.References {
 		clashes = append(clashes, clashing("ref", !slices.Contains(ex.References, r), r.String(), "%s does not have the reference %s", ex.ID, r))
 	}
@@ -445,6 +497,10 @@ type InteractionChange struct {
 	RemoveParticipants []string
 	Refs               []string
 	RemoveRefs         []string
+	Deals              []string
+	RemoveDeals        []string
+	Projects           []string
+	RemoveProjects     []string
 }
 
 // UpdateInteraction changes an interaction of the actor's holder; another
@@ -492,7 +548,13 @@ func (ws *Workspace) UpdateInteraction(actorID, id string, ch InteractionChange,
 		return nil, err
 	}
 
-	touched := touchedIf("channel", ch.Channel != nil, "subject", ch.Subject != nil, "direction", ch.Direction != nil,
+	addDeals, addProjects, err := ws.checkWork(actor.Holder, ch.Deals, ch.Projects)
+	if err != nil {
+		return nil, err
+	}
+	dropDeals, dropProjects := trimAll(ch.RemoveDeals), trimAll(ch.RemoveProjects)
+	touched := touchedIf("deals", len(addDeals)+len(dropDeals) > 0, "projects", len(addProjects)+len(dropProjects) > 0,
+		"channel", ch.Channel != nil, "subject", ch.Subject != nil, "direction", ch.Direction != nil,
 		"initiated_by", ch.InitiatedBy != nil, "summary", ch.Summary != nil, "live", ch.Live != nil,
 		"participants", len(addAll)+len(drop) > 0, "references", len(addRefs)+len(dropRefs) > 0)
 	rec, changed, err := interactions.updateIn(ws, actor.Holder, actorID, id, func(r *Interaction) error {
@@ -520,6 +582,8 @@ func (ws *Workspace) UpdateInteraction(actorID, id string, ch InteractionChange,
 		}
 		refs := sortRefs(slices.Concat(r.References, addRefs))
 		r.References = slices.DeleteFunc(refs, func(x SourceRef) bool { return slices.Contains(dropRefs, x) })
+		r.Deals = slices.DeleteFunc(sortedIDs(slices.Concat(r.Deals, addDeals)), func(x string) bool { return slices.Contains(dropDeals, x) })
+		r.Projects = slices.DeleteFunc(sortedIDs(slices.Concat(r.Projects, addProjects)), func(x string) bool { return slices.Contains(dropProjects, x) })
 		if ch.Live != nil {
 			r.Live = *ch.Live
 		}
@@ -577,6 +641,8 @@ type InteractionFilter struct {
 	WithAgents  bool   // with a human user: also what their agents initiated
 	Channel     string
 	From, To    string // a date in the workspace timezone, or an instant
+	Deal        string // only those linked to this deal
+	Project     string // only those linked to this project
 }
 
 // bound reads a --from or --to: a date is a whole day in the workspace
@@ -653,11 +719,13 @@ func (ws *Workspace) ListInteractions(f InteractionFilter, opt ListOptions) (*Li
 			(f.Direction == "" || r.Direction == f.Direction) &&
 			(initiator == "" || slices.Contains(initiators, r.InitiatedBy)) &&
 			(f.Channel == "" || r.Channel == f.Channel) &&
+			(f.Deal == "" || slices.Contains(r.Deals, f.Deal)) &&
+			(f.Project == "" || slices.Contains(r.Projects, f.Project)) &&
 			(from == "" || r.OccurredAt >= from) &&
 			(to == "" || r.OccurredAt <= to)
 	}
-	print := fmt.Sprintf("holder=%s|participant=%s|direction=%s|initiated=%s|agents=%t|channel=%s|from=%s|to=%s",
-		f.Holder, participant, f.Direction, initiator, f.WithAgents, f.Channel, from, to)
+	print := fmt.Sprintf("holder=%s|participant=%s|direction=%s|initiated=%s|agents=%t|channel=%s|from=%s|to=%s|deal=%s|project=%s",
+		f.Holder, participant, f.Direction, initiator, f.WithAgents, f.Channel, from, to, f.Deal, f.Project)
 	res, err := interactions.list(ws, f.Holder, opt, keep, print)
 	if err != nil {
 		return nil, err
@@ -756,7 +824,8 @@ func interactionsReferringTo(ws *Workspace, id string) ([]string, error) {
 	}
 	var out []string
 	for _, r := range rows {
-		if r.rec.Holder == id || r.rec.InitiatedBy == id || slices.Contains(r.rec.Participants, id) {
+		if r.rec.Holder == id || r.rec.InitiatedBy == id || slices.Contains(r.rec.Participants, id) ||
+			slices.Contains(r.rec.Deals, id) || slices.Contains(r.rec.Projects, id) {
 			out = append(out, r.id)
 		}
 	}
@@ -801,6 +870,14 @@ func auditInteractionLinks(st *storage.Store, add addFinding) error {
 	if err != nil {
 		return err
 	}
+	ds, err := loadForCheck(st, deals)
+	if err != nil {
+		return err
+	}
+	ps, err := loadForCheck(st, projects)
+	if err != nil {
+		return err
+	}
 	var cfg *Config // nil when config.json cannot be read: check reports that
 	if data, _, err := st.Raw(ConfigPath); err == nil {
 		c := Config{}
@@ -822,6 +899,16 @@ func auditInteractionLinks(st *storage.Store, add addFinding) error {
 			_, isOrg := orgs[p]
 			if (hasID("pe_", p) && !isPerson) || (hasID("org_", p) && !isOrg) {
 				add(FindingDanglingReference, it.path, "the participant %s does not exist", p)
+			}
+		}
+		for _, d := range it.rec.Deals {
+			if hasID("dl_", d) {
+				auditHolderLink(add, it.path, "deal", d, it.rec.Holder, ds)
+			}
+		}
+		for _, p := range it.rec.Projects {
+			if hasID("pr_", p) {
+				auditHolderLink(add, it.path, "project", p, it.rec.Holder, ps)
 			}
 		}
 		if hasID("us_", it.rec.InitiatedBy) {

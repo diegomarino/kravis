@@ -45,7 +45,7 @@ func TestWORKSPACE_AC_06_SchemaDescribesATypeWithItsCatalogsDefaultsOrderAndErro
 	// The default order and the compact view, as the list code declares them.
 	list := obj(t, ext, "list")
 	if !strings.HasPrefix(list["order"].(string), "due, soonest first") ||
-		fmt.Sprint(list["compact"]) != "[id title live holder status category assignee agent due]" {
+		fmt.Sprint(list["compact"]) != "[id title live holder status category assignee agent due project deal]" {
 		t.Errorf("list %v", list)
 	}
 	// The possible error codes: every code the CLI can exit with.
@@ -239,7 +239,7 @@ var corpus = map[string][]inputCase{
 // flagOf is the CLI flag of an input field, where it is not the field's
 // name with hyphens.
 var flagOf = map[string]string{
-	"participants": "participant", "refs": "ref", "emails": "email", "domains": "domain",
+	"participants": "participant", "deals": "deal", "projects": "project", "refs": "ref", "emails": "email", "domains": "domain",
 	"summary": "summary-file", "description": "description-file",
 }
 
