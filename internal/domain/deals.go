@@ -181,6 +181,15 @@ func (ws *Workspace) partyOf(holder, ref string) (string, error) {
 	return id, err
 }
 
+// refreshCategory sets the category and live flag of a deal from its stage
+// in the catalog, which may have moved it; a stage that left the catalog
+// keeps them, and check reports it (WORKSPACE-INV-06).
+func (ws *Workspace) refreshCategory(d *Deal) {
+	if cat, err := ws.checkStage(d.Holder, d.Pipeline, d.Stage, true); err == nil {
+		d.Category, d.Live = cat, cat == stageOngoing
+	}
+}
+
 // DealInput is what deal create takes.
 type DealInput struct {
 	Party       string
@@ -402,6 +411,7 @@ func (ws *Workspace) AddDealParty(actorID, id, ref string, roles []string, opt V
 		return nil, err
 	}
 	rec, changed, err := deals.updateIn(ws, actor.Holder, actorID, id, func(d *Deal) error {
+		ws.refreshCategory(d)
 		i := slices.IndexFunc(d.Parties, func(p Party) bool { return p.Party == party })
 		if i < 0 {
 			d.Parties = append(d.Parties, Party{Party: party})
@@ -414,7 +424,7 @@ func (ws *Workspace) AddDealParty(actorID, id, ref string, roles []string, opt V
 	if err != nil {
 		return nil, err
 	}
-	return deals.result(outcome(changed), rec, []string{"parties"}, opt)
+	return ws.finishTask(opt, false)(deals.result(outcome(changed), rec, []string{"parties"}, opt))
 }
 
 // RemoveDealParty removes a party from a deal of the actor's holder, or
@@ -436,6 +446,7 @@ func (ws *Workspace) RemoveDealParty(actorID, id, ref, role string, opt ViewOpti
 	}
 	role = strings.TrimSpace(role)
 	rec, changed, err := deals.updateIn(ws, actor.Holder, actorID, id, func(d *Deal) error {
+		ws.refreshCategory(d)
 		i := slices.IndexFunc(d.Parties, func(p Party) bool { return p.Party == party })
 		switch {
 		case i < 0:
@@ -454,7 +465,7 @@ func (ws *Workspace) RemoveDealParty(actorID, id, ref, role string, opt ViewOpti
 	if err != nil {
 		return nil, err
 	}
-	return deals.result(outcome(changed), rec, []string{"parties"}, opt)
+	return ws.finishTask(opt, false)(deals.result(outcome(changed), rec, []string{"parties"}, opt))
 }
 
 // DeleteDeal deletes a deal of the actor's holder that no record refers

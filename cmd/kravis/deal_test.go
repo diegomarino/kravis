@@ -524,3 +524,21 @@ func TestDealCheckReportsBrokenReferences(t *testing.T) {
 		t.Errorf("findings %v", got)
 	}
 }
+
+func TestDealPartyWritesFollowTheCatalogAndShowTheDescription(t *testing.T) {
+	e := world(t)
+	e.runOK("Notes\n", append(mkDeal(), "--description-file", "-")...)
+	// The catalog moves prospect to won: the next party write follows it.
+	e.setCatalog("pipelines", map[string]any{"default": map[string]any{"stages": []any{
+		map[string]any{"name": "prospect", "category": "won"}, map[string]any{"name": "lost", "category": "lost"}}}})
+	d := data(t, e.ok("deal", "party", "add", sierraDeal, elenaID, "--full"))
+	if d["category"] != "won" || d["live"] != false || d["description"] != "Notes\n" {
+		t.Errorf("add %v", d)
+	}
+	if d := data(t, e.ok("deal", "party", "remove", sierraDeal, elenaID, "--fields", "description")); d["description"] != "Notes\n" {
+		t.Errorf("remove %v", d)
+	}
+	if got := e.findings(); len(got) != 0 {
+		t.Errorf("findings %v", got)
+	}
+}
