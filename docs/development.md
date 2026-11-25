@@ -74,8 +74,8 @@ The Go module path is `github.com/diegomarino/kravis`.
 
 ## CI and releases
 
-- **`ci.yml`** runs on pushes to `main` and on pull requests: format check, lint, tests, build, `govulncheck` and `ddduck check`, on Linux, macOS and Windows, plus the commit subject check and the spec gate on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
-- **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS, Linux and Windows and publishes them as GitHub Release assets.
+- **`ci.yml`** runs on pushes to `main` and on pull requests: format check, lint, tests, build, `govulncheck` and `ddduck check`, on Linux and macOS, plus the commit subject check and the spec gate on pull requests. The last one makes CI fail if the model in `docs/ddd/` becomes invalid or its generated views are stale.
+- **`release.yml`** runs on a version tag. goreleaser builds binaries for macOS and Linux and publishes them as GitHub Release assets.
 
 ## Autonomy
 

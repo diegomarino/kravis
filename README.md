@@ -10,7 +10,7 @@ Off a terminal, every command prints one JSON object, so an agent can call it di
 go install github.com/diegomarino/kravis/cmd/kravis@latest
 ```
 
-Or download a binary for macOS, Linux or Windows from [Releases](https://github.com/diegomarino/kravis/releases). Check it with `kravis --version`.
+Or download a binary for macOS or Linux from [Releases](https://github.com/diegomarino/kravis/releases). Check it with `kravis --version`.
 
 To teach your agent the commands, install the skill:
 
