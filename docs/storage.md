@@ -7,7 +7,7 @@ How Kravis keeps a workspace on disk. This document covers increments 1 and 2. B
 - **Files are the only source of truth.** There is no cache and no index: reads scan the files. A future index must be disposable and rebuildable from the files.
 - **One record, one JSON file.** The file is readable in a diff and can be filtered with `jq`. Long text goes in a Markdown sidecar next to it.
 - **Object-store semantics.** Every storage operation goes through five calls, so the same contract can later run on an S3-compatible bucket such as Tigris:
-  - `get(path)` returns the content and a version token;
+  - `get(path)` returns the content and a version token, which names one write, not the content: writing the same bytes again gives a new token;
   - `create(path, bytes)` writes only if the path does not exist;
   - `replace(path, bytes, token)` writes only if the token still matches;
   - `delete(path, token)` removes the object only if the token still matches;
@@ -111,7 +111,7 @@ Required fields are marked; every other field is omitted when empty.
 
 - Long text lives in `<id>.md` next to the JSON file, and the file exists only when there is text. The text is an interaction's summary, a task's, deal's or project's description, or the content of a note (notes always have one).
 - On write, Kravis writes the `.md` first and the JSON second. The JSON carries the version and confirms the write.
-- `check` reports sidecars that have no JSON next to them. It does not try to tell who edited a file: it validates every record against the rules (format, catalogs, category and `live`, references that exist and share the holder, deduplication keys), so a correct edit made by hand is valid and a wrong one is reported.
+- `check` reports sidecars that have no JSON next to them, and a note without its sidecar. Other texts are optional, and nothing in the JSON says a sidecar should exist, so a missing one reads as no text. It does not try to tell who edited a file: it validates every record against the rules (format, catalogs, category and `live`, references that exist and share the holder, deduplication keys), so a correct edit made by hand is valid and a wrong one is reported.
 
 ## Configuration
 
@@ -163,7 +163,8 @@ Required fields are marked; every other field is omitted when empty.
 - **Create** uses `create`, which writes only if the path does not exist.
 - **Update** reads the record, applies the change, and writes with `replace`, conditional on the version token it read. If the record changed in between, Kravis rereads and reapplies the change, up to 3 attempts. If it still conflicts, it fails with `VERSION_CONFLICT` (exit code 4).
 - The local filesystem connector writes to a temporary file, checks that the version is unchanged right before renaming it into place, and takes no locks. The residual window between the check and the rename lasts under a millisecond and is accepted: a change lost in it cannot be detected afterwards. Hardening it (a lock per record locally, `If-Match` / `If-None-Match` on Tigris) is a connector change that leaves the contract as it is.
-- **Delete** checks that no record refers to the target, then removes the JSON file with `delete`, conditional on the version token it read, and then its sidecar and its keys. A target that changed in between fails with `VERSION_CONFLICT`. If something refers to the target, it fails and lists the referring records.
+- **Delete** checks that no record refers to the target, reads the tokens of its sidecar and of the keys that point to it, then removes the JSON file with `delete`, conditional on the version token it read, and then the sidecar and those keys, each conditional on the token read before. A target that changed in between fails with `VERSION_CONFLICT`. If something refers to the target, it fails and lists the referring records.
+- Once the JSON file is gone, a create may reuse its path before the cleanup ends. What that create writes has new tokens, so the cleanup leaves it: a sidecar or key whose token changed is not the deleted record's.
 
 ### Deduplication keys
 
@@ -178,7 +179,7 @@ A natural key is stored as a file that points to the record holding it:
   1. Kravis allocates the ID.
   2. It creates the key file with `create`.
   3. It creates the record with that ID.
-- If the key file already exists, Kravis reads the record it points to and returns `existing`. If that record is missing because a previous attempt crashed between steps 2 and 3, Kravis creates it now with the ID stored in the key, so a retry completes the work instead of duplicating it.
+- If the key file already exists, Kravis reads the record it points to and returns `existing`. If that record is missing because a previous attempt crashed between steps 2 and 3, Kravis creates it now with the ID stored in the key, so a retry completes the work instead of duplicating it. It rewrites that key file first, so the key's token is new and the cleanup of a delete of the record's earlier version leaves it.
 - If the data sent contradicts the existing record, the result is a deduplication conflict (exit code 4).
 - An update that adds an identifying value (an email, a domain, an identifying source reference) creates its key first; if the key already points to another record, the update fails with `DEDUP_CONFLICT` and writes nothing. Then it writes the record, and then it deletes the keys of the values it removed. An interrupted update can leave a key without its value or a value without its key; `check` reports both.
 - A task's origin (interaction and purpose) never changes after creation, so its `task-origin` key never moves.

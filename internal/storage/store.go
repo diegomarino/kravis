@@ -289,16 +289,50 @@ func notIn(ks, held []Key) []Key {
 // then its sidecar, then the keys that still point to it. The caller checks
 // first that nothing refers to the record. A record that changed since it
 // was read is ErrVersionConflict, and then nothing is removed.
+//
+// The sidecar's and the keys' tokens are read while the JSON still exists,
+// and each is deleted only if its token still matches: once the JSON is
+// gone, a create may reuse the path, and what it writes has new tokens, so
+// this cleanup leaves it alone.
 func (s *Store) Remove(p, id string, token Token, keys []Key) error {
+	var cleanup []owned
+	sp := SidecarPath(p)
+	if _, t, err := s.c.Get(sp); err == nil {
+		cleanup = append(cleanup, owned{sp, t})
+	} else if !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	for _, k := range keys {
+		owner, t, err := s.readKey(k)
+		if errors.Is(err, ErrNotFound) || (err == nil && owner != id) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		cleanup = append(cleanup, owned{k.Path(), t})
+	}
 	if err := s.c.Delete(p, token); err != nil {
 		if errors.Is(err, ErrTokenMismatch) {
 			return fail("delete", p, ErrVersionConflict)
 		}
 		return err
 	}
-	none := ""
-	_, err := s.writeText(p, &none)
-	return errors.Join(err, s.dropKeys(keys, id))
+	var errs []error
+	for _, o := range cleanup {
+		err := s.c.Delete(o.path, o.token)
+		if !errors.Is(err, ErrTokenMismatch) && !errors.Is(err, ErrNotFound) {
+			errs = append(errs, err) // nil joins to nothing
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// owned is an object a deleted record's cleanup may remove, with its token
+// from while the record still existed.
+type owned struct {
+	path  string
+	token Token
 }
 
 func (s *Store) exists(p string) (bool, error) {
@@ -336,26 +370,51 @@ func (s *Store) readKey(k Key) (string, Token, error) {
 // created lists the keys it created, for the caller to delete again.
 func (s *Store) addKeys(keys []Key, id string) (created []Key, owner string, err error) {
 	for _, k := range keys {
-		var data []byte
-		data, err = writeObject([]field{{"key", mustMarshal(k.Value)}, {"record", mustMarshal(id)}})
-		if err == nil {
-			_, err = s.c.Create(k.Path(), data)
-		}
-		if errors.Is(err, ErrExists) {
-			if owner, err = s.keyOwner(k); err == nil && owner == id {
-				owner = ""
-				continue
-			}
-			if err == nil {
-				err = fail("create", k.Path(), ErrKeyConflict)
-			}
-		}
-		if err != nil {
+		var isNew bool
+		if isNew, owner, err = s.claimKey(k, id); err != nil {
 			return created, owner, err
 		}
-		created = append(created, k)
+		if isNew {
+			created = append(created, k)
+		}
 	}
 	return created, "", nil
+}
+
+// claimKey makes the key point to id: it creates it (isNew), or rewrites it
+// if it already points to id, so its token is new and the cleanup of a
+// deleted record that held it leaves it alone. A key that points to another
+// record is ErrKeyConflict, with that record's ID as owner.
+func (s *Store) claimKey(k Key, id string) (isNew bool, owner string, err error) {
+	data, err := writeObject([]field{{"key", mustMarshal(k.Value)}, {"record", mustMarshal(id)}})
+	if err != nil {
+		return false, "", err
+	}
+	for range Attempts {
+		if _, err = s.c.Create(k.Path(), data); !errors.Is(err, ErrExists) {
+			return err == nil, "", err
+		}
+		var token Token
+		if owner, token, err = s.readKey(k); errors.Is(err, ErrNotFound) {
+			continue // removed since: create it
+		}
+		if err != nil {
+			return false, "", err
+		}
+		if owner != id {
+			return false, owner, fail("create", k.Path(), ErrKeyConflict)
+		}
+		_, err = s.c.Replace(k.Path(), data, token)
+		if errors.Is(err, ErrTokenMismatch) {
+			// Rewritten since by a concurrent claim: its token is new too.
+			if owner, _, err = s.readKey(k); err == nil && owner == id {
+				return false, "", nil
+			}
+		} else if !errors.Is(err, ErrNotFound) {
+			return false, "", err
+		}
+	}
+	return false, "", fail("create", k.Path(), ErrVersionConflict)
 }
 
 // dropKeys deletes the keys that point to id; keys that are gone or point
