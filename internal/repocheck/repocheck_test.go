@@ -232,7 +232,8 @@ func TestModelIDsAreReadable(t *testing.T) {
 }
 
 // expectedScope is the scope of increment 1: 16 acceptance criteria and 35
-// invariants. Excluded on purpose: INTERACTIONS-INV-05 and -10, WORK-INV-01,
+// invariants. Excluded on purpose: INTERACTIONS-AC-02, WORK-AC-01,
+// INTERACTIONS-INV-05 and -10, WORK-INV-01,
 // -02, -06, -08, -09 and every DEALS-*.
 func expectedScope() []string {
 	var ids []string
