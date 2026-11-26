@@ -58,7 +58,8 @@ useCases:
     use-case:prepare-a-briefing,
     use-case:record-interaction-and-follow-up,
     use-case:run-a-deal,
-    use-case:set-up-a-workspace
+    use-case:set-up-a-workspace,
+    use-case:find-a-record
   ]
 decisions:
   - ADR-001

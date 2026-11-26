@@ -942,6 +942,15 @@
       "ownerDomain": null
     },
     {
+      "id": "use-case:find-a-record",
+      "kind": "UseCase",
+      "name": "Find a record",
+      "ownershipKind": null,
+      "purpose": "An agent finds a record by a word of its own text, without knowing its type or ID, and then follows its links with the basic reads.",
+      "model": "model:kravis",
+      "ownerDomain": null
+    },
+    {
       "id": "use-case:keep-a-note",
       "kind": "UseCase",
       "name": "Keep a note",
@@ -1221,6 +1230,15 @@
       "ownerDomain": "domain:workspace"
     },
     {
+      "id": "WORKSPACE-AC-14",
+      "kind": "Guarantee",
+      "name": null,
+      "ownershipKind": null,
+      "purpose": "Searching a text returns the live records of the actor's holder and the shared directory in which every word of the text appears, as a substring and ignoring case and accents, in the record's own text (names, emails, domains, subjects, summaries, titles, descriptions, note text), newest update first, each hit with the matching field and an excerpt.",
+      "model": "model:kravis",
+      "ownerDomain": "domain:workspace"
+    },
+    {
       "id": "WORKSPACE-INV-01",
       "kind": "Guarantee",
       "name": null,
@@ -1365,6 +1383,16 @@
       "kind": "establishes",
       "label": "establishes",
       "source": "use-case:correct-a-mistake",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:establishes|use-case:find-a-record|WORKSPACE-AC-14",
+      "from": "use-case:find-a-record",
+      "to": "WORKSPACE-AC-14",
+      "kind": "establishes",
+      "label": "establishes",
+      "source": "use-case:find-a-record",
       "relationshipType": null,
       "mode": null
     },
@@ -2569,6 +2597,16 @@
       "mode": null
     },
     {
+      "id": "edge:owns|domain:workspace|WORKSPACE-AC-14",
+      "from": "domain:workspace",
+      "to": "WORKSPACE-AC-14",
+      "kind": "owns",
+      "label": "owns",
+      "source": "domain:workspace",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
       "id": "edge:owns|domain:workspace|WORKSPACE-INV-01",
       "from": "domain:workspace",
       "to": "WORKSPACE-INV-01",
@@ -2775,6 +2813,26 @@
       "kind": "preserves",
       "label": "preserves",
       "source": "use-case:correct-a-mistake",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:preserves|use-case:find-a-record|WORKSPACE-INV-12",
+      "from": "use-case:find-a-record",
+      "to": "WORKSPACE-INV-12",
+      "kind": "preserves",
+      "label": "preserves",
+      "source": "use-case:find-a-record",
+      "relationshipType": null,
+      "mode": null
+    },
+    {
+      "id": "edge:preserves|use-case:find-a-record|WORKSPACE-INV-13",
+      "from": "use-case:find-a-record",
+      "to": "WORKSPACE-INV-13",
+      "kind": "preserves",
+      "label": "preserves",
+      "source": "use-case:find-a-record",
       "relationshipType": null,
       "mode": null
     },

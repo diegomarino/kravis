@@ -1,0 +1,15 @@
+schemaVersion: "1"
+kind: UseCase
+id: use-case:find-a-record
+model: model:kravis
+name: Find a record
+goal: An agent finds a record by a word of its own text, without knowing its
+  type or ID, and then follows its links with the basic reads.
+preconditions:
+  requires: []
+success:
+  preserves:
+    - WORKSPACE-INV-12
+    - WORKSPACE-INV-13
+  establishes:
+    - WORKSPACE-AC-14
