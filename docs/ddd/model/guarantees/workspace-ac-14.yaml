@@ -5,8 +5,9 @@ model: model:kravis
 ownerDomain: domain:workspace
 classification: acceptance-criterion
 statement: By default, searching a text returns the live records of the actor's
-  holder and the shared directory (other holders and not-live records only on
-  request) in which every word of the text appears, as a substring
+  holder, or of every holder when no actor is declared, and the shared
+  directory (other holders with --all-holders, not-live records with --all) in
+  which every word of the text appears, as a substring
   and ignoring case and accents, in the record's own text (names, emails,
   domains, subjects, summaries, titles, descriptions, note text), newest update
   first, each hit with the matching field and an excerpt.
