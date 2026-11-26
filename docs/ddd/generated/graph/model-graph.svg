@@ -288,7 +288,7 @@
 <!-- WORKSPACE&#45;AC&#45;14 -->
 <g id="node138" class="node">
 <title>WORKSPACE&#45;AC&#45;14</title>
-<g id="a_node138"><a xlink:title="Searching a text returns the live records of the actor&#39;s holder and the shared directory in which every word of the text appears, as a substring and ignoring case and accents, in the record&#39;s own text (names, emails, domains, subjects, summaries, titles, descriptions, note text), newest update first, each hit with the matching field and an excerpt.">
+<g id="a_node138"><a xlink:title="By default, searching a text returns the live records of the actor&#39;s holder and the shared directory (other holders and not&#45;live records only on request) in which every word of the text appears, as a substring and ignoring case and accents, in the record&#39;s own text (names, emails, domains, subjects, summaries, titles, descriptions, note text), newest update first, each hit with the matching field and an excerpt.">
 <polygon fill="#f2cdc4" stroke="black" points="14697.92,-9635.56 14654.22,-9653.56 14566.82,-9653.56 14523.12,-9635.56 14566.82,-9617.56 14654.22,-9617.56 14697.92,-9635.56"/>
 <text xml:space="preserve" text-anchor="middle" x="14610.52" y="-9632.26" font-family="Helvetica,sans-Serif" font-size="11.00">WORKSPACE&#45;AC&#45;14</text>
 </a>

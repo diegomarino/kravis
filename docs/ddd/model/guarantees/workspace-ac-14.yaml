@@ -4,8 +4,9 @@ id: WORKSPACE-AC-14
 model: model:kravis
 ownerDomain: domain:workspace
 classification: acceptance-criterion
-statement: Searching a text returns the live records of the actor's holder and
-  the shared directory in which every word of the text appears, as a substring
+statement: By default, searching a text returns the live records of the actor's
+  holder and the shared directory (other holders and not-live records only on
+  request) in which every word of the text appears, as a substring
   and ignoring case and accents, in the record's own text (names, emails,
   domains, subjects, summaries, titles, descriptions, note text), newest update
   first, each hit with the matching field and an excerpt.
