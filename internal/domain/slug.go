@@ -22,11 +22,8 @@ var letters = strings.NewReplacer(
 // ASCII form, such as Greek or Han, are dropped, so a name in such a script
 // gives "" and the caller needs another source for the slug.
 func Slug(name string) string {
-	// A chain keeps state, so each call builds its own.
-	stripMarks := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	s, _, _ := transform.String(stripMarks, strings.ToLower(name))
-	s = letters.Replace(s)
 	var b strings.Builder
+	s := fold(name)
 	hyphen := false
 	for _, r := range s {
 		if r < unicode.MaxASCII && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
@@ -40,6 +37,15 @@ func Slug(name string) string {
 		hyphen = true
 	}
 	return b.String()
+}
+
+// fold lowercases s and removes its accents, as Slug does before it keeps
+// only ASCII letters and digits; search compares text folded this way.
+func fold(s string) string {
+	// A chain keeps state, so each call builds its own.
+	stripMarks := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	s, _, _ = transform.String(stripMarks, strings.ToLower(s))
+	return letters.Replace(s)
 }
 
 // SlugPattern is a JSON Schema pattern that matches exactly the names Slug

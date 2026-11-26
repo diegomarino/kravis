@@ -58,14 +58,18 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 
 ## Prepare a briefing
 
-For "everything about Ben Carter": resolve him with `kravis person get <email or id>`, then ask each list for his records with `--limit 0`, which returns them all (a list stops at 50 otherwise).
+For "everything about Ben Carter": resolve him with `kravis person get <email or id>`, or, when you do not know his ID, with `kravis search "ben carter" --type person` (every word must appear, in any order, ignoring case and accents). Then ask each list for his records with `--limit 0`, which returns them all (a list stops at 50 otherwise).
 
-1. `kravis interaction list --participant <person> --limit 0`: what happened, newest first.
+1. `kravis interaction list --participant <person> --fields summary --limit 0`: what happened, newest first, with each summary.
 2. `kravis note list --related-to <person> --limit 0`: what is known about him.
 3. `kravis task list --related-to <person> --limit 0`: the follow-ups about him, including those that came from an interaction with him.
 4. `kravis deal list --party <person> --limit 0`: his deals.
 
 For an organization use the same commands with its ID. For a deal or project, `--related-to <deal>` on `task list` also finds the tasks under it; `note list` matches only the notes that name it as a subject. For "this week": `--due-before` the day after the week's last day, in the workspace timezone. For "what is due today": `kravis task list --due-before <tomorrow> --assignee <user>` shows what is due today and what is overdue; add `--overdue` for the late ones alone. `--due-before` excludes its date, so for "the next N days" pass the day after the last one you want. Dates are in the workspace timezone.
+
+## Find a record by its text
+
+`kravis search <text>` finds a record without its type or ID: `kravis search "data room"` looks in names, emails, domains, subjects, summaries, titles, descriptions and note text, newest update first, and each hit says which fields matched, with an excerpt. Narrow it with `--type <type>` (repeatable); `--all` adds records that are not live. It does not follow links: it never finds a record by its ID or by the people or deals it is linked to. For those, take the hit's ID to `--related-to`, `--participant`, `--party`, `--deal` or `--project` on the lists.
 
 ## Measure outreach
 
