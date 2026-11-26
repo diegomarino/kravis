@@ -130,3 +130,16 @@ func (e *env) mustInitWith(extra ...string) {
 		e.t.Fatalf("init: code %d, stderr %q", r.Code, r.Stderr)
 	}
 }
+
+func TestInitUserEmailCompletesAPersonWhoseKeyWasWrittenFirst(t *testing.T) {
+	e := newEnv(t)
+	e.Connector = &failAt{Connector: storage.NewLocal(e.Workspace), sub: "records/people/"}
+	wantError(t, e.init("--user-email", userEmail), "INTERNAL", 1)
+	e.Connector = nil
+	if r := e.init("--user-email", userEmail); r.Code != 0 || r.JSON(t)["outcome"] != "created" {
+		t.Fatalf("code %d, %q %q", r.Code, r.Stdout, r.Stderr)
+	}
+	if readUser(t, e).Person != "pe_ana-example" || readPerson(t, e, "pe_ana-example").Emails[0] != userEmail {
+		t.Error("the person was not completed and linked")
+	}
+}

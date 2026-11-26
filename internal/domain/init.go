@@ -218,12 +218,18 @@ func ensure[T any, P interface {
 func ensurePerson(st *storage.Store, now func() time.Time, in InitInput, userID string, create bool) (string, error) {
 	key := storage.Key{Kind: KeyPersonEmail, Value: in.UserEmail}
 	owner, err := st.KeyOwner(key)
-	switch {
-	case err == nil:
-		return owner, nil
-	case !errors.Is(err, storage.ErrNotFound):
+	if err == nil {
+		// An interrupted create can leave the key without its person.
+		switch _, err = st.Load(PersonPath(owner), new(Person)); {
+		case err == nil:
+			return owner, nil
+		case !errors.Is(err, storage.ErrNotFound):
+			return "", err
+		}
+	} else if !errors.Is(err, storage.ErrNotFound) {
 		return "", err
-	case !create:
+	}
+	if !create {
 		return "", exists("user-email", in.UserEmail, fmt.Sprintf("the workspace already exists and no person has the email %q", in.UserEmail))
 	}
 	ws := &Workspace{Store: st, now: now}
