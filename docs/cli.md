@@ -264,7 +264,7 @@ A task created in a closed project, or moved by `task status` to a live status w
 - **Order.** By `updated_at`, newest first, with the ID breaking ties.
 - **Errors.** Text with no words (empty or only spaces) is `INVALID_VALUE` with `details.field: "text"` and a hint to give at least one word. A bad `--limit` or `--cursor` is `INVALID_VALUE` as in lists. A search that finds nothing is `data: []`, not an error.
 
-For example, `kravis search "ruiz acme"` has `"filters": {"holder": "org_acme-example", "live": true, "text": "ruiz acme"}` and a hit such as `{"type": "person", "id": "pe_elena-ruiz", "name": "Elena Ruiz", "emails": ["e.ruiz@acme.example.com"], "live": true, "updated_at": "2026-11-20T10:00:00Z", "matches": [{"field": "name", "excerpt": "Elena Ruiz"}, {"field": "emails", "excerpt": "e.ruiz@acme.example.com"}]}`.
+For example, `kravis search "ruiz acme"` has `"filters": {"holder": "org_acme-example", "live": true, "text": "ruiz acme"}` and a hit such as `{"type": "person", "id": "pe_elena-ruiz", "name": "Elena Ruiz", "emails": ["e.ruiz@example.com"], "live": true, "updated_at": "2026-11-20T10:00:00Z", "matches": [{"field": "name", "excerpt": "Elena Ruiz"}, {"field": "emails", "excerpt": "e.ruiz@example.com"}]}`.
 
 ## Ready for later
 
