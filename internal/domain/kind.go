@@ -499,6 +499,40 @@ func badCursor(why string) *Error {
 		"the cursor %s", why).with("field", "cursor")
 }
 
+// decodeCursor reads a list's cursor: nil for none, and a cursor that is not
+// Kravis's, or belongs to another list, is INVALID_VALUE.
+func decodeCursor(raw, fingerprint string) (*cursor, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	dec, err := base64.RawURLEncoding.DecodeString(raw)
+	from := &cursor{}
+	if err != nil || json.Unmarshal(dec, from) != nil || from.ID == "" {
+		return nil, badCursor("is not one Kravis gave")
+	}
+	if from.Fingerprint != fingerprint {
+		return nil, badCursor("belongs to another list, filters or order")
+	}
+	return from, nil
+}
+
+func (c cursor) encode() string {
+	enc, _ := json.Marshal(c)
+	return base64.RawURLEncoding.EncodeToString(enc)
+}
+
+// checkPage refuses a limit or a cursor a list cannot take.
+func checkPage(opt ListOptions) error {
+	switch {
+	case opt.Limit < 0:
+		return InvalidFlag("limit", nil, "--limit must be 0 or more, not %d", opt.Limit)
+	case opt.Limit == 0 && opt.Cursor != "":
+		return newError(CodeInvalidValue, "drop --cursor, or give a --limit above 0",
+			"--limit 0 returns every record, so it takes no --cursor").with("field", "cursor")
+	}
+	return nil
+}
+
 func (k *kind[T, P]) fingerprint(opt ListOptions, filters string) string {
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|all=%t|%s", k.Name, k.Order, opt.All, filters)))
 	return hex.EncodeToString(sum[:6])
@@ -526,12 +560,8 @@ func (k *kind[T, P]) cmp(a, b row[P]) int {
 // ones only, unless All, and for a holder only its records. keep, when not nil, drops the records it refuses;
 // filters names what keep does (see applied): the list echoes them, and a cursor only continues the same list.
 func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep func(P) bool, filters map[string]any) (*ListResult, error) {
-	switch {
-	case opt.Limit < 0:
-		return nil, InvalidFlag("limit", nil, "--limit must be 0 or more, not %d", opt.Limit)
-	case opt.Limit == 0 && opt.Cursor != "":
-		return nil, newError(CodeInvalidValue, "drop --cursor, or give a --limit above 0",
-			"--limit 0 returns every record, so it takes no --cursor").with("field", "cursor")
+	if err := checkPage(opt); err != nil {
+		return nil, err
 	}
 	if err := k.checkFields(opt.View); err != nil {
 		return nil, err
@@ -540,16 +570,9 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 	maps.Copy(shown, filters)
 	raw, _ := json.Marshal(shown) // map keys are sorted
 	fp := k.fingerprint(opt, string(raw))
-	var from *cursor
-	if opt.Cursor != "" {
-		dec, err := base64.RawURLEncoding.DecodeString(opt.Cursor)
-		from = &cursor{}
-		if err != nil || json.Unmarshal(dec, from) != nil || from.ID == "" {
-			return nil, badCursor("is not one Kravis gave")
-		}
-		if from.Fingerprint != fp {
-			return nil, badCursor("belongs to another list, filters or order")
-		}
+	from, err := decodeCursor(opt.Cursor, fp)
+	if err != nil {
+		return nil, err
 	}
 	rows, err := k.scan(ws)
 	if err != nil {
@@ -571,8 +594,7 @@ func (k *kind[T, P]) list(ws *Workspace, holder string, opt ListOptions, keep fu
 	if opt.Limit > 0 && opt.Limit < end-start {
 		end = start + opt.Limit
 		last := rows[end-1]
-		enc, _ := json.Marshal(cursor{last.key, last.id, fp})
-		next := base64.RawURLEncoding.EncodeToString(enc)
+		next := cursor{last.key, last.id, fp}.encode()
 		res.NextCursor = &next
 	}
 	for _, r := range rows[start:end] {
