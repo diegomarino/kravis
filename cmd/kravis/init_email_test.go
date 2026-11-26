@@ -4,6 +4,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/diegomarino/kravis/internal/domain"
@@ -133,13 +134,32 @@ func (e *env) mustInitWith(extra ...string) {
 
 func TestInitUserEmailCompletesAPersonWhoseKeyWasWrittenFirst(t *testing.T) {
 	e := newEnv(t)
-	e.Connector = &failAt{Connector: storage.NewLocal(e.Workspace), sub: "records/people/"}
+	// A crash leaves the key behind: its cleanup never runs.
+	e.Connector = &keepKeys{failAt{Connector: storage.NewLocal(e.Workspace), sub: "records/people/"}}
 	wantError(t, e.init("--user-email", userEmail), "INTERNAL", 1)
 	e.Connector = nil
+	if _, err := os.Stat(filepath.Join(e.Workspace, "records/people/pe_ana-example.json")); err == nil {
+		t.Fatal("the person was written")
+	}
+	keys, _ := storage.NewLocal(e.Workspace).List("keys/")
+	if len(keys) != 1 {
+		t.Fatalf("want the orphaned key, got %v", keys)
+	}
 	if r := e.init("--user-email", userEmail); r.Code != 0 || r.JSON(t)["outcome"] != "created" {
 		t.Fatalf("code %d, %q %q", r.Code, r.Stdout, r.Stderr)
 	}
 	if readUser(t, e).Person != "pe_ana-example" || readPerson(t, e, "pe_ana-example").Emails[0] != userEmail {
 		t.Error("the person was not completed and linked")
 	}
+}
+
+// keepKeys is a connector that never deletes a key, as a crashed process
+// would not.
+type keepKeys struct{ failAt }
+
+func (c *keepKeys) Delete(p string, tok storage.Token) error {
+	if strings.HasPrefix(p, "keys/") {
+		return nil
+	}
+	return c.Connector.Delete(p, tok)
 }
