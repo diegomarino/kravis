@@ -261,7 +261,7 @@ A task created in a closed project, or moved by `task status` to a live status w
   - the compact view of its type;
   - `updated_at`;
   - `matches`: one `{"field": "<field>", "excerpt": "<text>"}` for each field that matched. A short field (name, email, domain, title, subject) gives its whole value; when the field holds several values (emails, domains), the first one, in stored order, that contains a word of the text. A long text (summary, description, note text) gives a window of 80 characters around the first match, with `…` where the text is cut.
-- **Order.** By `updated_at`, newest first, with the ID breaking ties.
+- **Order.** By `updated_at`, newest first, with the ID breaking ties. A record without `updated_at` uses its `created_at`, both for the hit's `updated_at` and for the order.
 - **Errors.** Text with no words (empty or only spaces) is `INVALID_VALUE` with `details.field: "text"` and a hint to give at least one word. A bad `--limit` or `--cursor` is `INVALID_VALUE` as in lists. A search that finds nothing is `data: []`, not an error.
 
 For example, `kravis search "ruiz acme"` has `"filters": {"holder": "org_acme-example", "live": true, "text": "ruiz acme"}` and a hit such as `{"type": "person", "id": "pe_elena-ruiz", "name": "Elena Ruiz", "emails": ["e.ruiz@example.com"], "live": true, "updated_at": "2026-11-20T10:00:00Z", "matches": [{"field": "name", "excerpt": "Elena Ruiz"}, {"field": "emails", "excerpt": "e.ruiz@example.com"}]}`.
