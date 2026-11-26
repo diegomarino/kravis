@@ -7,6 +7,7 @@ The contract of the `kravis` command for agents, scripts and people. This docume
 ```text
 kravis <type> <verb> [arguments] [flags]
 kravis init | whoami | schema [type] | check
+kravis search <text>
 ```
 
 - The core verbs, uniform across types, are `list`, `get`, `create`, `update` and `delete`.
@@ -46,7 +47,7 @@ Success:
 
 - `data` is always present and never `null`: an empty list is `[]`.
 - `warnings` appears only when there are warnings.
-- `filters` appears only on reads. A list echoes in it every filter it applied, with the values after normalization (a person's email as its `pe_…` ID, a date as the instant it bounds): the holder limit as `holder`, the live-only default as `live: true`, and each flag the caller gave under its name with underscores (`due_before`, `initiated_by`, `with_agents`, `related_to`; `channel`, `party`, `stage`, `category` and the rest as they are). A flag that is off or absent is not listed, and neither are `holder` without a limit and `live` with `--all`, a `--stage` or a `--category`. A `get` states only the holder limit. For example, `kravis interaction list --channel email --participant e.ruiz@example.com` has `"filters": {"channel": "email", "holder": "org_acme-example", "live": true, "participant": "pe_elena-ruiz"}`.
+- `filters` appears only on reads. A list echoes in it every filter it applied, with the values after normalization (a person's email as its `pe_…` ID, a date as the instant it bounds): the holder limit as `holder`, the live-only default as `live: true`, and each flag the caller gave under its name with underscores (`due_before`, `initiated_by`, `with_agents`, `related_to`; `type` on `search`; `channel`, `party`, `stage`, `category` and the rest as they are). A flag that is off or absent is not listed, and neither are `holder` without a limit and `live` with `--all`, a `--stage` or a `--category`. A `get` states only the holder limit. For example, `kravis interaction list --channel email --participant e.ruiz@example.com` has `"filters": {"channel": "email", "holder": "org_acme-example", "live": true, "participant": "pe_elena-ruiz"}`.
 
 - **Writes** (`create`, `update`, transitions, `delete`) return `outcome`:
   - `created` for a new record;
@@ -68,7 +69,8 @@ Success:
   - projects by name, compared as its slug;
   - interactions by `occurred_at`, newest first;
   - tasks by `due`, soonest first, with tasks without a due date last;
-  - notes by `created_at`, newest first.
+  - notes by `created_at`, newest first;
+  - `search` hits by `updated_at`, newest first (see [Search](#search)).
 
 Error (stderr):
 
@@ -185,9 +187,10 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 
 | Command | Notes |
 |---|---|
-| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint. `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with data that conflicts with the files it left (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
+| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>] [--user-email <email>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. With `--user-email`, the first user is linked to the person with that email: if no person has it, `init` creates one, named `--user-name` or, without it, only with the email; if one exists, it is linked unchanged, even with another name. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint (another `--user-email` is data that does not match, like any other). `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with data that conflicts with the files it left (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
 | `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; without `--set` and without an actor it fails with `MISSING_ACTOR`. `--set` stores the default actor and needs no actor |
 | `kravis schema [type]` | See Discovery |
+| `kravis search <text> [--type <type>]… [--all] [--limit <n>] [--cursor <c>]` | Finds records by their own text, without knowing their type or ID. See [Search](#search) |
 | `kravis check` | Prints its findings (`code`, record, `message`) on stdout as `data` and exits 6 if there are any. They are data, not a failure of the command. It never writes |
 | `kravis user list\|get\|create\|update\|delete` | `create <key> --human\|--agent --holder <org> [--handler <user>] [--person <id>]`; the ID is `us_<key>`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP. Holder and kind never change. A user is deactivated with `update --live=false`, refused with `REFERENCED` while it is the handler of a live agent or the assignee or agent of a live task. Deactivating or deleting the last live human of a holder is refused before any change with `INVALID_VALUE`, `details.holder` and a hint to create or reactivate another human first, so someone can still act for the holder |
 | `kravis organization list\|get\|create\|update\|delete` | `create --name <name>` (required). `--own` marks an own organization. The mark cannot be removed while the organization is a holder. `--domain` can be repeated and deduplicates |
@@ -242,13 +245,33 @@ A task created in a closed project, or moved by `task status` to a live status w
 - `delete` is `REFERENCED`, with the referrers, while any record refers to the target. A deal is referred to by its projects, tasks, interactions, notes and the related lists of tasks and projects; a project, by its tasks, interactions, notes and related lists; a person or an organization, also by deals (as a party), notes (as a subject) and related lists. A note is referred to by nothing.
 - The skill lists the outreach recipe (the interaction filters above) and the briefing recipe (a person's or organization's interactions, notes with `--related-to`, deals with `--party`, and what is due today); their text is in the skill, not here.
 
+## Search
+
+`kravis search <text>` is the one global text search. Lists have no `--match`; type-specific filters stay on each `list`.
+
+- **Match.** The text is split on whitespace into words. A record matches when every word appears in at least one of its searched fields, in any order, each word as a substring anywhere (no wildcards). Case and accents are ignored: text and fields are folded as slugs are (lowercase, accents removed), and other characters are kept as they are.
+- **Searched fields**, only the record's own text: a person's name and emails; an organization's name and domains; an interaction's subject and summary; a task's title and description; a deal's and a project's name and description; a note's text. IDs and links are not searched. To get what is linked to a hit, `search`, then the filters of each list (`--related-to`, `--participant`, `--party`, `--deal`, `--project`, as that list has them).
+- **Scope.** The records of the actor's holder plus the shared directory (people and organizations), stated in `filters.holder`; `--all-holders` removes the limit, and a search without an actor is not limited, with no `filters.holder`, exactly as in a `list`. Users are not searched.
+- **Flags.**
+  - `--type <type>` is repeatable and narrows the search to those types: `person`, `organization`, `interaction`, `task`, `deal`, `project`, `note`. An unknown type, `user` included, is `INVALID_VALUE` with `details.field: "type"` and the searchable types in `details.allowed`.
+  - `--all` includes records that are not live. By default only live records are searched and `filters.live` is `true`; with `--all` it is not listed. Notes are always live.
+  - `--limit` and `--cursor` work as in lists.
+- **Response.** The list shape: `data`, `filters`, `total` and `next_cursor`. `filters` holds `holder`, `live`, `type` when given and `text`. Each hit in `data` has:
+  - `type`;
+  - the compact view of its type;
+  - `updated_at`;
+  - `matches`: one `{"field": "<field>", "excerpt": "<text>"}` for each field that matched. A short field (name, email, domain, title, subject) gives its whole value; when the field holds several values (emails, domains), the first one, in stored order, that contains a word of the text. A long text (summary, description, note text) gives a window of 80 characters around the first match, with `…` where the text is cut.
+- **Order.** By `updated_at`, newest first, with the ID breaking ties. A record without `updated_at` uses its `created_at`, both for the hit's `updated_at` and for the order.
+- **Errors.** Text with no words (empty or only spaces) is `INVALID_VALUE` with `details.field: "text"` and a hint to give at least one word. A bad `--limit` or `--cursor` is `INVALID_VALUE` as in lists. A search that finds nothing is `data: []`, not an error.
+
+For example, `kravis search "ruiz acme"` has `"filters": {"holder": "org_acme-example", "live": true, "text": "ruiz acme"}` and a hit such as `{"type": "person", "id": "pe_elena-ruiz", "name": "Elena Ruiz", "emails": ["e.ruiz@example.com"], "live": true, "updated_at": "2026-11-20T10:00:00Z", "matches": [{"field": "name", "excerpt": "Elena Ruiz"}, {"field": "emails", "excerpt": "e.ruiz@example.com"}]}`.
+
 ## Ready for later
 
 - `--request-id`.
 - `export` in NDJSON.
 - A composite command for an interaction plus its follow-up.
 - MCP.
-- Text search.
 - `--group-by`.
 - `check --fix`.
 - A count of results in other holders when a read is limited to the actor's holder. In the MVP the response only states the filter, in `filters.holder`.

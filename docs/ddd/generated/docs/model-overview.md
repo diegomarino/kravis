@@ -179,6 +179,7 @@ Keep the workspace's records, catalogs and holder partition consistent, and expo
 - `WORKSPACE-AC-11` - check reports its findings as JSON with a code, the affected record and a message, exits with code 6 when there are findings, and never changes a file.
 - `WORKSPACE-AC-12` - init validates every input before writing. On an initialized workspace it returns existing when the organization and user match and fails with a hint otherwise. Rerunning an interrupted init completes what is missing, because kravis.json is written last.
 - `WORKSPACE-AC-13` - A value outside its catalog (status, party role, purpose, lost reason or channel) is refused with INVALID_VALUE and the list of values allowed for the record's holder.
+- `WORKSPACE-AC-14` - By default, searching a text returns the live records of the actor's holder, or of every holder when no actor is declared, and the shared directory (other holders with --all-holders, not-live records with --all) in which every word of the text appears, as a substring and ignoring case and accents, in the record's own text (names, emails, domains, subjects, summaries, titles, descriptions, note text), newest update first, each hit with the matching field and an excerpt.
 - `WORKSPACE-INV-01` - Every work record (deal, project, task, interaction, note) has exactly one holder, which is an own organization.
 - `WORKSPACE-INV-02` - A work record takes its holder from its actor when it is created, and that holder matches the holder of every record it is structurally linked to.
 - `WORKSPACE-INV-03` - A record's holder never changes.
@@ -202,6 +203,15 @@ A user removes a record created by mistake, for example under the wrong holder, 
 - Requires: `IDENTITY-INV-04`, `IDENTITY-INV-05`, `WORKSPACE-INV-14`
 - Preserves: `WORKSPACE-INV-03`, `WORKSPACE-INV-11`
 - Establishes: `WORKSPACE-AC-10`, `WORKSPACE-AC-11`
+- Interfaces: none
+
+### Find a record (`use-case:find-a-record`)
+
+An agent finds a record by a word of its own text, without knowing its type or ID, and then follows its links with the basic reads.
+
+- Requires: none
+- Preserves: `WORKSPACE-INV-12`, `WORKSPACE-INV-13`
+- Establishes: `WORKSPACE-AC-14`
 - Interfaces: none
 
 ### Keep a note (`use-case:keep-a-note`)
