@@ -58,6 +58,7 @@ func (a *app) initCommand() *cobra.Command {
 	f.StringVar(&in.Organization, "organization", "", "name of the first own organization")
 	f.StringVar(&in.UserKey, "user", "", "key of the first human user (its ID is us_<key>)")
 	f.StringVar(&in.UserName, "user-name", "", "name of the first user")
+	f.StringVar(&in.UserEmail, "user-email", "", "email of the person to link the first user to: found, or created with --user-name")
 	return cmd
 }
 

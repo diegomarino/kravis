@@ -18,6 +18,7 @@ type InitInput struct {
 	Organization string
 	UserKey      string
 	UserName     string // optional
+	UserEmail    string // optional: links the user to the person with this email
 }
 
 // Outcomes of a write.
@@ -42,6 +43,12 @@ func (in InitInput) validate() (InitInput, error) {
 	in.Timezone = strings.TrimSpace(in.Timezone)
 	in.Organization = strings.TrimSpace(in.Organization)
 	in.UserName = strings.TrimSpace(in.UserName)
+	if in.UserEmail != "" {
+		in.UserEmail = NormalEmail(in.UserEmail)
+		if p := emailProblem(in.UserEmail); p != "" {
+			return in, invalidValue("user-email", "give the address as name@example.com", "%s", p).with("value", in.UserEmail)
+		}
+	}
 	if err := ValidTimezone(in.Timezone); err != nil {
 		return in, invalidValue("timezone", "use an IANA zone name such as Europe/Madrid or UTC", "%v", err)
 	}
@@ -93,8 +100,17 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 		return nil, err
 	}
 	create := !initialized
+	var ours []string
+	if in.UserEmail != "" {
+		switch owner, err := st.KeyOwner(storage.Key{Kind: KeyPersonEmail, Value: in.UserEmail}); {
+		case err == nil:
+			ours = append(ours, PersonPath(owner))
+		case !errors.Is(err, storage.ErrNotFound):
+			return nil, err
+		}
+	}
 	if create {
-		if err := onlyOurs(st, orgID, userID); err != nil {
+		if err := onlyOurs(st, append(ours, OrganizationPath(orgID), UserPath(userID))); err != nil {
 			return nil, err
 		}
 	}
@@ -127,11 +143,20 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 		return nil, err
 	}
 
-	user := &User{Holder: orgID, Kind: KindHuman, Name: in.UserName, Live: true}
+	var personID string
+	if in.UserEmail != "" {
+		var err error
+		if personID, err = ensurePerson(st, now, in, userID, create); err != nil {
+			return nil, err
+		}
+	}
+
+	user := &User{Holder: orgID, Kind: KindHuman, Name: in.UserName, Person: personID, Live: true}
 	user.ID = userID
 	if err := ensure(st, UserPath(userID), user, userID, create, func(have *User) bool {
 		return have.Kind == KindHuman && have.Holder == orgID && have.Live &&
-			(in.UserName == "" || have.Name == in.UserName)
+			(in.UserName == "" || have.Name == in.UserName) &&
+			(personID == "" || have.Person == personID)
 	}, "user", in.UserKey); err != nil {
 		return nil, err
 	}
@@ -187,14 +212,39 @@ func ensure[T any, P interface {
 	return err
 }
 
+// ensurePerson returns the ID of the person with the email of the first user.
+// One that exists is used unchanged; a missing one is created, named by
+// --user-name, when create is true, and a conflict otherwise.
+func ensurePerson(st *storage.Store, now func() time.Time, in InitInput, userID string, create bool) (string, error) {
+	key := storage.Key{Kind: KeyPersonEmail, Value: in.UserEmail}
+	owner, err := st.KeyOwner(key)
+	switch {
+	case err == nil:
+		return owner, nil
+	case !errors.Is(err, storage.ErrNotFound):
+		return "", err
+	case !create:
+		return "", exists("user-email", in.UserEmail, fmt.Sprintf("the workspace already exists and no person has the email %q", in.UserEmail))
+	}
+	ws := &Workspace{Store: st, now: now}
+	rec := &Person{Name: in.UserName, Emails: []string{in.UserEmail}, Live: true}
+	ex, _, err := people.create(ws, userID, rec, personSlug(in.UserName, rec.Emails))
+	if err != nil {
+		return "", err
+	}
+	if ex != nil { // another init created it meanwhile
+		return ex.ID, nil
+	}
+	return rec.ID, nil
+}
+
 // onlyOurs refuses a folder whose records are not the ones init would write:
 // they belong to something else, or to an init with other data.
-func onlyOurs(st *storage.Store, orgID, userID string) error {
+func onlyOurs(st *storage.Store, ours []string) error {
 	paths, err := st.List("records/")
 	if err != nil {
 		return err
 	}
-	ours := []string{OrganizationPath(orgID), UserPath(userID)}
 	for _, p := range paths {
 		if !slices.Contains(ours, p) {
 			return exists("records", p, "the folder holds records that this init would not write")
