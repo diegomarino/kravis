@@ -1,6 +1,6 @@
 # Storage
 
-How Kravis keeps a workspace on disk. This document covers increments 1 and 2. Behavior lives in the ddduck model (`docs/ddd/`); this document covers how that behavior is stored.
+How Kravis keeps a workspace on disk. This document covers increments 1 to 3. Behavior lives in the ddduck model (`docs/ddd/`); this document covers how that behavior is stored.
 
 ## Principles
 

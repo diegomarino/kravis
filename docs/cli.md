@@ -1,6 +1,6 @@
 # CLI contract
 
-The contract of the `kravis` command for agents, scripts and people. This document covers increments 1 and 2. All domain logic lives in the Go library; the CLI is a thin layer over it, and a future MCP server will be another thin layer over the same library and schemas.
+The contract of the `kravis` command for agents, scripts and people. This document covers increments 1 to 3. All domain logic lives in the Go library; the CLI is a thin layer over it, and a future MCP server will be another thin layer over the same library and schemas.
 
 ## Shape
 
