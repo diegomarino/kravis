@@ -57,7 +57,7 @@ Every type has `create`, `list`, `get`, `update` and `delete`; the table lists w
 | Tasks | A piece of work with a human assignee, often a follow-up | `kravis task create --title <title> --assignee <user> --due <date>`, `kravis task status <task> <status>`, `kravis task list --overdue` |
 | Notes | Free text about people, organizations, deals or projects | `kravis note create --subject <id> --text-file <file>` |
 
-`kravis check` validates a workspace. The full contract is in [`docs/cli.md`](docs/cli.md).
+`kravis check` validates a workspace. `kravis search <text>` finds a person, organization or work record by the words in its own text, whatever its type. The full contract is in [`docs/cli.md`](docs/cli.md).
 
 ## Five-minute quickstart
 
