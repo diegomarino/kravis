@@ -250,8 +250,8 @@ A task created in a closed project, or moved by `task status` to a live status w
 `kravis search <text>` is the one global text search. Lists have no `--match`; type-specific filters stay on each `list`.
 
 - **Match.** The text is split on whitespace into words. A record matches when every word appears in at least one of its searched fields, in any order, each word as a substring anywhere (no wildcards). Case and accents are ignored: text and fields are folded as slugs are (lowercase, accents removed), and other characters are kept as they are.
-- **Searched fields**, only the record's own text: a person's name and emails; an organization's name and domains; an interaction's subject and summary; a task's title and description; a deal's and a project's name and description; a note's text. IDs and links are not searched. To get what is linked to a hit, `search`, then `list --related-to <id>`.
-- **Scope.** The records of the actor's holder plus the shared directory (people and organizations), stated in `filters.holder` as in a `list`; `--all-holders` removes the limit. Users are not searched.
+- **Searched fields**, only the record's own text: a person's name and emails; an organization's name and domains; an interaction's subject and summary; a task's title and description; a deal's and a project's name and description; a note's text. IDs and links are not searched. To get what is linked to a hit, `search`, then the filters of each list (`--related-to`, `--participant`, `--party`, `--deal`, `--project`, as that list has them).
+- **Scope.** The records of the actor's holder plus the shared directory (people and organizations), stated in `filters.holder`; `--all-holders` removes the limit, and a search without an actor is not limited, with no `filters.holder`, exactly as in a `list`. Users are not searched.
 - **Flags.**
   - `--type <type>` is repeatable and narrows the search to those types: `person`, `organization`, `interaction`, `task`, `deal`, `project`, `note`. An unknown type, `user` included, is `INVALID_VALUE` with `details.field: "type"` and the searchable types in `details.allowed`.
   - `--all` includes records that are not live. By default only live records are searched and `filters.live` is `true`; with `--all` it is not listed. Notes are always live.
@@ -260,7 +260,7 @@ A task created in a closed project, or moved by `task status` to a live status w
   - `type`;
   - the compact view of its type;
   - `updated_at`;
-  - `matches`: one `{"field": "<field>", "excerpt": "<text>"}` for each field that matched. A short field (name, email, domain, title, subject) gives its whole value, the one that matched when the field holds several. A long text (summary, description, note text) gives a window of 80 characters around the first match, with `…` where the text is cut.
+  - `matches`: one `{"field": "<field>", "excerpt": "<text>"}` for each field that matched. A short field (name, email, domain, title, subject) gives its whole value; when the field holds several values (emails, domains), the first one, in stored order, that contains a word of the text. A long text (summary, description, note text) gives a window of 80 characters around the first match, with `…` where the text is cut.
 - **Order.** By `updated_at`, newest first, with the ID breaking ties.
 - **Errors.** Text with no words (empty or only spaces) is `INVALID_VALUE` with `details.field: "text"` and a hint to give at least one word. A bad `--limit` or `--cursor` is `INVALID_VALUE` as in lists. A search that finds nothing is `data: []`, not an error.
 
