@@ -261,7 +261,7 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 	s.eq(len(seen), 7, "outreach: distinct people are counted from participants")
 
 	// --- Search ------------------------------------------------------------
-	d = s.ok("", "search", "beet")
+	d = s.ok("", "search", "beet", "--type", "interaction") // the follow-up title says beet too
 	s.eq(at(d, "data", 0, "id"), pipelineID, "search: a word in a summary")
 	s.eq(at(d, "data", 0, "matches", 0, "field"), "summary", "search: the field that matched")
 	d = s.ok("", "search", "CREME brulee")
