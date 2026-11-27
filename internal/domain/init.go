@@ -139,7 +139,8 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 	if err := ensure(st, OrganizationPath(orgID), org, userID, create, func(have *Organization) bool {
 		// Its creator is the first user: another user's init was interrupted here.
 		return have.Name == in.Organization && have.Own && have.Live && have.CreatedBy == userID
-	}, func(have *Organization) (string, string, string) { return "organization", in.Organization, have.Name }); err != nil {
+	}, func(have *Organization) (string, string, string) { return "organization", in.Organization, have.Name },
+		func() string { return ownOrganizationName(st) }); err != nil {
 		return nil, err
 	}
 
@@ -165,7 +166,7 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 			return "user-email", in.UserEmail, personEmail(st, have.Person)
 		}
 		return "user", in.UserKey, ""
-	}); err != nil {
+	}, func() string { return "" }); err != nil {
 		return nil, err
 	}
 
@@ -201,7 +202,7 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 func ensure[T any, P interface {
 	*T
 	storage.Record
-}](st *storage.Store, path string, rec P, actor string, create bool, matches func(P) bool, conflict func(P) (field, given, workspace string)) error {
+}](st *storage.Store, path string, rec P, actor string, create bool, matches func(P) bool, conflict func(P) (field, given, workspace string), missing func() string) error {
 	have := P(new(T))
 	_, err := st.Load(path, have)
 	switch {
@@ -216,7 +217,7 @@ func ensure[T any, P interface {
 		return err
 	case !create:
 		field, given, _ := conflict(rec)
-		return exists(field, given, fmt.Sprintf("the workspace already exists and does not have the %s %q", field, given))
+		return exists(field, given, fmt.Sprintf("the workspace already exists and does not have the %s %q", field, given)).with("workspace", missing())
 	}
 	_, _, err = storage.Create(st, rec, actor, func(string) string { return path }, nil)
 	return err
@@ -253,6 +254,18 @@ func ensurePerson(st *storage.Store, now func() time.Time, in InitInput, userID 
 		return ex.ID, nil
 	}
 	return rec.ID, nil
+}
+
+// ownOrganizationName is the name of the workspace's own organization, or "".
+func ownOrganizationName(st *storage.Store) string {
+	paths, _ := st.List("records/organizations/")
+	for _, p := range paths {
+		o := new(Organization)
+		if _, err := st.Load(p, o); err == nil && o.Own {
+			return o.Name
+		}
+	}
+	return ""
 }
 
 // personEmail is the first email of a person, or "".

@@ -142,6 +142,11 @@ func TestWorkspaceExistsNamesTheWorkspacesValueInDetails(t *testing.T) {
 	if d := details(t, eo); d["field"] != "timezone" || d["value"] != "UTC" || d["workspace"] != tz {
 		t.Errorf("timezone details %v", d)
 	}
+	eo = wantError(t, e.run("init", "--timezone", tz, "--organization", "Other Example", "--user", userKey, "--user-name", userName),
+		"WORKSPACE_EXISTS", 2)
+	if d := details(t, eo); d["field"] != "organization" || d["workspace"] != orgName {
+		t.Errorf("organization details %v", d)
+	}
 	eo = wantError(t, e.run("init", "--timezone", tz, "--organization", orgName, "--user", userKey, "--user-name", "Zed"),
 		"WORKSPACE_EXISTS", 2)
 	if d := details(t, eo); d["field"] != "user-name" || d["workspace"] != userName {
