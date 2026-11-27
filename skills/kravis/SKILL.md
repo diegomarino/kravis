@@ -59,7 +59,7 @@ A `--ref <source>:<kind>:<id>[@<scope>]` ties the interaction to the item it cam
 
 ## Prepare a briefing
 
-For "everything about Ben Carter": start with `kravis person get <email or id>`, which gives his affiliations and title (when you do not know his ID, `kravis search "ben carter" --type person`). Then ask each list for his records with `--limit 0`, which returns them all (a list stops at 50 otherwise).
+For "everything about Ben Carter": start with `kravis person get <email or id> --fields affiliations`, which gives his name and emails, and his affiliations, each with an organization and a title (when you do not know his ID, `kravis search "ben carter" --type person`). Then ask each list for his records with `--limit 0`, which returns them all (a list stops at 50 otherwise).
 
 1. `kravis interaction list --participant <person> --fields summary --limit 0`: what happened, newest first, with each summary.
 2. `kravis note list --related-to <person> --limit 0`: what is known about him.
