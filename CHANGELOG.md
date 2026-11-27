@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/diegomarino/kravis/compare/v0.3.1...v0.4.0) (2026-11-27)
+
+
+### Features
+
+* init links the first user to a person ([#89](https://github.com/diegomarino/kravis/issues/89)) ([a507314](https://github.com/diegomarino/kravis/commit/a507314005c8932742407b0ace8194fd71b94056))
+* text search ([#90](https://github.com/diegomarino/kravis/issues/90)) ([9456768](https://github.com/diegomarino/kravis/commit/945676855d97bba257d472a5a42deba2925d5c17))
+
+
+### Fixes
+
+* search hints, write responses and skill lines from the third e2e ([#95](https://github.com/diegomarino/kravis/issues/95)) ([273e323](https://github.com/diegomarino/kravis/commit/273e3231ae4738cdd9ba32d144592d73793d10f4))
+* the briefing recipe asks for a person's affiliations ([#98](https://github.com/diegomarino/kravis/issues/98)) ([6bb1a0c](https://github.com/diegomarino/kravis/commit/6bb1a0ce1ada467f97ac3ac2b4df2f7e15f02d00))
+
+
+### Documentation
+
+* the closing check of increment 3 ([#92](https://github.com/diegomarino/kravis/issues/92)) ([5bebff8](https://github.com/diegomarino/kravis/commit/5bebff8afbc8350ae2d8cd9fcf40cfad0c07403d))
+* the contract of text search ([#87](https://github.com/diegomarino/kravis/issues/87)) ([a202480](https://github.com/diegomarino/kravis/commit/a2024807a3f8db9a3c086be3586b6a69b3918929))
+
 ## [0.3.1](https://github.com/diegomarino/kravis/compare/v0.3.0...v0.3.1) (2026-11-25)
 
 
