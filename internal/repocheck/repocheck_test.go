@@ -47,6 +47,8 @@ var (
 	homePath = regexp.MustCompile(`(?:/Users/|/home/)[A-Za-z0-9_.-]+|C:\\Users\\[A-Za-z0-9_.-]+`)
 	email    = regexp.MustCompile(`[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})`)
 	okDomain = []string{"example.com", "example.org", "example.net"}
+	// RFC 2606 reserves the .example TLD: no domain under it will ever be real.
+	exampleTLD = ".example"
 )
 
 // personal lists what in text points at a real person or machine.
@@ -54,7 +56,7 @@ func personal(text string) []string {
 	var found []string
 	found = append(found, homePath.FindAllString(text, -1)...)
 	for _, m := range email.FindAllStringSubmatch(text, -1) {
-		if !slices.Contains(okDomain, strings.ToLower(m[1])) {
+		if d := strings.ToLower(m[1]); !slices.Contains(okDomain, d) && !strings.HasSuffix(d, exampleTLD) {
 			found = append(found, m[0])
 		}
 	}
@@ -90,6 +92,8 @@ func TestPersonalDetector(t *testing.T) {
 		`C:\Us` + `ers\carol\Documents`,
 		"write to alice@" + "gmail.com",
 		"write to Bob@Example." + "co",
+		"write to jim@dundermifflin." + "com",
+		"write to jim@example" + ".examples",
 	}
 	for _, s := range bad {
 		if len(personal(s)) == 0 {
@@ -98,6 +102,7 @@ func TestPersonalDetector(t *testing.T) {
 	}
 	good := []string{
 		"ana@example.com, ben@example.org, cy@EXAMPLE.net",
+		"michael.scott@dundermifflin.example, x@a.b.EXAMPLE",
 		"~/.config/kravis and /Users/<name> and /home/<name>",
 		"npm i @types/node and git@github",
 	}

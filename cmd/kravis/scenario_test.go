@@ -39,7 +39,7 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 
 	// --- The workspace and its people -------------------------------------
 	d := s.ok("created", "init", "--timezone", "America/New_York", "--organization", "Dunder Mifflin Scranton",
-		"--user", "pam", "--user-name", "Pam Beesly", "--user-email", "pam.beesly@example.com")
+		"--user", "pam", "--user-name", "Pam Beesly", "--user-email", "pam.beesly@dundermifflin.example")
 	s.eq(at(d, "data", "user", "person"), "pe_pam-beesly", "init links Pam to her person")
 	d = s.ok("", "whoami")
 	s.eq(at(d, "data", "actor"), "us_pam", "whoami: the default actor is Pam")
@@ -47,7 +47,7 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 
 	s.ok("created", "user", "create", "michael", "--human", "--holder", holder)
 	s.ok("created", "user", "create", "pam-agent", "--agent", "--holder", holder, "--handler", "us_pam")
-	s.ok("created", "person", "create", "--name", "Michael Scott", "--email", "michael.scott@example.com")
+	s.ok("created", "person", "create", "--name", "Michael Scott", "--email", "michael.scott@dundermifflin.example")
 	d = s.ok("updated", "user", "update", "us_michael", "--person", "pe_michael-scott")
 	s.eq(at(d, "data", "person"), "pe_michael-scott", "Michael is linked to his person")
 
@@ -56,15 +56,15 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 		"Jan Levinson": "jan.levinson", "David Wallace": "david.wallace", "Bob Vance": "bob.vance",
 	}
 	for name, local := range people {
-		s.ok("created", "person", "create", "--name", name, "--email", local+"@example.com")
+		s.ok("created", "person", "create", "--name", name, "--email", local+"@dundermifflin.example")
 	}
-	s.eq(at(s.ok("existing", "person", "create", "--name", "Jim Halpert", "--email", "JIM.HALPERT@example.com"), "data", "id"),
+	s.eq(at(s.ok("existing", "person", "create", "--name", "Jim Halpert", "--email", "JIM.HALPERT@dundermifflin.example"), "data", "id"),
 		"pe_jim-halpert", "a person is found again by email, whatever its case")
 
-	s.ok("created", "organization", "create", "--name", "Dunder Mifflin Corporate", "--domain", "corporate.example.com")
+	s.ok("created", "organization", "create", "--name", "Dunder Mifflin Corporate", "--domain", "corporate.dundermifflin.example")
 	s.ok("created", "organization", "create", "--name", "Prince Family Paper")
-	s.ok("created", "organization", "create", "--name", "Michael Scott Paper Company", "--domain", "mspc.example.com")
-	s.ok("created", "organization", "create", "--name", "Vance Refrigeration", "--domain", "vance.example.com")
+	s.ok("created", "organization", "create", "--name", "Michael Scott Paper Company", "--domain", "mspc.example")
+	s.ok("created", "organization", "create", "--name", "Vance Refrigeration", "--domain", "vance.example")
 	d = s.ok("created", "organization", "create", "--name", "Prince Family Paper")
 	s.eq(at(d, "data", "id"), "org_prince-family-paper-2", "an organization without a domain has no natural key")
 	s.eq(at(d, "warnings", 0, "code"), "SIMILAR_EXISTS", "warning on the repeated name")
@@ -81,7 +81,7 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 	// --- Interactions ------------------------------------------------------
 	pipeline := []string{"interaction", "create", "--channel", "email", "--occurred-at", "2026-11-10T14:00:00Z",
 		"--subject", "Q4 pipeline review", "--participant", "pe_jim-halpert", "--participant", "pe_dwight-schrute",
-		"--ref", "email:message:pipeline-review-1@example.com", "--ref", "gmail:thread:thread-18c0ffee@pam",
+		"--ref", "email:message:pipeline-review-1@dundermifflin.example", "--ref", "gmail:thread:thread-18c0ffee@pam",
 		"--initiated-by", "us_pam", "--summary-file", "-"}
 	summary := "Jim and Dwight walked through the Q4 pipeline.\nDwight wants the Schrute Farms beet account flagged.\n"
 	d = s.okIn(summary, "created", pipeline...)
@@ -104,7 +104,7 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 	// An inbound interaction names who started it.
 	d = s.okIn("Jan asked for the Scranton branch numbers.\n", "created", "interaction", "create", "--channel", "email",
 		"--occurred-at", "2026-11-12T09:15:00Z", "--subject", "Branch numbers", "--participant", "pe_jan-levinson",
-		"--direction", "inbound", "--initiated-by", "pe_jan-levinson", "--ref", "email:message:branch-numbers@example.com",
+		"--direction", "inbound", "--initiated-by", "pe_jan-levinson", "--ref", "email:message:branch-numbers@dundermifflin.example",
 		"--summary-file", "-")
 	branchID := str(at(d, "data", "id"))
 	s.eq(at(d, "data", "participants", 0), "org_dunder-mifflin-corporate", "Jan's organization came with her")
@@ -273,10 +273,10 @@ func TestScenarioDunderMifflinScranton(t *testing.T) {
 	s.eq(len(arr(at(d, "data"))), 4, "search: Bob, his company, the note and the call")
 	d = s.ok("", "search", "vance", "--type", "person", "--type", "organization")
 	s.eq(len(arr(at(d, "data"))), 2, "search: --type narrows")
-	d = s.ok("", "search", "vance.example.com", "--type", "organization", "--fields", "domains")
+	d = s.ok("", "search", "vance.example", "--type", "organization", "--fields", "domains")
 	s.eq(at(d, "data", 0, "matches", 0, "field"), "domains", "search: a domain")
-	s.eq(at(d, "data", 0, "domains", 0), "vance.example.com", "search: --fields widens the hit")
-	s.eq(at(s.ok("", "search", "jim.halpert@example.com"), "data", 0, "id"), "pe_jim-halpert", "search: an email")
+	s.eq(at(d, "data", 0, "domains", 0), "vance.example", "search: --fields widens the hit")
+	s.eq(at(s.ok("", "search", "jim.halpert@dundermifflin.example"), "data", 0, "id"), "pe_jim-halpert", "search: an email")
 	s.eq(at(s.ok("", "search", "term sheet", "--type", "task"), "data", 0, "type"), "task", "search: a task by its title")
 	s.eq(len(arr(at(s.ok("", "search", "vogel norte"), "data"))), 0, "search: nothing found is an empty list")
 	s.fail("INVALID_VALUE", 2, "search", "   ")
