@@ -120,7 +120,7 @@ func searchView(typ string, v View, updated time.Time, matches []searchMatch) Vi
 	raw := func(x any) json.RawMessage { b, _ := json.Marshal(x); return b }
 	out := View{{Name: "type", Value: raw(typ)}}
 	for _, f := range v {
-		if f.Name != "updated_at" { // --full shows the record's own
+		if !slices.Contains([]string{"type", "updated_at", "matches"}, f.Name) { // a record's own, shown by --full
 			out = append(out, f)
 		}
 	}
