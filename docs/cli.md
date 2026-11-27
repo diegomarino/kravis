@@ -55,7 +55,7 @@ Success:
   - `updated` when something changed;
   - `unchanged` when nothing changed and the version was not bumped;
   - `deleted`.
-  `data` holds the type's compact view plus the fields the write touched. `--fields a,b` and `--full` widen it. For `existing`, `unchanged` and `deleted` it holds the compact view (of the record as it was, for `deleted`), widened by `--fields` and `--full`.
+  `data` holds the type's compact view plus the fields the write touched. `--fields a,b` and `--full` widen it. For `existing`, `unchanged` and `deleted` it holds the compact view (of the record as it was, for `deleted`), widened by `--fields` and `--full`; an `existing` task also shows the fields a `created` one shows for it (`from`, `purpose`, its parent and `related`, and its `description`).
 - **`get`** returns the compact view. `--fields a,b` and `--full` widen it as they do for writes.
 - **Lists** return the compact view of each record in `data`, an array. `total` and `next_cursor` sit beside `data`:
   - `total` counts the filtered set the caller sees, at the time of the call.
@@ -134,6 +134,7 @@ Error (stderr):
 | `GENERIC_ADDRESS` | warning | A person was created from `info@`, `noreply@` or a similar address |
 | `MULTIPLE_AFFILIATIONS` | warning | A participant person has several affiliations, so none was added |
 | `UNKNOWN_SOURCE` | warning | A source reference to a source that is not in the catalog |
+| `NOT_LIVE_HIDDEN` | warning | A `search` without `--all` left out hits that are not live; `details.count` says how many |
 
 A check finding is data on `kravis check`, with exit code 6, not an error.
 
@@ -151,7 +152,7 @@ Every compact view has `id`, the name or title, `live`, and `holder` on work rec
 
 | Type | Fields |
 |---|---|
-| User | `kind`, `holder` |
+| User | `kind`, `holder`, `person` (when linked) |
 | Organization | `domains`, `own` |
 | Person | `emails` |
 | Interaction | `occurred_at`, `channel`, `direction`, `subject`, `participants` |
@@ -187,10 +188,10 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 
 | Command | Notes |
 |---|---|
-| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>] [--user-email <email>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. With `--user-email`, the first user is linked to the person with that email: if no person has it, `init` creates one, named `--user-name` or, without it, only with the email; if one exists, it is linked unchanged, even with another name. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS` and a hint (another `--user-email` is data that does not match, like any other). `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with data that conflicts with the files it left (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
+| `kravis init --timezone <zone> --organization <name> --user <key> [--user-name <name>] [--user-email <email>]` | Creates `kravis.json`, `config.json` with the default catalogs, the first own organization and the first human, who is `created_by` of everything it creates and becomes the default actor in the local configuration. With `--user-email`, the first user is linked to the person with that email: if no person has it, `init` creates one, named `--user-name` or, without it, only with the email; if one exists, it is linked unchanged, even with another name. It validates everything before writing. On an initialized workspace it returns `existing` when the data matches, and otherwise fails with `WORKSPACE_EXISTS`, a hint, and `details.field`, `details.value` (what `init` was given) and `details.workspace` (what the workspace has) for the field that conflicts, `user-email` among them (another `--user-email` is data that does not match, like any other). `kravis.json` is written last, so rerunning an interrupted `init` with the same data completes it; with data that conflicts with the files it left (another organization, user or timezone) it fails with `WORKSPACE_EXISTS` |
 | `kravis whoami [--set <user>]` | The resolved actor, its source and its holder; without `--set` and without an actor it fails with `MISSING_ACTOR`. `--set` stores the default actor and needs no actor |
 | `kravis schema [type]` | See Discovery |
-| `kravis search <text> [--type <type>]… [--all] [--limit <n>] [--cursor <c>]` | Finds records by their own text, without knowing their type or ID. See [Search](#search) |
+| `kravis search <text> [--type <type>]… [--all] [--fields <a,b>] [--full] [--limit <n>] [--cursor <c>]` | Finds records by their own text, without knowing their type or ID. See [Search](#search) |
 | `kravis check` | Prints its findings (`code`, record, `message`) on stdout as `data` and exits 6 if there are any. They are data, not a failure of the command. It never writes |
 | `kravis user list\|get\|create\|update\|delete` | `create <key> --human\|--agent --holder <org> [--handler <user>] [--person <id>]`; the ID is `us_<key>`. An agent needs a handler: a live human of the same holder, which cannot change in the MVP. Holder and kind never change. A user is deactivated with `update --live=false`, refused with `REFERENCED` while it is the handler of a live agent or the assignee or agent of a live task. Deactivating or deleting the last live human of a holder is refused before any change with `INVALID_VALUE`, `details.holder` and a hint to create or reactivate another human first, so someone can still act for the holder |
 | `kravis organization list\|get\|create\|update\|delete` | `create --name <name>` (required). `--own` marks an own organization. The mark cannot be removed while the organization is a holder. `--domain` can be repeated and deduplicates |
@@ -256,7 +257,8 @@ A task created in a closed project, or moved by `task status` to a live status w
   - `--type <type>` is repeatable and narrows the search to those types: `person`, `organization`, `interaction`, `task`, `deal`, `project`, `note`. An unknown type, `user` included, is `INVALID_VALUE` with `details.field: "type"` and the searchable types in `details.allowed`.
   - `--all` includes records that are not live. By default only live records are searched and `filters.live` is `true`; with `--all` it is not listed. Notes are always live.
   - `--limit` and `--cursor` work as in lists.
-- **Response.** The list shape: `data`, `filters`, `total` and `next_cursor`. `filters` holds `holder`, `live`, `type` when given and `text`. Each hit in `data` has:
+  - `--fields a,b` and `--full` widen each hit's compact view as in lists: a field widens the hits of the types that define it, and a name that none of the searched types defines is `UNKNOWN_FIELD`.
+- **Response.** The list shape: `data`, `filters`, `total` and `next_cursor`. Without `--all`, hits that match but are not live are left out and a `NOT_LIVE_HIDDEN` warning says how many. `filters` holds `holder`, `live`, `type` when given and `text`. Each hit in `data` has:
   - `type`;
   - the compact view of its type;
   - `updated_at`;

@@ -335,7 +335,7 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 			if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 				return nil, err
 			}
-			return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
+			return ws.existingTask(ex, opt)
 		}
 	}
 	if err := ws.resolveParent(rec, strings.TrimSpace(in.Interaction)); err != nil {
@@ -383,11 +383,20 @@ func (ws *Workspace) CreateTask(actorID string, in TaskInput, opt ViewOptions) (
 		if err := sameTask(ex, rec, givenProject, givenDeal, givenRelated); err != nil {
 			return nil, err
 		}
-		return ws.finishTask(opt, false)(tasks.result(OutcomeExisting, ex, nil, opt))
+		return ws.existingTask(ex, opt)
 	}
 	touched := touchedIf("from", rec.From != "", "purpose", rec.Purpose != "", "description", in.Description != "",
 		"project", rec.Project != "", "deal", rec.Deal != "", "related", len(rec.Related) > 0)
 	return ws.finishTask(opt, in.Description != "")(tasks.result(OutcomeCreated, rec, touched, opt))
+}
+
+// existingTask is the result of a create that found its task: the fields a
+// created response would show for it.
+func (ws *Workspace) existingTask(ex *Task, opt ViewOptions) (*Result, error) {
+	touched := touchedIf("from", ex.From != "", "purpose", ex.Purpose != "",
+		"project", ex.Project != "", "deal", ex.Deal != "", "related", len(ex.Related) > 0)
+	// The description is in a sidecar: it is added when there is one.
+	return ws.finishTask(opt, true)(tasks.result(OutcomeExisting, ex, touched, opt))
 }
 
 // resolveParent checks the parent a new task was given: a live project or a

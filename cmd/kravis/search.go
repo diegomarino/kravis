@@ -16,9 +16,11 @@ func (a *app) searchCommand() *cobra.Command {
 		Use:   "search <text>",
 		Short: "Find records by their own text, without knowing their type or ID",
 		Long: "Find the records in which every word of the text appears, as a substring and ignoring case and accents, in the record's own text: " +
-			"names, emails, domains, subjects, summaries, titles, descriptions and note text. IDs and links are not searched: " +
+			"names, emails, domains, subjects, summaries, titles, descriptions and note text. Every word must appear in the same record: " +
+			"\"vogel norte\" finds nothing when the words are in a person and an organization. IDs and links are not searched: " +
 			"to get what is linked to a hit, use the filters of each list (--related-to, --participant, --party, --deal, --project). " +
-			"Newest update first; each hit says which fields matched, with an excerpt. Only live records unless --all; " +
+			"Newest update first; each hit says which fields matched, with an excerpt. Only live records unless --all " +
+			"(a warning says how many were left out); --fields and --full widen each hit's compact view; " +
 			"an actor limits the work records to its holder unless --all-holders.",
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -33,5 +35,6 @@ func (a *app) searchCommand() *cobra.Command {
 	f.IntVar(&lo.Limit, "limit", domain.DefaultLimit, "the most hits to return; 0 returns them all")
 	f.StringVar(&lo.Cursor, "cursor", "", "continue from the next_cursor of the previous page")
 	f.BoolVar(&lo.All, "all", false, "include records that are not live")
+	viewFlags(f, &lo.View)
 	return cmd
 }

@@ -266,6 +266,7 @@ type Warning struct {
 const (
 	WarnSimilarExists  = "SIMILAR_EXISTS"
 	WarnGenericAddress = "GENERIC_ADDRESS"
+	WarnNotLiveHidden  = "NOT_LIVE_HIDDEN"
 )
 
 // Result is what a write returns: its outcome, the view and any warnings.
@@ -484,6 +485,8 @@ type ListResult struct {
 	Total int
 	// NextCursor continues the list; nil on the last page.
 	NextCursor *string
+	// Warnings are those of a read that left something out.
+	Warnings []Warning
 }
 
 // cursor is what a list's cursor holds: the last sort value and ID, and a

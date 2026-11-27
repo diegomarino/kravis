@@ -131,7 +131,7 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 	case err != nil:
 		return nil, exists(ConfigPath, err.Error(), "the workspace has no valid "+ConfigPath)
 	case cfg.Timezone != in.Timezone:
-		return nil, exists("timezone", cfg.Timezone, "the workspace uses timezone "+cfg.Timezone)
+		return nil, exists("timezone", in.Timezone, "the workspace uses timezone "+cfg.Timezone).with("workspace", cfg.Timezone)
 	}
 
 	org := &Organization{Name: in.Organization, Own: true, Live: true}
@@ -139,7 +139,8 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 	if err := ensure(st, OrganizationPath(orgID), org, userID, create, func(have *Organization) bool {
 		// Its creator is the first user: another user's init was interrupted here.
 		return have.Name == in.Organization && have.Own && have.Live && have.CreatedBy == userID
-	}, "organization", in.Organization); err != nil {
+	}, func(have *Organization) (string, string, string) { return "organization", in.Organization, have.Name },
+		func() string { return ownOrganizationName(st) }); err != nil {
 		return nil, err
 	}
 
@@ -157,7 +158,15 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 		return have.Kind == KindHuman && have.Holder == orgID && have.Live &&
 			(in.UserName == "" || have.Name == in.UserName) &&
 			(personID == "" || have.Person == personID)
-	}, "user", in.UserKey); err != nil {
+	}, func(have *User) (string, string, string) {
+		switch {
+		case in.UserName != "" && have.Name != in.UserName:
+			return "user-name", in.UserName, have.Name
+		case personID != "" && have.Person != personID:
+			return "user-email", in.UserEmail, personEmail(st, have.Person)
+		}
+		return "user", in.UserKey, ""
+	}, func() string { return "" }); err != nil {
 		return nil, err
 	}
 
@@ -193,20 +202,22 @@ func initOnce(c storage.Connector, now func() time.Time, in InitInput) (*InitRes
 func ensure[T any, P interface {
 	*T
 	storage.Record
-}](st *storage.Store, path string, rec P, actor string, create bool, matches func(P) bool, field, given string) error {
+}](st *storage.Store, path string, rec P, actor string, create bool, matches func(P) bool, conflict func(P) (field, given, workspace string), missing func() string) error {
 	have := P(new(T))
 	_, err := st.Load(path, have)
 	switch {
 	case err == nil:
 		if !matches(have) {
-			return exists(field, given, "the workspace already has a different "+field+" at "+path)
+			field, given, workspace := conflict(have)
+			return exists(field, given, "the workspace already has a different "+field+" at "+path).with("workspace", workspace)
 		}
 		*rec = *have
 		return nil
 	case !errors.Is(err, storage.ErrNotFound):
 		return err
 	case !create:
-		return exists(field, given, fmt.Sprintf("the workspace already exists and does not have the %s %q", field, given))
+		field, given, _ := conflict(rec)
+		return exists(field, given, fmt.Sprintf("the workspace already exists and does not have the %s %q", field, given)).with("workspace", missing())
 	}
 	_, _, err = storage.Create(st, rec, actor, func(string) string { return path }, nil)
 	return err
@@ -230,7 +241,8 @@ func ensurePerson(st *storage.Store, now func() time.Time, in InitInput, userID 
 		return "", err
 	}
 	if !create {
-		return "", exists("user-email", in.UserEmail, fmt.Sprintf("the workspace already exists and no person has the email %q", in.UserEmail))
+		return "", exists("user-email", in.UserEmail, fmt.Sprintf("the workspace already exists and no person has the email %q", in.UserEmail)).
+			with("workspace", userEmail(st, userID))
 	}
 	ws := &Workspace{Store: st, now: now}
 	rec := &Person{Name: in.UserName, Emails: []string{in.UserEmail}, Live: true}
@@ -242,6 +254,39 @@ func ensurePerson(st *storage.Store, now func() time.Time, in InitInput, userID 
 		return ex.ID, nil
 	}
 	return rec.ID, nil
+}
+
+// ownOrganizationName is the name of the workspace's own organization, or "".
+func ownOrganizationName(st *storage.Store) string {
+	paths, _ := st.List("records/organizations/")
+	for _, p := range paths {
+		o := new(Organization)
+		if _, err := st.Load(p, o); err == nil && o.Own {
+			return o.Name
+		}
+	}
+	return ""
+}
+
+// personEmail is the first email of a person, or "".
+func personEmail(st *storage.Store, id string) string {
+	p := new(Person)
+	if id == "" {
+		return ""
+	}
+	if _, err := st.Load(PersonPath(id), p); err != nil || len(p.Emails) == 0 {
+		return ""
+	}
+	return p.Emails[0]
+}
+
+// userEmail is the first email of the person a user is linked to, or "".
+func userEmail(st *storage.Store, userID string) string {
+	u := new(User)
+	if _, err := st.Load(UserPath(userID), u); err != nil {
+		return ""
+	}
+	return personEmail(st, u.Person)
 }
 
 // onlyOurs refuses a folder whose records are not the ones init would write:
