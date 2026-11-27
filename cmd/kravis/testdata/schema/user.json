@@ -113,7 +113,8 @@
           "name",
           "live",
           "kind",
-          "holder"
+          "holder",
+          "person"
         ],
         "default_limit": 50,
         "order": "name compared as its slug, else the ID; then the ID"

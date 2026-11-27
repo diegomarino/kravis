@@ -17,7 +17,8 @@ func (a *app) initCommand() *cobra.Command {
 		Use:   "init",
 		Short: "Create a workspace in the current folder",
 		Long: "Create a workspace in the current folder, or in KRAVIS_WORKSPACE: its configuration, the first own organization " +
-			"and the first human user, who becomes the default actor on this machine. Rerunning it with the same data changes nothing.",
+			"and the first human user, who becomes the default actor on this machine, stored in $XDG_CONFIG_HOME/kravis/config.json (per machine, not in the workspace). " +
+			"Rerunning it with the same data changes nothing.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var missing []string
@@ -75,7 +76,8 @@ func (a *app) whoamiCommand() *cobra.Command {
 		Use:   "whoami",
 		Short: "Show the actor, where it comes from and its holder",
 		Long: "Show the resolved actor (--actor, then KRAVIS_ACTOR, then the local configuration), where it came from and its holder.\n" +
-			"With --set <user>, store a live user as this workspace's default actor in the local configuration.",
+			"With --set <user>, store a live user as this workspace's default actor in the local configuration, " +
+			"$XDG_CONFIG_HOME/kravis/config.json (per machine, not in the workspace).",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ws, err := a.open()

@@ -50,7 +50,7 @@ type Person struct {
 var users = newKind(kind[User, *User]{
 	Type: Type{Name: "user", Dir: "users", Prefix: "us_",
 		Order: "name compared as its slug, else the ID; then the ID"},
-	compact: []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"kind", ""}, {"holder", ""}},
+	compact: []compactField{{"id", ""}, {"name", ""}, {"live", "false"}, {"kind", ""}, {"holder", ""}, {"person", ""}},
 	sortKey: func(u *User) string { return firstOf(u.Name, u.ID) },
 	live:    func(u *User) bool { return u.Live },
 	rules:   userRules,

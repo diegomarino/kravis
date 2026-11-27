@@ -90,7 +90,7 @@ func (a *app) readLimited(cmd *cobra.Command, allHolders bool, do func(ws *domai
 	}
 	switch d := data.(type) {
 	case *domain.ListResult:
-		return a.emit(cmd, reply{Data: d.Data, Filters: nilIfEmpty(d.Filters), List: true, Total: d.Total, NextCursor: d.NextCursor})
+		return a.emit(cmd, reply{Data: d.Data, Filters: nilIfEmpty(d.Filters), List: true, Total: d.Total, NextCursor: d.NextCursor, Warnings: d.Warnings})
 	case *domain.GetResult:
 		return a.emit(cmd, reply{Data: d.Data, Filters: nilIfEmpty(d.Filters)})
 	}

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -60,32 +61,45 @@ func searchKind[T any, P interface {
 	storage.Record
 }](ws *Workspace, k *kind[T, P], o SearchOptions, words []string, hasText bool,
 	fields func(rec P, text string) []searchField, finish func(v View, text string) (View, error),
-) ([]hit, error) {
+) (out []hit, hidden int, err error) {
 	rows, err := k.scan(ws)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	var out []hit
+	// --fields names that this type does not define belong to other types.
+	vo := o.Page.View
+	vo.Fields = nil
+	own := slices.Concat(storage.FieldNames(P(new(T))), k.extraFields)
+	for _, f := range o.Page.View.Fields {
+		if slices.Contains(own, f) {
+			vo.Fields = append(vo.Fields, f)
+		}
+	}
 	for _, r := range rows {
-		if (!o.Page.All && !k.live(r.rec)) || (o.Holder != "" && k.holder != nil && k.holder(r.rec) != o.Holder) {
+		if o.Holder != "" && k.holder != nil && k.holder(r.rec) != o.Holder {
 			continue
 		}
+		notLive := !o.Page.All && !k.live(r.rec)
 		var text string
 		if hasText {
 			if text, err = ws.Store.Text(k.Path(r.id)); err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 		}
 		matches, ok := matchFields(fields(r.rec, text), words)
 		if !ok {
 			continue
 		}
-		v, err := k.view(r.rec, nil, ViewOptions{})
+		if notLive {
+			hidden++
+			continue
+		}
+		v, err := k.view(r.rec, nil, vo)
 		if err == nil {
 			v, err = finish(v, text)
 		}
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		meta := r.rec.Meta()
 		updated := meta.UpdatedAt
@@ -98,18 +112,32 @@ func searchKind[T any, P interface {
 			view: searchView(k.Name, v, updated, matches),
 		})
 	}
-	return out, nil
+	return out, hidden, nil
 }
 
 // searchView is a hit: its type, the compact view, updated_at and matches.
 func searchView(typ string, v View, updated time.Time, matches []searchMatch) View {
 	raw := func(x any) json.RawMessage { b, _ := json.Marshal(x); return b }
 	out := View{{Name: "type", Value: raw(typ)}}
-	out = append(out, v...)
+	for _, f := range v {
+		if f.Name != "updated_at" { // --full shows the record's own
+			out = append(out, f)
+		}
+	}
 	return append(out, storage.Field{Name: "updated_at", Value: raw(updated)}, storage.Field{Name: "matches", Value: raw(matches)})
 }
 
 func plain(v View, _ string) (View, error) { return v, nil }
+
+// hitText adds a sidecar text to a hit's view when --full or --fields asks for it.
+func hitText(opt ViewOptions, name string) func(View, string) (View, error) {
+	return func(v View, text string) (View, error) {
+		if wantsText(opt, name) {
+			v = withField(v, name, text)
+		}
+		return v, nil
+	}
+}
 
 // Search finds records by their own text, in every type or in the given
 // ones, newest update first (docs/cli.md, Search).
@@ -139,6 +167,9 @@ func (ws *Workspace) Search(o SearchOptions) (*ListResult, error) {
 			types = append(types, t)
 		}
 	}
+	if err := checkSearchFields(types, o.Page.View.Fields); err != nil {
+		return nil, err
+	}
 	shown := applied("holder", o.Holder, "live", !o.Page.All, "text", text)
 	if len(o.Types) > 0 {
 		shown["type"] = slices.DeleteFunc(slices.Clone(types), func(t string) bool { return !slices.Contains(o.Types, t) })
@@ -152,41 +183,49 @@ func (ws *Workspace) Search(o SearchOptions) (*ListResult, error) {
 	}
 
 	cache := map[string]string{}
+	hidden := 0
+	run := func(found []hit, n int, err error) ([]hit, error) { hidden += n; return found, err }
 	sources := map[string]func() ([]hit, error){
 		"person": func() ([]hit, error) {
-			return searchKind(ws, people, o, folded, false, func(p *Person, _ string) []searchField {
+			return run(searchKind(ws, people, o, folded, false, func(p *Person, _ string) []searchField {
 				return []searchField{{name: "name", values: []string{p.Name}}, {name: "emails", values: p.Emails}}
-			}, plain)
+			}, plain))
 		},
 		"organization": func() ([]hit, error) {
-			return searchKind(ws, organizations, o, folded, false, func(g *Organization, _ string) []searchField {
+			return run(searchKind(ws, organizations, o, folded, false, func(g *Organization, _ string) []searchField {
 				return []searchField{{name: "name", values: []string{g.Name}}, {name: "domains", values: g.Domains}}
-			}, plain)
+			}, plain))
 		},
 		"interaction": func() ([]hit, error) {
-			return searchKind(ws, interactions, o, folded, true, func(i *Interaction, text string) []searchField {
+			return run(searchKind(ws, interactions, o, folded, true, func(i *Interaction, text string) []searchField {
 				return []searchField{{name: "subject", values: []string{i.Subject}}, {name: "summary", values: []string{text}, long: true}}
-			}, plain)
+			}, hitText(o.Page.View, "summary")))
 		},
 		"task": func() ([]hit, error) {
-			return searchKind(ws, tasks, o, folded, true, func(t *Task, text string) []searchField {
+			return run(searchKind(ws, tasks, o, folded, true, func(t *Task, text string) []searchField {
 				return []searchField{{name: "title", values: []string{t.Title}}, {name: "description", values: []string{text}, long: true}}
-			}, func(v View, _ string) (View, error) { return ws.withTaskDeal(v, cache) })
+			}, func(v View, text string) (View, error) {
+				v, err := ws.withTaskDeal(v, cache)
+				if err != nil {
+					return nil, err
+				}
+				return hitText(o.Page.View, "description")(v, text)
+			}))
 		},
 		"deal": func() ([]hit, error) {
-			return searchKind(ws, deals, o, folded, true, func(d *Deal, text string) []searchField {
+			return run(searchKind(ws, deals, o, folded, true, func(d *Deal, text string) []searchField {
 				return []searchField{{name: "name", values: []string{d.Name}}, {name: "description", values: []string{text}, long: true}}
-			}, plain)
+			}, hitText(o.Page.View, "description")))
 		},
 		"project": func() ([]hit, error) {
-			return searchKind(ws, projects, o, folded, true, func(p *Project, text string) []searchField {
+			return run(searchKind(ws, projects, o, folded, true, func(p *Project, text string) []searchField {
 				return []searchField{{name: "name", values: []string{p.Name}}, {name: "description", values: []string{text}, long: true}}
-			}, plain)
+			}, hitText(o.Page.View, "description")))
 		},
 		"note": func() ([]hit, error) {
-			return searchKind(ws, notes, o, folded, true, func(_ *Note, text string) []searchField {
+			return run(searchKind(ws, notes, o, folded, true, func(_ *Note, text string) []searchField {
 				return []searchField{{name: "text", values: []string{text}, long: true}}
-			}, func(v View, text string) (View, error) { return noteView(v, text, false), nil })
+			}, func(v View, text string) (View, error) { return noteView(v, text, wantsText(o.Page.View, "text")), nil }))
 		},
 	}
 	var hits []hit
@@ -207,6 +246,11 @@ func (ws *Workspace) Search(o SearchOptions) (*ListResult, error) {
 	slices.SortFunc(hits, cmp)
 
 	res := &ListResult{Data: []View{}, Total: len(hits), Filters: shown}
+	if hidden > 0 {
+		res.Warnings = []Warning{{Code: WarnNotLiveHidden,
+			Message: fmt.Sprintf("hits that are not live were left out (%d): add --all to include them", hidden),
+			Details: map[string]any{"count": hidden}}}
+	}
 	start := 0
 	if from != nil {
 		start = len(hits)
@@ -224,6 +268,32 @@ func (ws *Workspace) Search(o SearchOptions) (*ListResult, error) {
 		res.Data = append(res.Data, h.view)
 	}
 	return res, nil
+}
+
+// checkSearchFields refuses a --fields name that none of the searched types
+// defines; a name that only some define widens only their hits.
+func checkSearchFields(types, fields []string) error {
+	names := map[string][]string{
+		"person":       storage.FieldNames(new(Person)),
+		"organization": storage.FieldNames(new(Organization)),
+		"interaction":  slices.Concat(storage.FieldNames(new(Interaction)), interactions.extraFields),
+		"task":         slices.Concat(storage.FieldNames(new(Task)), tasks.extraFields),
+		"deal":         slices.Concat(storage.FieldNames(new(Deal)), deals.extraFields),
+		"project":      slices.Concat(storage.FieldNames(new(Project)), projects.extraFields),
+		"note":         slices.Concat(storage.FieldNames(new(Note)), notes.extraFields),
+	}
+	var allowed []string
+	for _, t := range types {
+		allowed = append(allowed, names[t]...)
+	}
+	slices.Sort(allowed)
+	allowed = slices.Compact(allowed)
+	for _, f := range fields {
+		if !slices.Contains(allowed, f) {
+			return newError(CodeUnknownField, "", "no searched type has a field %q", f).with("field", f).with("allowed", allowed)
+		}
+	}
+	return nil
 }
 
 // matchFields reports whether every word is in some field, and the fields
