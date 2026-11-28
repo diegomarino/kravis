@@ -34,6 +34,7 @@ kravis search <text>
 - An unknown command is `INVALID_VALUE`; `UNKNOWN_FIELD` is only for an unknown flag or field.
 - `kravis --version` prints `{"data":{"version":"0.2.0"}}`, without the leading `v`, and `dev` only when no version is known. The version is the one injected at build time, else the module version from the build info (`go install …@vX.Y.Z`), else `dev`.
 - Data goes to stdout and errors to stderr, so an error is never mixed with data in a pipe.
+- `--verbose`, or `KRAVIS_LOG=debug`, logs what Kravis does on stderr; stdout stays the one JSON object.
 
 Success:
 
@@ -201,7 +202,7 @@ Agents arrive with other products' vocabulary. The CLI guides them back to Kravi
 | `kravis interaction list\|get\|update\|delete` | List filters: `--participant`, `--direction`, `--initiated-by [--with-agents]`, `--channel`, `--from`, `--to`, `--deal`, `--project`. A person's outreach in a month is `--direction outbound --initiated-by <user> --from <first day> --to <last day>` (INTERACTIONS-AC-02). `update` adds and removes deals and projects with `--deal`, `--project`, `--remove-deal` and `--remove-project` |
 | `kravis task create` | `--title`, `--assignee` (a human of the holder), `--agent`, `--due <date>`, `--purpose`, `--interaction <id>` (provenance: `from`), `--project <project>` or `--deal <deal>` (its parent), `--related <id>` (repeatable), `--description-file`. A new task starts in `todo` |
 | `kravis task status <task> <status>` | The only way to change the status |
-| `kravis task list\|get\|update\|delete` | List filters: `--assignee`, `--agent`, `--category`, `--overdue`, `--due-before <date>`, `--project`, `--deal`, `--related-to <id>`, `--all`. `update` adds and removes related records with `--related` and `--remove-related`, and cannot change or clear the parent |
+| `kravis task list\|get\|update\|delete` | List filters: `--assignee`, `--agent`, `--category`, `--overdue`, `--due-before <date>`, `--project`, `--deal`, `--related-to <id>`, `--all`. `update` adds and removes related records with `--related` and `--remove-related`, and cannot change or clear the parent; `--status` is refused with `INVALID_VALUE` and a hint pointing to `task status` |
 
 Behavior to note:
 
