@@ -1,5 +1,7 @@
 package main
 
+import "slices"
+
 // A contract case is one command line, the state it runs in and what it must
 // produce. The list is data on purpose: TestCLIMatchesTheContract runs it
 // against docs/cli.md, and the golden snapshots of task 09 reuse it.
@@ -181,6 +183,7 @@ func contractCases() []contractCase {
 	add(projectCases()...)
 	add(noteCases()...)
 	add(listCases()...)
+	add(widenedCases(cs)...)
 	return cs
 }
 
@@ -443,4 +446,34 @@ func listCases() []contractCase {
 		)
 	}
 	return cs
+}
+
+// widenedCases gives every command its --fields, --full and --all-holders
+// flags: for each command and each of them it takes the first successful case
+// of the command that does not use the flag and adds it.
+func widenedCases(cs []contractCase) []contractCase {
+	tree := commandTree()
+	done := map[string]bool{}
+	var out []contractCase
+	for _, c := range cs {
+		path, ok := commandOf(tree, c.Args)
+		if !ok || c.Code != "" || len(c.Findings) > 0 || c.State != baseDunder {
+			continue
+		}
+		used := flagsOf(c.Args)
+		for _, f := range []string{"--fields", "--full", "--all-holders"} {
+			key := path + " " + f
+			if done[key] || slices.Contains(used, f) || !slices.Contains(tree[path], f) {
+				continue
+			}
+			done[key] = true
+			v := c
+			v.Args = append(slices.Clone(c.Args), f)
+			if f == "--fields" {
+				v.Args = append(v.Args, "live")
+			}
+			out = append(out, v)
+		}
+	}
+	return out
 }

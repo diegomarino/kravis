@@ -13,6 +13,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // This file holds the checks of the contract test: the cases are in
@@ -142,9 +145,9 @@ func flagsOf(args []string) []string {
 	return out
 }
 
-// universalFlags belong to nearly every command, so a case that uses one
+// universalFlags are the persistent flags of the root: a case that uses one
 // anywhere covers it; every other flag is covered per command.
-var universalFlags = []string{"--actor", "--output", "--verbose", "--fields", "--full", "--all-holders"}
+var universalFlags = []string{"--actor", "--output", "--verbose"}
 
 // TestContractCasesCoverTheCommandTree fails naming every command, and every
 // flag of a command, that no case exercises.
@@ -618,3 +621,32 @@ func flagValue(args []string, flag string) string {
 }
 
 var _ = json.Marshal
+
+// commandTree is the tree of runnable commands with their flags, as the hidden
+// tree command prints it, built without running anything.
+func commandTree() map[string][]string {
+	tree := map[string][]string{}
+	var walk func(c *cobra.Command)
+	walk = func(c *cobra.Command) {
+		if c.Hidden {
+			return
+		}
+		if c.Runnable() {
+			path := strings.TrimSpace(strings.TrimPrefix(c.CommandPath(), c.Root().Name()))
+			flags := []string{}
+			add := func(f *pflag.Flag) {
+				if !f.Hidden && !slices.Contains(flags, "--"+f.Name) {
+					flags = append(flags, "--"+f.Name)
+				}
+			}
+			c.LocalFlags().VisitAll(add)
+			c.InheritedFlags().VisitAll(add)
+			tree[path] = flags
+		}
+		for _, sub := range c.Commands() {
+			walk(sub)
+		}
+	}
+	walk(newApp(defaultDeps()).root())
+	return tree
+}

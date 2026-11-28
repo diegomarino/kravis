@@ -291,6 +291,9 @@ var contractStates = map[string]stateDef{
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = os.Chmod(p, 0o600) })
+		if _, err := os.ReadFile(p); err == nil {
+			t.Skip("the file is still readable after chmod 000 (running as root, or a file system that ignores modes): no unreadable record to find")
+		}
 	}},
 	"damaged: malformed record": {base: baseDunder, change: func(t *testing.T, e *env, _ vars) {
 		writeFile(t, e, "records/people/pe_garbage.json", "this is not a record")
